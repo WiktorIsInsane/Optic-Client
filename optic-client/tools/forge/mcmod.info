@@ -1,0 +1,10 @@
+[
+  {
+    "modid": "optic",
+    "name": "Optic",
+    "description": "Optic 1.0.0 on Minecraft 1.8.9 Forge + OptiFine.",
+    "version": "1.0.0",
+    "mcversion": "1.8.9",
+    "authorList": ["Wiktor"]
+  }
+]

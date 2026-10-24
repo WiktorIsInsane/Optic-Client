@@ -1,0 +1,43 @@
+appId: com.optic.launcher
+productName: Optic
+directories:
+  output: release
+files:
+  - dist/**/*
+  - package.json
+  - node_modules/**/*
+asar: true
+extraResources:
+  - from: build/icon.png
+    to: icon.png
+  - from: resources/mc-pvp-java17
+    to: mc-pvp-java17
+  - from: resources/zulu-25
+    to: zulu-25
+  - from: resources/optic
+    to: optic
+  - from: resources/server-icons
+    to: server-icons
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: Optic.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Optic
+  installerSidebar: null
+publish:
+  provider: github
+  owner: WiktorDvD
+  repo: Atlas-Client
+  releaseType: release
+mac:
+  target: dmg
+linux:
+  target: AppImage

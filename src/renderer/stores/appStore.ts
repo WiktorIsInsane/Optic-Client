@@ -1,0 +1,82 @@
+import { create } from 'zustand'
+import type { AppSnapshot, ConsoleLine, DownloadProgress, MicrosoftLoginState, UpdaterState } from '@shared/types'
+
+interface Toast {
+  id: number
+  text: string
+}
+
+export type AppPage = 'home' | 'play' | 'instances' | 'servers' | 'skins' | 'settings' | 'console'
+
+interface AppState {
+  snap: AppSnapshot | null
+  page: AppPage
+  loading: boolean
+  toasts: Toast[]
+  progress: DownloadProgress | null
+  login: MicrosoftLoginState | null
+  consoleLines: ConsoleLine[]
+  accountMenuNonce: number
+  friendsOpen: boolean
+  setPage: (page: AppPage) => void
+  toast: (text: string) => void
+  refresh: () => Promise<void>
+  pushConsole: (line: ConsoleLine) => void
+  applyUpdater: (updater: UpdaterState) => void
+  openAccountMenu: () => void
+  setFriendsOpen: (open: boolean) => void
+  toggleFriends: () => void
+}
+
+let toastId = 1
+let seenUpdaterSeq = 0
+let pendingUpdater: UpdaterState | null = null
+
+export const useApp = create<AppState>((set, get) => ({
+  snap: null,
+  page: 'home',
+  loading: true,
+  toasts: [],
+  progress: null,
+  login: null,
+  consoleLines: [],
+  accountMenuNonce: 0,
+  friendsOpen: false,
+  setPage: (page) => set({ page }),
+  openAccountMenu: () => set({ accountMenuNonce: get().accountMenuNonce + 1 }),
+  setFriendsOpen: (open) => set({ friendsOpen: open }),
+  toggleFriends: () => set({ friendsOpen: !get().friendsOpen }),
+  toast: (text) => {
+    const id = toastId++
+    set({ toasts: [...get().toasts, { id, text }] })
+    setTimeout(() => set({ toasts: get().toasts.filter((item) => item.id !== id) }), 3200)
+  },
+  refresh: async () => {
+    try {
+      const snap = await window.lunar.snapshot()
+      document.documentElement.dataset.theme = snap.settings.theme
+      document.documentElement.style.setProperty('--accent', snap.settings.accent)
+      set((current) => {
+        let updater = snap.updater
+        if (pendingUpdater && pendingUpdater.seq > updater.seq) updater = pendingUpdater
+        if (current.snap && current.snap.updater.seq > updater.seq) updater = current.snap.updater
+        seenUpdaterSeq = Math.max(seenUpdaterSeq, updater.seq)
+        pendingUpdater = null
+        return { snap: { ...snap, updater }, loading: false }
+      })
+    } catch (error) {
+      console.error('[Optic] snapshot failed', error)
+      get().toast(error instanceof Error ? error.message : 'Failed to load launcher state')
+      set({ loading: false })
+    }
+  },
+  applyUpdater: (updater) => {
+    if (updater.seq <= seenUpdaterSeq) return
+    seenUpdaterSeq = updater.seq
+    pendingUpdater = updater
+    const snap = get().snap
+    if (snap) set({ snap: { ...snap, updater } })
+    if (updater.notify && updater.status) get().toast(updater.status)
+  },
+  pushConsole: (line) => set({ consoleLines: [...get().consoleLines.slice(-400), line] })
+}))

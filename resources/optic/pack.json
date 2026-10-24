@@ -1,0 +1,14 @@
+{
+  "id": "optic",
+  "name": "Optic",
+  "version": "1.0.0",
+  "builtAt": "2026-10-13T13:21:06.738Z",
+  "includes": [
+    "Butter AttackScheduler (absolute 50ms grid)",
+    "Sticky WASD + mods menu last-mod memory",
+    "Soft 2-tick visual KB / hurt-cam",
+    "Lunar Icons (Owner/Partner/User)",
+    "PvP Optimizer defaults (freshRaycast)"
+  ],
+  "menuBrand": "optic"
+}
