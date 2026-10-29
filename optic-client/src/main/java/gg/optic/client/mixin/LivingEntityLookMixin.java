@@ -1,6 +1,7 @@
 package gg.optic.client.mixin;
 
 import gg.optic.client.OpticClient;
+import gg.optic.client.render.OpticSwing;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.ClientPlayerEntity;
@@ -31,5 +32,13 @@ public abstract class LivingEntityLookMixin {
 		float pitchCos = -MathHelper.cos(-pitch * 0.017453292F);
 		float pitchSin = MathHelper.sin(-pitch * 0.017453292F);
 		cir.setReturnValue(new Vec3d(yawSin * pitchCos, pitchSin, yawCos * pitchCos));
+	}
+
+	/** Instant Swing: the local arm follows the frame-started swing. Drawing only. */
+	@Inject(method = "getHandSwingProgress(F)F", at = @At("HEAD"), cancellable = true)
+	private void optic$instantSwing(float tickDelta, CallbackInfoReturnable<Float> cir) {
+		if (!((Object) this instanceof ClientPlayerEntity)) return;
+		float progress = OpticSwing.progress((LivingEntity) (Object) this);
+		if (progress >= 0.0F) cir.setReturnValue(progress);
 	}
 }

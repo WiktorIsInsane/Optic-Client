@@ -28,6 +28,7 @@ public abstract class GameRendererMixin {
 		MinecraftClient client = MinecraftClient.getInstance();
 		OpticFreeLook.beforeRender(client);
 		OpticFrame.look(client);
+		gg.optic.client.render.OpticSwing.frame(client);
 	}
 
 	@Redirect(

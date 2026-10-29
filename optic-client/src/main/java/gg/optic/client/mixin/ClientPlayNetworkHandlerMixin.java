@@ -26,7 +26,8 @@ public class ClientPlayNetworkHandlerMixin {
 	)
 	private void optic$filterHitParticles(ParticleManager manager, Entity entity, ParticleType type) {
 		OpticConfig c = OpticClient.get().config();
-		if (c.particles && type == ParticleType.CRIT && !c.showCriticalHitParticles) {
+		// Off hides both kinds of hit particles the server sends: plain and enchanted crits.
+		if (c.particles && !c.showCriticalHitParticles && (type == ParticleType.CRIT || type == ParticleType.CRIT_MAGIC)) {
 			return;
 		}
 		manager.addEmitter(entity, type);
