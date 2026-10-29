@@ -46,6 +46,13 @@ public abstract class TitleScreenMixin extends Screen {
 		}
 	}
 
+	@Inject(method = "keyPressed(CI)V", at = @At("HEAD"), cancellable = true)
+	private void optic$accountKey(char typed, int key, CallbackInfo ci) {
+		if (optic$accounts.keyPressed(client, typed, key)) {
+			ci.cancel();
+		}
+	}
+
 	/** Strip Minecraft Realms from the main menu. */
 	private void removeRealmsButton() {
 		java.util.Iterator<ButtonWidget> it = buttons.iterator();

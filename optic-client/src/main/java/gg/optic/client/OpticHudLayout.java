@@ -21,7 +21,7 @@ public final class OpticHudLayout {
 
 	public static int keystrokesBaseY(OpticConfig c, MinecraftClient client) {
 		if (c.keystrokesY >= 0) return c.keystrokesY;
-		return new Window(client).getHeight() / 2 - sx(20.0F, c.keystrokesScale);
+		return new Window(client).getHeight() / 2 - gg.optic.client.hud.OpticKeystrokes.height(c) / 2;
 	}
 
 	public static int keyX(OpticConfig c, MinecraftClient client, int index) {
@@ -42,22 +42,12 @@ public final class OpticHudLayout {
 	}
 
 	public static int[] keystrokesBounds(OpticConfig c, MinecraftClient client) {
-		int minX = Integer.MAX_VALUE;
-		int minY = Integer.MAX_VALUE;
-		int maxX = Integer.MIN_VALUE;
-		int maxY = Integer.MIN_VALUE;
-		int count = c.keystrokesShowMouse ? 6 : 4;
-		for (int i = 0; i < count; i++) {
-			int x = keyX(c, client, i);
-			int y = keyY(c, client, i);
-			int w = keyW(c, i);
-			int h = keyH(c, i);
-			minX = Math.min(minX, x);
-			minY = Math.min(minY, y);
-			maxX = Math.max(maxX, x + w);
-			maxY = Math.max(maxY, y + h);
-		}
-		return new int[] { minX, minY, maxX - minX, maxY - minY };
+		return new int[] {
+			c.keystrokesX,
+			keystrokesBaseY(c, client),
+			gg.optic.client.hud.OpticKeystrokes.width(c),
+			gg.optic.client.hud.OpticKeystrokes.height(c)
+		};
 	}
 
 	public static float fontSize(float scale) {

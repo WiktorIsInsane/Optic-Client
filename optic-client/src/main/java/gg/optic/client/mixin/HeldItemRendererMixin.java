@@ -105,9 +105,22 @@ public abstract class HeldItemRendererMixin {
 	)
 	private void optic$oldBlockTransform(float tickDelta, CallbackInfo ci) {
 		OpticConfig c = OpticClient.get().config();
-		if (!c.anim(c.animBlockHit) && !c.anim(c.animItemHold)) return;
+		if (!c.anim(c.animItemHold) || this.mainHand == null) return;
+		if (this.client.player != null && this.client.player.getItemUseTicks() > 0) return;
 		GlStateManager.scale(0.83F, 0.88F, 0.85F);
 		GlStateManager.translate(-0.3F, 0.1F, 0.0F);
+	}
+
+	/** 1.7 sword block: across the body, and the swing from the same hand still plays. */
+	@Inject(method = "applySwordBlockTransformation()V", at = @At("HEAD"), cancellable = true)
+	private void optic$sevenBlock(CallbackInfo ci) {
+		OpticConfig c = OpticClient.get().config();
+		if (!c.anim(c.animBlockHit)) return;
+		ci.cancel();
+		GlStateManager.translate(-0.5F, 0.2F, 0.0F);
+		GlStateManager.rotate(30.0F, 0.0F, 1.0F, 0.0F);
+		GlStateManager.rotate(-80.0F, 1.0F, 0.0F, 0.0F);
+		GlStateManager.rotate(60.0F, 0.0F, 1.0F, 0.0F);
 	}
 
 	@Inject(

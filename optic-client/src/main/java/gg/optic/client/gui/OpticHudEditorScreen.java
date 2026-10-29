@@ -5,6 +5,9 @@ import gg.optic.client.OpticConfig;
 import gg.optic.client.OpticFrame;
 import gg.optic.client.OpticHudLayout;
 import gg.optic.client.OpticUiFont;
+import gg.optic.client.hud.OpticHud;
+import gg.optic.client.hud.OpticPotions;
+import gg.optic.client.hud.OpticTitles;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.network.PlayerListEntry;
@@ -46,6 +49,9 @@ public final class OpticHudEditorScreen extends Screen {
 	private int toolY;
 	private int toolH = 18;
 	private int toolW = 72;
+	private boolean snapGuideX;
+	private boolean snapGuideY;
+	private static final int SNAP = 6;
 
 	public OpticHudEditorScreen(Screen parent) {
 		this.parent = parent;
@@ -73,6 +79,8 @@ public final class OpticHudEditorScreen extends Screen {
 		if (c.cps) items.add(HudItem.text("CPS", OpticModScreen.MODULE_CPS));
 		if (c.ping) items.add(HudItem.text("PING", OpticModScreen.MODULE_PING));
 		if (c.coordinates) items.add(HudItem.text("XYZ", OpticModScreen.MODULE_COORDINATES));
+		if (c.potions) items.add(HudItem.text("POTIONS", OpticModScreen.MODULE_POTIONS));
+		if (c.titles) items.add(HudItem.text("TITLES", OpticModScreen.MODULE_TITLES));
 		if (c.toggleSprint && c.toggleSprintShowHud) {
 			items.add(HudItem.text("SPRINT", OpticModScreen.MODULE_TOGGLE_SPRINT));
 		}
@@ -109,6 +117,12 @@ public final class OpticHudEditorScreen extends Screen {
 				item.y = OpticHudLayout.hotbarY(c, window) - 2;
 				item.w = OpticHudLayout.hotbarDrawW(c) + 4;
 				item.h = OpticHudLayout.hotbarDrawH(c) + 4;
+			} else if ("FPS".equals(item.id) || "CPS".equals(item.id) || "PING".equals(item.id) || "XYZ".equals(item.id) || "POTIONS".equals(item.id) || "TITLES".equals(item.id)) {
+				int[] size = elementSize(item.id, c);
+				item.x = posX(item.id, c) - 2;
+				item.y = posY(item.id, c) - 2;
+				item.w = size[0] + 4;
+				item.h = size[1] + 4;
 			} else {
 				String preview = previewText(item.id, c);
 				float scale = scaleOf(item.id, c);
@@ -125,6 +139,16 @@ public final class OpticHudEditorScreen extends Screen {
 			item.gearX = item.x + item.w + 3;
 			item.gearY = item.y;
 		}
+	}
+
+	private int[] elementSize(String id, OpticConfig c) {
+		if ("FPS".equals(id)) return OpticHud.fpsSize(client, c);
+		if ("CPS".equals(id)) return OpticHud.cpsSize(client, c);
+		if ("PING".equals(id)) return OpticHud.pingSize(client, c);
+		if ("XYZ".equals(id)) return OpticHud.coordinatesSize(client, c);
+		if ("POTIONS".equals(id)) return OpticPotions.size(client, c, true);
+		if ("TITLES".equals(id)) return OpticTitles.editorSize(client, c);
+		return new int[] { 40, 10 };
 	}
 
 	private String previewText(String id, OpticConfig c) {
@@ -182,6 +206,8 @@ public final class OpticHudEditorScreen extends Screen {
 		if ("PING".equals(id)) return c.pingScale;
 		if ("XYZ".equals(id)) return c.coordinatesScale;
 		if ("SPRINT".equals(id)) return c.toggleSprintScale;
+		if ("POTIONS".equals(id)) return c.potionsScale;
+		if ("TITLES".equals(id)) return c.titlesScale;
 		if ("KEYSTROKES".equals(id)) return c.keystrokesScale;
 		if ("HOTBAR".equals(id)) return c.hotbarScale;
 		return 1.0F;
@@ -195,6 +221,8 @@ public final class OpticHudEditorScreen extends Screen {
 		else if ("PING".equals(id)) c.pingScale = scale;
 		else if ("XYZ".equals(id)) c.coordinatesScale = scale;
 		else if ("SPRINT".equals(id)) c.toggleSprintScale = scale;
+		else if ("POTIONS".equals(id)) c.potionsScale = scale;
+		else if ("TITLES".equals(id)) c.titlesScale = scale;
 		else if ("KEYSTROKES".equals(id)) c.keystrokesScale = scale;
 		else if ("HOTBAR".equals(id)) c.hotbarScale = scale;
 	}
@@ -205,6 +233,11 @@ public final class OpticHudEditorScreen extends Screen {
 		if ("PING".equals(id)) return c.pingX;
 		if ("XYZ".equals(id)) return c.coordinatesX;
 		if ("SPRINT".equals(id)) return c.toggleSprintX;
+		if ("POTIONS".equals(id)) {
+			int width = OpticPotions.size(client, c, true)[0];
+			return OpticPotions.anchorX(c, client, width);
+		}
+		if ("TITLES".equals(id)) return OpticTitles.editorX(client, c, width);
 		if ("SCOREBOARD".equals(id)) {
 			return OpticHudLayout.scoreboardEditBounds(c, client)[0];
 		}
@@ -220,6 +253,8 @@ public final class OpticHudEditorScreen extends Screen {
 		if ("PING".equals(id)) return c.pingY;
 		if ("XYZ".equals(id)) return c.coordinatesY;
 		if ("SPRINT".equals(id)) return c.toggleSprintY;
+		if ("POTIONS".equals(id)) return OpticPotions.anchorY(c);
+		if ("TITLES".equals(id)) return OpticTitles.editorY(c, height);
 		if ("SCOREBOARD".equals(id)) {
 			return OpticHudLayout.scoreboardEditBounds(c, client)[1];
 		}
@@ -236,6 +271,12 @@ public final class OpticHudEditorScreen extends Screen {
 		else if ("PING".equals(id)) { c.pingX = x; c.pingY = y; }
 		else if ("XYZ".equals(id)) { c.coordinatesX = x; c.coordinatesY = y; }
 		else if ("SPRINT".equals(id)) { c.toggleSprintX = x; c.toggleSprintY = y; }
+		else if ("POTIONS".equals(id)) { c.potionsX = x; c.potionsY = y; }
+		else if ("TITLES".equals(id)) {
+			c.titlesCentered = false;
+			c.titlesX = x;
+			c.titlesY = y;
+		}
 		else if ("KEYSTROKES".equals(id)) {
 			c.keystrokesX = x;
 			c.keystrokesY = y;
@@ -272,6 +313,8 @@ public final class OpticHudEditorScreen extends Screen {
 				refreshBounds();
 			}
 		} else {
+			snapGuideX = false;
+			snapGuideY = false;
 			refreshBounds();
 		}
 
@@ -279,7 +322,9 @@ public final class OpticHudEditorScreen extends Screen {
 		try {
 		fill(0, 0, width, height, 0x44000000);
 		OpticUiFont.drawSized(client, "EDIT GUI", 10, 10, ACCENT, 12.0F);
-		OpticUiFont.drawSized(client, "Drag HUD · corner resize · gear opens config", 10, 26, 0xFFB0B8B0, 8.0F);
+		OpticUiFont.drawSized(client, "Drag HUD · center lines lock · corner resize", 10, 26, 0xFFB0B8B0, 8.0F);
+		if (snapGuideX) fill(width / 2, 0, width / 2 + 1, height, 0xEEFFFFFF);
+		if (snapGuideY) fill(0, height / 2, width, height / 2 + 1, 0xEEFFFFFF);
 
 		for (HudItem item : items) {
 			boolean active = item == selected || item == dragging;
@@ -339,6 +384,9 @@ public final class OpticHudEditorScreen extends Screen {
 			if (c.keystrokesLockKeys || dragKeyIndex < 0) {
 				int nx = clamp(mouseX - dragOffX, 0, width - 20);
 				int ny = clamp(mouseY - dragOffY, 0, height - 20);
+				int[] snapped = snapOrigin(nx, ny, dragging.w, dragging.h);
+				nx = snapped[0];
+				ny = snapped[1];
 				int dx = nx - groupStartX;
 				int dy = ny - groupStartY;
 				c.keystrokesX += dx;
@@ -346,6 +394,8 @@ public final class OpticHudEditorScreen extends Screen {
 				groupStartX = nx;
 				groupStartY = ny;
 			} else {
+				snapGuideX = false;
+				snapGuideY = false;
 				float scale = Math.max(0.01F, c.keystrokesScale);
 				int screenX = clamp(mouseX - dragOffX, 0, width - 10);
 				int screenY = clamp(mouseY - dragOffY, 0, height - 10);
@@ -357,7 +407,27 @@ public final class OpticHudEditorScreen extends Screen {
 		}
 		int nx = clamp(mouseX - dragOffX, 0, width - 10);
 		int ny = clamp(mouseY - dragOffY, 0, height - 10);
-		setPos(dragging.id, nx, ny);
+		int[] snapped = snapOrigin(nx, ny, dragging.w, dragging.h);
+		setPos(dragging.id, snapped[0], snapped[1]);
+	}
+
+	/** Locks the widget center onto the screen's horizontal, vertical, or both midlines. */
+	private int[] snapOrigin(int nx, int ny, int boxW, int boxH) {
+		snapGuideX = false;
+		snapGuideY = false;
+		int left = nx - 2;
+		int top = ny - 2;
+		int midX = width / 2;
+		int midY = height / 2;
+		if (Math.abs(left + boxW / 2 - midX) <= SNAP) {
+			left = midX - boxW / 2;
+			snapGuideX = true;
+		}
+		if (Math.abs(top + boxH / 2 - midY) <= SNAP) {
+			top = midY - boxH / 2;
+			snapGuideY = true;
+		}
+		return new int[] { left + 2, top + 2 };
 	}
 
 	private void finishInteract() {
@@ -367,6 +437,8 @@ public final class OpticHudEditorScreen extends Screen {
 		dragging = null;
 		resizing = false;
 		dragKeyIndex = -1;
+		snapGuideX = false;
+		snapGuideY = false;
 	}
 
 	private void centerSelected(boolean horizontal, boolean vertical) {

@@ -8,4 +8,13 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface OpticGameRendererAccess {
 	@Accessor("shadersEnabled")
 	boolean optic$shadersEnabled();
+
+	@Accessor("thirdPersonDistance")
+	float optic$getThirdPersonDistance();
+
+	@Accessor("thirdPersonDistance")
+	void optic$setThirdPersonDistance(float distance);
+
+	@Accessor("lastThirdPersonDistance")
+	void optic$setLastThirdPersonDistance(float distance);
 }

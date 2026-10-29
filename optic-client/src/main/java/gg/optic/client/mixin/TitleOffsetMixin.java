@@ -27,6 +27,9 @@ public class TitleOffsetMixin {
 	private int optic$moveTitles(TextRenderer renderer, String text, float x, float y, int color, boolean shadow) {
 		OpticConfig c = OpticClient.get().config();
 		// The switch stores true as "1.7". Movable titles are the 1.8 side (false).
+		if (c.titles && text != null && (text.equals(this.title) || text.equals(this.subtitle))) {
+			return 0;
+		}
 		if (c.animations && !c.animMovableTitles && text != null && (text.equals(this.title) || text.equals(this.subtitle))) {
 			x += c.titleOffsetX;
 			y += c.titleOffsetY;

@@ -83,6 +83,13 @@ public final class OpticUiFont {
 	}
 
 	/** Menu text: one string, tight padding, light supersample so it stays sharp. */
+	/** Crisp label, centered on both axes. One texel per screen pixel so the letters stay sharp. */
+	public static void drawCrispCentered(MinecraftClient client, String text, int centerX, int centerY, int argb, float guiSize) {
+		Label label = crispLabel(client, text, argb, guiSize);
+		if (label == null) return;
+		label.draw(client, centerX - label.drawW / 2, centerY - label.drawH / 2);
+	}
+
 	public static void drawSharp(MinecraftClient client, String text, int x, int y, int argb, float guiSize) {
 		Label label = sharpLabel(client, text, argb, guiSize);
 		if (label != null) label.draw(client, x, y);
@@ -96,6 +103,60 @@ public final class OpticUiFont {
 	public static int heightSharp(MinecraftClient client, String text, int argb, float guiSize) {
 		Label label = sharpLabel(client, text, argb, guiSize);
 		return label == null ? Math.round(guiSize) : label.drawH;
+	}
+
+	private static Label crispLabel(MinecraftClient client, String text, int argb, float guiSize) {
+		if (text == null || text.isEmpty()) return null;
+		ensureScale(client);
+		String key = "crisp|" + bakedScale + "|" + guiSize + "|" + Integer.toHexString(argb) + "|" + text;
+		Label cached = CACHE.get(key);
+		if (cached != null) return cached;
+		cached = bakeCrisp(client, text, new Color(argb, true), bakedScale, guiSize, "optic_crisp_" + CACHE.size());
+		if (cached != null) CACHE.put(key, cached);
+		return cached;
+	}
+
+	private static Label bakeCrisp(MinecraftClient client, String text, Color color, int sf, float guiSize, String name) {
+		return rasterCrisp(client, text, color, sf, guiSize, Font.PLAIN, name);
+	}
+
+	/**
+	 * Rasterize at the window scale so each font texel lands on one screen pixel.
+	 * Downscaling a huge texture was what made the letters look soft.
+	 */
+	private static Label rasterCrisp(MinecraftClient client, String text, Color color, int sf, float guiSize, int style, String name) {
+		try {
+			int ss = Math.max(2, sf);
+			float px = guiSize * ss;
+			Font font = root().deriveFont(style, px);
+			FontRenderContext frc = new FontRenderContext(IDENTITY, true, false);
+			TextLayout layout = new TextLayout(text, font, frc);
+
+			int pad = Math.max(1, ss / 6);
+			int texW = Math.max(1, (int) Math.ceil(layout.getAdvance()) + pad * 2);
+			int texH = Math.max(1, (int) Math.ceil(layout.getAscent() + layout.getDescent()) + pad * 2);
+			texW = ((texW + ss - 1) / ss) * ss;
+			texH = ((texH + ss - 1) / ss) * ss;
+
+			BufferedImage image = new BufferedImage(texW, texH, BufferedImage.TYPE_INT_ARGB);
+			Graphics2D g = image.createGraphics();
+			g.setTransform(IDENTITY);
+			g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_GASP);
+			g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
+			g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g.setColor(color);
+			float baseline = (texH - (layout.getAscent() + layout.getDescent())) * 0.5F + layout.getAscent();
+			float left = (texW - layout.getAdvance()) * 0.5F;
+			layout.draw(g, left, baseline);
+			g.dispose();
+
+			Identifier id = upload(client, image, name);
+			return new Label(id, texW, texH, Math.max(1, texW / ss), Math.max(1, texH / ss), true);
+		} catch (Exception e) {
+			System.err.println("[Optic] Text bake failed: " + e.getMessage());
+			return null;
+		}
 	}
 
 	private static Label sharpLabel(MinecraftClient client, String text, int argb, float guiSize) {
@@ -206,76 +267,11 @@ public final class OpticUiFont {
 	}
 
 	private static Label bake(MinecraftClient client, String text, Color color, int sf, float guiSize, int style, String name) {
-		try {
-			// Several texels per screen pixel, then scaled down with linear filtering.
-			int ss = Math.max(12, Math.min(24, sf * 8));
-			float px = guiSize * ss;
-			Font font = root().deriveFont(style, px);
-			FontRenderContext frc = new FontRenderContext(IDENTITY, true, true);
-			TextLayout layout = new TextLayout(text, font, frc);
-
-			int pad = Math.max(2, ss / 2);
-			int texW = Math.max(1, (int) Math.ceil(layout.getAdvance()) + pad * 2);
-			int texH = Math.max(1, (int) Math.ceil(layout.getAscent() + layout.getDescent()) + pad * 2);
-			texW = ((texW + ss - 1) / ss) * ss;
-			texH = ((texH + ss - 1) / ss) * ss;
-
-			BufferedImage image = new BufferedImage(texW, texH, BufferedImage.TYPE_INT_ARGB);
-			Graphics2D g = image.createGraphics();
-			g.setTransform(IDENTITY);
-			g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-			g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-			g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-			g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-
-			float baseline = pad + layout.getAscent();
-			g.setColor(color);
-			layout.draw(g, (float) pad, baseline);
-			g.dispose();
-
-			Identifier id = upload(client, image, name);
-
-			int drawW = Math.max(1, Math.round(texW / (float) ss));
-			int drawH = Math.max(1, Math.round(texH / (float) ss));
-			return new Label(id, texW, texH, drawW, drawH);
-		} catch (Exception e) {
-			System.err.println("[Optic] Footer bake failed: " + e.getMessage());
-			e.printStackTrace();
-			return null;
-		}
+		return rasterCrisp(client, text, color, sf, guiSize, style, name);
 	}
 
 	private static Label bakeSharp(MinecraftClient client, String text, Color color, int sf, float guiSize, String name) {
-		try {
-			int ss = Math.max(8, Math.min(24, sf * 6));
-			float px = guiSize * ss;
-			Font font = root().deriveFont(Font.PLAIN, px);
-			FontRenderContext frc = new FontRenderContext(IDENTITY, true, false);
-			TextLayout layout = new TextLayout(text, font, frc);
-
-			int pad = Math.max(1, ss / 4);
-			int texW = Math.max(1, (int) Math.ceil(layout.getAdvance()) + pad * 2);
-			int texH = Math.max(1, (int) Math.ceil(layout.getAscent() + layout.getDescent()) + pad * 2);
-
-			BufferedImage image = new BufferedImage(texW, texH, BufferedImage.TYPE_INT_ARGB);
-			Graphics2D g = image.createGraphics();
-			g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-			g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_OFF);
-			g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-			g.setColor(color);
-			layout.draw(g, (float) pad, pad + layout.getAscent());
-			g.dispose();
-
-			Identifier id = upload(client, image, name);
-			int drawW = Math.max(1, Math.round(texW / (float) ss));
-			int drawH = Math.max(1, Math.round(texH / (float) ss));
-			return new Label(id, texW, texH, drawW, drawH);
-		} catch (Exception e) {
-			System.err.println("[Optic] Sharp text bake failed: " + e.getMessage());
-			return null;
-		}
+		return rasterCrisp(client, text, color, sf, guiSize, Font.PLAIN, name);
 	}
 
 	private static Label bakeEmoji(MinecraftClient client, String emoji, int sf, float guiSize, String name) {
@@ -317,11 +313,89 @@ public final class OpticUiFont {
 		}
 	}
 
+	/** Two crossed swords, centered the same way as the favorite star. */
+	public static void drawSwordsCentered(MinecraftClient client, int centerX, int centerY, float guiSize, int argb) {
+		Label label = swordsLabel(client, guiSize, argb);
+		if (label == null) return;
+		label.draw(client, centerX - label.drawW / 2, centerY - label.drawH / 2);
+	}
+
 	/** Hi-res favorite star (outline or filled), baked ≥128px then scaled down. */
 	public static void drawStarCentered(MinecraftClient client, int centerX, int centerY, float guiSize, int argb, boolean filled) {
 		Label label = starLabel(client, guiSize, argb, filled);
 		if (label == null) return;
 		label.draw(client, centerX - label.drawW / 2, centerY - label.drawH / 2);
+	}
+
+	private static Label swordsLabel(MinecraftClient client, float guiSize, int argb) {
+		ensureScale(client);
+		String key = "swords|" + bakedScale + "|" + guiSize + "|" + Integer.toHexString(argb);
+		Label cached = CACHE.get(key);
+		if (cached != null) return cached;
+		cached = bakeSwords(client, bakedScale, guiSize, argb, "optic_swords_" + CACHE.size());
+		if (cached != null) CACHE.put(key, cached);
+		return cached;
+	}
+
+	private static Label bakeSwords(MinecraftClient client, int sf, float guiSize, int argb, String name) {
+		try {
+			int draw = Math.max(8, Math.round(guiSize));
+			int bakeSf = Math.max(8, sf * 4);
+			int cell = Math.max(128, draw * bakeSf);
+			BufferedImage image = new BufferedImage(cell, cell, BufferedImage.TYPE_INT_ARGB);
+			Graphics2D g = image.createGraphics();
+			g.setTransform(IDENTITY);
+			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+			g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+			Color color = new Color(argb, true);
+			g.setColor(color);
+			float pad = cell * 0.16F;
+			float thick = cell * 0.075F;
+			drawSword(g, pad, cell - pad, cell - pad, pad, thick);
+			drawSword(g, cell - pad, cell - pad, pad, pad, thick);
+			g.dispose();
+			Identifier id = upload(client, image, name);
+			return new Label(id, cell, cell, draw, draw);
+		} catch (Exception e) {
+			System.err.println("[Optic] Swords bake failed: " + e.getMessage());
+			return null;
+		}
+	}
+
+	/** Handle at (x0, y0), tip at (x1, y1). */
+	private static void drawSword(Graphics2D g, float x0, float y0, float x1, float y1, float thick) {
+		float dx = x1 - x0;
+		float dy = y1 - y0;
+		float len = (float) Math.sqrt(dx * dx + dy * dy);
+		if (len < 1.0F) return;
+		float ux = dx / len;
+		float uy = dy / len;
+		float px = -uy;
+		float py = ux;
+		float gx = x0 + ux * len * 0.30F;
+		float gy = y0 + uy * len * 0.30F;
+		float bladeX = x0 + ux * len * 0.36F;
+		float bladeY = y0 + uy * len * 0.36F;
+		float tipX = x1;
+		float tipY = y1;
+
+		g.setStroke(new java.awt.BasicStroke(thick * 0.48F, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
+		g.draw(new java.awt.geom.Line2D.Float(x0, y0, gx, gy));
+
+		float guard = thick * 1.55F;
+		g.setStroke(new java.awt.BasicStroke(thick * 0.62F, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
+		g.draw(new java.awt.geom.Line2D.Float(gx - px * guard, gy - py * guard, gx + px * guard, gy + py * guard));
+
+		java.awt.geom.Path2D.Float blade = new java.awt.geom.Path2D.Float();
+		float half = thick * 0.42F;
+		float baseX = bladeX;
+		float baseY = bladeY;
+		blade.moveTo(baseX + px * half, baseY + py * half);
+		blade.lineTo(baseX - px * half, baseY - py * half);
+		blade.lineTo(tipX, tipY);
+		blade.closePath();
+		g.fill(blade);
 	}
 
 	private static Label starLabel(MinecraftClient client, float guiSize, int argb, boolean filled) {
@@ -403,17 +477,24 @@ public final class OpticUiFont {
 		final int texH;
 		final int drawW;
 		final int drawH;
+		final boolean crisp;
 
 		Label(Identifier id, int texW, int texH, int drawW, int drawH) {
+			this(id, texW, texH, drawW, drawH, false);
+		}
+
+		Label(Identifier id, int texW, int texH, int drawW, int drawH, boolean crisp) {
 			this.id = id;
 			this.texW = texW;
 			this.texH = texH;
 			this.drawW = drawW;
 			this.drawH = drawH;
+			this.crisp = crisp;
 		}
 
 		void draw(MinecraftClient client, int x, int y) {
-			OpticSmooth.bind(client, id);
+			if (crisp) OpticSmooth.bindNearest(client, id);
+			else OpticSmooth.bind(client, id);
 			// UV 0–1 over the full hi-res atlas, scaled into drawW×drawH GUI pixels.
 			DrawableHelper.drawTexture(x, y, 0.0F, 0.0F, drawW, drawH, (float) drawW, (float) drawH);
 		}

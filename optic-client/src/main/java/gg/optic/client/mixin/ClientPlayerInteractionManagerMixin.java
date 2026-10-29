@@ -3,6 +3,7 @@ package gg.optic.client.mixin;
 import gg.optic.client.OpticClient;
 import gg.optic.client.OpticConfig;
 import gg.optic.client.OpticOwnHit;
+import gg.optic.client.render.OpticSnap;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.client.particle.ParticleType;
@@ -28,6 +29,26 @@ public class ClientPlayerInteractionManagerMixin {
 	private void optic$rememberHit(PlayerEntity player, Entity target, CallbackInfo ci) {
 		if (target == null) return;
 		OpticOwnHit.mark(target.x, target.y + target.height * 0.5D, target.z);
+	}
+
+	/**
+	 * Vanilla waits for the server hurt packet before the target flashes.
+	 * Instant Hit Flash shows it on the click instead. Off by default: the local
+	 * flash also fires on hits the server ignores, which hides when the target's
+	 * hurt time ends and makes combos hard to time. Health, motion, and the attack
+	 * packet stay vanilla either way.
+	 */
+	@Inject(method = "attackEntity(Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/entity/Entity;)V", at = @At("TAIL"))
+	private void optic$instantHurt(PlayerEntity player, Entity target, CallbackInfo ci) {
+		OpticSnap.onHit(player, target);
+		if (!OpticClient.get().config().instantHitFlash) return;
+		if (!(target instanceof LivingEntity) || target == player) return;
+		LivingEntity living = (LivingEntity) target;
+		living.maxHurtTime = 10;
+		living.hurtTime = 10;
+		double dx = player.x - living.x;
+		double dz = player.z - living.z;
+		living.knockbackVelocity = (float) (Math.atan2(dz, dx) * 180.0D / Math.PI - living.yaw);
 	}
 
 	/** Local particle emitter only. The attack packet was already sent by vanilla and is not changed here. */

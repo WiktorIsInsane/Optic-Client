@@ -4,6 +4,7 @@ import gg.optic.client.OpticClient;
 import gg.optic.client.OpticConfig;
 import gg.optic.client.OpticEnvironment;
 import gg.optic.client.render.OpticBlockOverlay;
+import gg.optic.client.render.OpticEntityCull;
 import gg.optic.client.render.OpticHitPredict;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.WorldRenderer;
@@ -25,6 +26,11 @@ public abstract class WorldRendererMixin {
 
 	@Shadow
 	protected abstract void renderEndSky();
+
+	@Inject(method = "renderEntities", at = @At("HEAD"))
+	private void optic$cullFrame(Entity camera, net.minecraft.client.render.CameraView view, float tickDelta, CallbackInfo ci) {
+		OpticEntityCull.beginFrame(camera, tickDelta);
+	}
 
 	@Inject(method = "drawBlockOutline", at = @At("HEAD"), cancellable = true)
 	private void optic$blockOverlay(PlayerEntity player, BlockHitResult hitResult, int pass, float tickDelta, CallbackInfo ci) {

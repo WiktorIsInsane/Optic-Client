@@ -104,7 +104,7 @@ public final class OpticMenuChrome {
 		return mx >= x && my >= y && mx < x + w && my < y + h;
 	}
 
-	private static void drawLogo(MinecraftClient client, int x, int y, int size) {
+	public static void drawLogo(MinecraftClient client, int x, int y, int size) {
 		Identifier logo = OpticTextures.logo(client);
 		if (logo == null || size <= 0) return;
 		gg.optic.client.OpticSmooth.bindMip(client, logo);

@@ -55,6 +55,11 @@ public final class OpticConfig {
 	/** Press to stay in free look until the key is pressed again. */
 	public boolean freeLookToggle = false;
 	public float freeLookDistance = 4.0F;
+	public boolean freeLookInvertYaw = false;
+	public boolean freeLookInvertPitch = false;
+	public boolean freeLookSmooth = true;
+	/** 1 = behind the player, 2 = in front. */
+	public int freeLookPerspective = 1;
 
 	// Hitboxes
 	public boolean hitboxes = false;
@@ -103,6 +108,19 @@ public final class OpticConfig {
 	public boolean keystrokesInstant = false;
 	public boolean keystrokesFade = true;
 	public boolean keystrokesLockKeys = true;
+	public boolean keystrokesShowMovement = true;
+	public boolean keystrokesShowSpace = true;
+	public boolean keystrokesUseArrows = false;
+	public boolean keystrokesShowLeftCps = false;
+	public boolean keystrokesShowRightCps = false;
+	public boolean keystrokesBorder = true;
+	public float keystrokesBoxSize = 18.0F;
+	public float keystrokesBorderThickness = 1.0F;
+	public float keystrokesSpaceThickness = 1.0F;
+	public int keystrokesTextPressedColor = 0x000000;
+	public int keystrokesBackgroundColor = 0x000000;
+	public int keystrokesBackgroundPressedColor = 0xFFFFFF;
+	public int keystrokesBorderColor = 0xFFFFFF;
 	public float keystrokesFadeMs = 200.0F;
 	/** 0=Off, 1=Replace label, 2=Under label, 3=While clicking */
 	public int keystrokesCpsMode = 0;
@@ -149,6 +167,118 @@ public final class OpticConfig {
 	public int coordinatesTextColor = DEFAULT_TEXT;
 	public int coordinatesX = 6;
 	public int coordinatesY = 51;
+	public boolean coordinatesHorizontal = false;
+	public boolean coordinatesDirection = true;
+	public boolean coordinatesDirectionMarks = true;
+	public boolean coordinatesBiome = false;
+	public boolean coordinatesBackground = false;
+	public int coordinatesBackgroundColor = 0x000000;
+	public boolean coordinatesBorder = false;
+	public int coordinatesBorderColor = 0xFFFFFF;
+	public boolean coordinatesShowWhileTyping = true;
+	public int coordinatesCopyKey = 0;
+
+	public boolean fpsReverseOrder = false;
+	public boolean cpsReverseText = false;
+	public boolean cpsIgnoreCancelled = false;
+
+	public boolean pingReversePrefix = false;
+	public String pingPrefix = "PING";
+	public boolean pingDynamicColor = false;
+	public int pingLowColor = 0x55FF55;
+	public int pingMediumColor = 0xFFFF55;
+	public int pingHighColor = 0xFFAA00;
+	public int pingExtremeColor = 0xFF5555;
+	public boolean pingSpike = false;
+	public int pingSpikeThreshold = 20;
+	public int pingSpikeColor = 0xFFAA00;
+	public boolean pingBackground = false;
+	public int pingBackgroundColor = 0x000000;
+	public boolean pingNametag = false;
+
+	public boolean crosshair = false;
+	public int crosshairShape = 0;
+	public int crosshairColor = 0xFFFFFF;
+	public boolean crosshairOutline = false;
+	public int crosshairOutlineColor = 0x000000;
+	public float crosshairGap = 2.0F;
+	public float crosshairLength = 5.0F;
+	public float crosshairThickness = 1.0F;
+	public boolean crosshairShowInF5 = true;
+	public boolean crosshairSpectator = true;
+	public boolean crosshairDynamicAttack = false;
+	public float crosshairAttackSpread = 4.0F;
+	public boolean crosshairDynamicBow = false;
+	public float crosshairBowSpread = 6.0F;
+	public boolean crosshairHealthShift = false;
+	public float crosshairHealthThreshold = 6.0F;
+	public int crosshairHealthColor = 0xFF5555;
+	public boolean crosshairEnemy = false;
+	public int crosshairEnemyColor = 0xFF5555;
+	public boolean crosshairFriendly = false;
+	public int crosshairFriendlyColor = 0x55FF55;
+
+	public boolean guiScale = false;
+	/** 0 keeps the vanilla GUI scale. 1-4 forces that scale inside inventories. */
+	public int inventoryScale = 0;
+	public int menuScale = 0;
+	public float crosshairSize = 1.0F;
+	public float guiHotbarScale = 1.0F;
+
+	public boolean tab = false;
+	public boolean tabToggle = false;
+	public int tabKeyCode = 15;
+	public boolean tabDisableHeader = false;
+	public boolean tabDisableFooter = false;
+	public boolean tabHeads = true;
+	public boolean tabHidePing = false;
+	public boolean tabHidePingOver500 = false;
+	public boolean tabPingNumbers = false;
+	public boolean tabDynamicPing = true;
+	public int tabPingColor = 0xFFFF55;
+	public boolean tabHighlightSelf = false;
+	public int tabSelfColor = 0x55FF55;
+	public boolean tabNameShadow = true;
+	public boolean tabMoveSelfTop = false;
+	public boolean tabHideNpc = false;
+	public int tabBackgroundColor = 0x000000;
+	public int tabHeaderColor = 0x000000;
+	public int tabFooterColor = 0x000000;
+
+	public boolean titles = false;
+	public boolean titlesShowTitle = true;
+	public boolean titlesShowSubtitle = true;
+	public int titlesTitleColor = 0xFF5555;
+	public int titlesSubtitleColor = 0xFFFFFF;
+	public float titlesScale = 1.0F;
+	public boolean titlesCentered = true;
+	public int titlesX = -1;
+	public int titlesY = 0;
+	public boolean windowTitle = false;
+	public int windowTitleMode = 0;
+
+	public boolean hitColor = false;
+	public int hitColorRgb = 0xFF0000;
+	public float hitColorAlpha = 0.4F;
+	public boolean hitColorArmor = true;
+
+	public boolean potions = false;
+	public boolean potionsHorizontal = false;
+	public boolean potionsShowName = true;
+	public boolean potionsShowDuration = true;
+	public boolean potionsShowAmplifier = true;
+	public boolean potionsSymbols = false;
+	public boolean potionsBlink = true;
+	public int potionsBlinkSeconds = 10;
+	public boolean potionsHideVanilla = true;
+	public boolean potionsShowInInventory = true;
+	public boolean potionsBackground = true;
+	public int potionsBackgroundColor = 0x000000;
+	public int potionsTextColor = 0xFFFFFF;
+	public boolean potionsTextShadow = true;
+	public float potionsScale = 1.0F;
+	public int potionsX = -1;
+	public int potionsY = -1;
 
 	// Toggle sprint
 	public boolean toggleSprintShowHud = false;
@@ -175,14 +305,15 @@ public final class OpticConfig {
 	public boolean anim18Skins = true;
 	public boolean animTitles = true;
 	public boolean animFixGhostLiquid = false;
-	public boolean animItemHold = true;
+	/** Held-item poses default to vanilla 1.8.9; the 1.7 poses are opt-in. */
+	public boolean animItemHold = false;
 	public boolean animItemSwitch = true;
 	public boolean animBlockHit = true;
 	public boolean animEating = true;
-	public boolean animThrowing = true;
-	public boolean animFishingRod = true;
+	public boolean animThrowing = false;
+	public boolean animFishingRod = false;
 	public boolean animSwordSwing = true;
-	public boolean animBow = true;
+	public boolean animBow = false;
 	public boolean animLeftHand = false;
 	public boolean animMovableTitles = false;
 	public int titleOffsetX = 0;
@@ -199,6 +330,8 @@ public final class OpticConfig {
 
 	// Block Overlay
 	public boolean blockOverlayFill = true;
+	/** Draw the fill through the looked-at block and through blocks in front of it. */
+	public boolean blockOverlay3d = false;
 	public int blockOverlayFillColor = 0xFFFFFF;
 	public float blockOverlayFillAlpha = 0.25F;
 	public boolean blockOverlayOutline = true;
@@ -209,7 +342,15 @@ public final class OpticConfig {
 	// Nametags
 	public boolean nametagsShowInF5 = true;
 	public boolean nametagsShowInF1 = false;
-	public boolean nametagsTextShadow = true;
+	/** Source "hide in F1". Off keeps nametags visible while the HUD is hidden. */
+	public boolean nametagsHideInF1 = false;
+	public boolean nametagsTextShadow = false;
+	public boolean nametagsToggleMessages = true;
+	public boolean nametagsReplaceOwnColor = false;
+	public int nametagsToggleAllKey = 0;
+	public int nametagsTogglePlayersKey = 0;
+	/** 0–1. On 1.8 the plate alpha is this value times 0.25. */
+	public float nametagsBackgroundOpacity = 1.0F;
 	public boolean nametagsBadlionFont = false;
 	public boolean nametagsRoundedCorners = false;
 	public boolean nametagsBackground = true;
@@ -270,6 +411,10 @@ public final class OpticConfig {
 	public boolean rawMouseInput = false;
 	/** Aim the crosshair ray with the camera yaw instead of the per-tick head yaw. */
 	public boolean mouseDelayFix = true;
+	/** View bobbing moves only the held item; the world camera stays still. */
+	public boolean minimalBobbing = false;
+	/** Flash the target red on the click instead of waiting for the server's hurt packet. */
+	public boolean instantHitFlash = false;
 	public boolean borderlessFullscreen = false;
 	public boolean disableMouseScrollWheel = false;
 	/** Show held-item name ("Diamond Sword") when switching slots. */
@@ -277,6 +422,10 @@ public final class OpticConfig {
 
 	/** Settings → Performance. Reserved; the toggle does not change rendering yet. */
 	public boolean fpsOptimizer = false;
+	/** Client-only. Other players render about 10 ms behind their latest position. */
+	public boolean opticSnap = false;
+	/** Skip drawing entities and block entities that are behind solid blocks. */
+	public boolean entityCulling = false;
 
 	// OptiFine-style performance (Settings → Performance)
 	public boolean fastRender = true;
@@ -406,7 +555,7 @@ public final class OpticConfig {
 		keystrokesInstant = read(values, "keystrokesInstant", keystrokesInstant);
 		keystrokesFade = read(values, "keystrokesFade", keystrokesFade);
 		keystrokesLockKeys = read(values, "keystrokesLockKeys", keystrokesLockKeys);
-		keystrokesFadeMs = clampFloat(readFloat(values, "keystrokesFadeMs", keystrokesFadeMs), 50.0F, 1000.0F);
+		keystrokesFadeMs = clampFloat(readFloat(values, "keystrokesFadeMs", keystrokesFadeMs), 0.0F, 500.0F);
 		keystrokesCpsMode = clamp(readInt(values, "keystrokesCpsMode", keystrokesCpsMode), 0, 3);
 		keystrokesScale = clampFloat(readFloat(values, "keystrokesScale", keystrokesScale), 0.5F, 3.0F);
 		keystrokesColor = readColor(values, "keystrokesColor", keystrokesColor);
@@ -491,6 +640,7 @@ public final class OpticConfig {
 		blockBreakParticles = read(values, "blockBreakParticles", blockBreakParticles);
 
 		blockOverlayFill = read(values, "blockOverlayFill", blockOverlayFill);
+		blockOverlay3d = read(values, "blockOverlay3d", blockOverlay3d);
 		blockOverlayFillColor = readColor(values, "blockOverlayFillColor", blockOverlayFillColor);
 		blockOverlayFillAlpha = clampFloat(readFloat(values, "blockOverlayFillAlpha", blockOverlayFillAlpha), 0.0F, 1.0F);
 		blockOverlayOutline = read(values, "blockOverlayOutline", blockOverlayOutline);
@@ -500,7 +650,13 @@ public final class OpticConfig {
 
 		nametagsShowInF5 = read(values, "nametagsShowInF5", nametagsShowInF5);
 		nametagsShowInF1 = read(values, "nametagsShowInF1", nametagsShowInF1);
+		nametagsHideInF1 = read(values, "nametagsHideInF1", nametagsHideInF1);
 		nametagsTextShadow = read(values, "nametagsTextShadow", nametagsTextShadow);
+		nametagsToggleMessages = read(values, "nametagsToggleMessages", nametagsToggleMessages);
+		nametagsReplaceOwnColor = read(values, "nametagsReplaceOwnColor", nametagsReplaceOwnColor);
+		nametagsToggleAllKey = readInt(values, "nametagsToggleAllKey", nametagsToggleAllKey);
+		nametagsTogglePlayersKey = readInt(values, "nametagsTogglePlayersKey", nametagsTogglePlayersKey);
+		nametagsBackgroundOpacity = clampFloat(readFloat(values, "nametagsBackgroundOpacity", nametagsBackgroundOpacity), 0.0F, 1.0F);
 		nametagsBadlionFont = read(values, "nametagsBadlionFont", nametagsBadlionFont);
 		nametagsRoundedCorners = read(values, "nametagsRoundedCorners", nametagsRoundedCorners);
 		nametagsBackground = read(values, "nametagsBackground", nametagsBackground);
@@ -540,10 +696,14 @@ public final class OpticConfig {
 
 		rawMouseInput = read(values, "rawMouseInput", rawMouseInput);
 		mouseDelayFix = read(values, "mouseDelayFix", mouseDelayFix);
+		minimalBobbing = read(values, "minimalBobbing", minimalBobbing);
+		instantHitFlash = read(values, "instantHitFlash", instantHitFlash);
 		borderlessFullscreen = read(values, "borderlessFullscreen", borderlessFullscreen);
 		disableMouseScrollWheel = read(values, "disableMouseScrollWheel", disableMouseScrollWheel);
 		itemInfo = read(values, "itemInfo", itemInfo);
 		fpsOptimizer = read(values, "fpsOptimizer", fpsOptimizer);
+		opticSnap = read(values, "opticSnap", opticSnap);
+		entityCulling = read(values, "entityCulling", entityCulling);
 
 		fastRender = read(values, "fastRender", fastRender);
 		fastMath = read(values, "fastMath", fastMath);
@@ -600,6 +760,7 @@ public final class OpticConfig {
 			toggleSprintColor = whiteIfLegacy(toggleSprintColor);
 			toggleSprintTextColor = whiteIfLegacy(toggleSprintTextColor);
 		}
+		loadRevamp(values);
 		try {
 			OpticProfiles.ensureSelected(this);
 		} catch (Exception ignored) {
@@ -787,6 +948,7 @@ public final class OpticConfig {
 		values.setProperty("blockBreakParticles", Boolean.toString(blockBreakParticles));
 
 		values.setProperty("blockOverlayFill", Boolean.toString(blockOverlayFill));
+		values.setProperty("blockOverlay3d", Boolean.toString(blockOverlay3d));
 		values.setProperty("blockOverlayFillColor", toHex(blockOverlayFillColor));
 		values.setProperty("blockOverlayFillAlpha", Float.toString(blockOverlayFillAlpha));
 		values.setProperty("blockOverlayOutline", Boolean.toString(blockOverlayOutline));
@@ -796,7 +958,13 @@ public final class OpticConfig {
 
 		values.setProperty("nametagsShowInF5", Boolean.toString(nametagsShowInF5));
 		values.setProperty("nametagsShowInF1", Boolean.toString(nametagsShowInF1));
+		values.setProperty("nametagsHideInF1", Boolean.toString(nametagsHideInF1));
 		values.setProperty("nametagsTextShadow", Boolean.toString(nametagsTextShadow));
+		values.setProperty("nametagsToggleMessages", Boolean.toString(nametagsToggleMessages));
+		values.setProperty("nametagsReplaceOwnColor", Boolean.toString(nametagsReplaceOwnColor));
+		values.setProperty("nametagsToggleAllKey", Integer.toString(nametagsToggleAllKey));
+		values.setProperty("nametagsTogglePlayersKey", Integer.toString(nametagsTogglePlayersKey));
+		values.setProperty("nametagsBackgroundOpacity", Float.toString(nametagsBackgroundOpacity));
 		values.setProperty("nametagsBadlionFont", Boolean.toString(nametagsBadlionFont));
 		values.setProperty("nametagsRoundedCorners", Boolean.toString(nametagsRoundedCorners));
 		values.setProperty("nametagsBackground", Boolean.toString(nametagsBackground));
@@ -836,10 +1004,14 @@ public final class OpticConfig {
 
 		values.setProperty("rawMouseInput", Boolean.toString(rawMouseInput));
 		values.setProperty("mouseDelayFix", Boolean.toString(mouseDelayFix));
+		values.setProperty("minimalBobbing", Boolean.toString(minimalBobbing));
+		values.setProperty("instantHitFlash", Boolean.toString(instantHitFlash));
 		values.setProperty("borderlessFullscreen", Boolean.toString(borderlessFullscreen));
 		values.setProperty("disableMouseScrollWheel", Boolean.toString(disableMouseScrollWheel));
 		values.setProperty("itemInfo", Boolean.toString(itemInfo));
 		values.setProperty("fpsOptimizer", Boolean.toString(fpsOptimizer));
+		values.setProperty("opticSnap", Boolean.toString(opticSnap));
+		values.setProperty("entityCulling", Boolean.toString(entityCulling));
 
 		values.setProperty("fastRender", Boolean.toString(fastRender));
 		values.setProperty("fastMath", Boolean.toString(fastMath));
@@ -859,6 +1031,7 @@ public final class OpticConfig {
 
 		values.setProperty("activeProfile", activeProfile == null ? "" : activeProfile);
 		try (FileOutputStream out = new FileOutputStream(file)) {
+			saveRevamp(values);
 			values.store(out, "Optic 1.0.0");
 		} catch (IOException ignored) {
 		}
@@ -1020,6 +1193,7 @@ public final class OpticConfig {
 		o.addProperty("renderOwnParticles", renderOwnParticles);
 		o.addProperty("blockBreakParticles", blockBreakParticles);
 		o.addProperty("blockOverlayFill", blockOverlayFill);
+		o.addProperty("blockOverlay3d", blockOverlay3d);
 		o.addProperty("blockOverlayFillColor", toHex(blockOverlayFillColor));
 		o.addProperty("blockOverlayFillAlpha", blockOverlayFillAlpha);
 		o.addProperty("blockOverlayOutline", blockOverlayOutline);
@@ -1028,7 +1202,13 @@ public final class OpticConfig {
 		o.addProperty("blockOverlayLineWidth", blockOverlayLineWidth);
 		o.addProperty("nametagsShowInF5", nametagsShowInF5);
 		o.addProperty("nametagsShowInF1", nametagsShowInF1);
+		o.addProperty("nametagsHideInF1", nametagsHideInF1);
 		o.addProperty("nametagsTextShadow", nametagsTextShadow);
+		o.addProperty("nametagsToggleMessages", nametagsToggleMessages);
+		o.addProperty("nametagsReplaceOwnColor", nametagsReplaceOwnColor);
+		o.addProperty("nametagsToggleAllKey", nametagsToggleAllKey);
+		o.addProperty("nametagsTogglePlayersKey", nametagsTogglePlayersKey);
+		o.addProperty("nametagsBackgroundOpacity", nametagsBackgroundOpacity);
 		o.addProperty("nametagsBadlionFont", nametagsBadlionFont);
 		o.addProperty("nametagsRoundedCorners", nametagsRoundedCorners);
 		o.addProperty("nametagsBackground", nametagsBackground);
@@ -1061,10 +1241,14 @@ public final class OpticConfig {
 		o.addProperty("dynamicFov", dynamicFov);
 		o.addProperty("rawMouseInput", rawMouseInput);
 		o.addProperty("mouseDelayFix", mouseDelayFix);
+		o.addProperty("minimalBobbing", minimalBobbing);
+		o.addProperty("instantHitFlash", instantHitFlash);
 		o.addProperty("borderlessFullscreen", borderlessFullscreen);
 		o.addProperty("disableMouseScrollWheel", disableMouseScrollWheel);
 		o.addProperty("itemInfo", itemInfo);
 		o.addProperty("fpsOptimizer", fpsOptimizer);
+		o.addProperty("opticSnap", opticSnap);
+		o.addProperty("entityCulling", entityCulling);
 		o.addProperty("fastRender", fastRender);
 		o.addProperty("fastMath", fastMath);
 		o.addProperty("smoothFps", smoothFps);
@@ -1080,6 +1264,7 @@ public final class OpticConfig {
 		o.addProperty("animPortal", animPortal);
 		o.addProperty("animTerrain", animTerrain);
 		o.addProperty("favoriteModules", writeIntSet(favoriteModules));
+		writeRevamp(o);
 		return o;
 	}
 
@@ -1156,7 +1341,7 @@ public final class OpticConfig {
 		keystrokesInstant = getBool(o, "keystrokesInstant", keystrokesInstant);
 		keystrokesFade = getBool(o, "keystrokesFade", keystrokesFade);
 		keystrokesLockKeys = getBool(o, "keystrokesLockKeys", keystrokesLockKeys);
-		keystrokesFadeMs = clampFloat(getFloat(o, "keystrokesFadeMs", keystrokesFadeMs), 50.0F, 1000.0F);
+		keystrokesFadeMs = clampFloat(getFloat(o, "keystrokesFadeMs", keystrokesFadeMs), 0.0F, 500.0F);
 		keystrokesCpsMode = clamp(getInt(o, "keystrokesCpsMode", keystrokesCpsMode), 0, 3);
 		keystrokesScale = clampFloat(getFloat(o, "keystrokesScale", keystrokesScale), 0.5F, 3.0F);
 		keystrokesColor = getColor(o, "keystrokesColor", keystrokesColor);
@@ -1238,6 +1423,7 @@ public final class OpticConfig {
 		renderOwnParticles = getBool(o, "renderOwnParticles", renderOwnParticles);
 		blockBreakParticles = getBool(o, "blockBreakParticles", blockBreakParticles);
 		blockOverlayFill = getBool(o, "blockOverlayFill", blockOverlayFill);
+		blockOverlay3d = getBool(o, "blockOverlay3d", blockOverlay3d);
 		blockOverlayFillColor = getColor(o, "blockOverlayFillColor", blockOverlayFillColor);
 		blockOverlayFillAlpha = clampFloat(getFloat(o, "blockOverlayFillAlpha", blockOverlayFillAlpha), 0.0F, 1.0F);
 		blockOverlayOutline = getBool(o, "blockOverlayOutline", blockOverlayOutline);
@@ -1246,7 +1432,13 @@ public final class OpticConfig {
 		blockOverlayLineWidth = clampFloat(getFloat(o, "blockOverlayLineWidth", blockOverlayLineWidth), 1.0F, 8.0F);
 		nametagsShowInF5 = getBool(o, "nametagsShowInF5", nametagsShowInF5);
 		nametagsShowInF1 = getBool(o, "nametagsShowInF1", nametagsShowInF1);
+		nametagsHideInF1 = getBool(o, "nametagsHideInF1", nametagsHideInF1);
 		nametagsTextShadow = getBool(o, "nametagsTextShadow", nametagsTextShadow);
+		nametagsToggleMessages = getBool(o, "nametagsToggleMessages", nametagsToggleMessages);
+		nametagsReplaceOwnColor = getBool(o, "nametagsReplaceOwnColor", nametagsReplaceOwnColor);
+		nametagsToggleAllKey = getInt(o, "nametagsToggleAllKey", nametagsToggleAllKey);
+		nametagsTogglePlayersKey = getInt(o, "nametagsTogglePlayersKey", nametagsTogglePlayersKey);
+		nametagsBackgroundOpacity = clampFloat(getFloat(o, "nametagsBackgroundOpacity", nametagsBackgroundOpacity), 0.0F, 1.0F);
 		nametagsBadlionFont = getBool(o, "nametagsBadlionFont", nametagsBadlionFont);
 		nametagsRoundedCorners = getBool(o, "nametagsRoundedCorners", nametagsRoundedCorners);
 		nametagsBackground = getBool(o, "nametagsBackground", nametagsBackground);
@@ -1283,10 +1475,14 @@ public final class OpticConfig {
 		// Settings tab is per-profile. Start from defaults so a profile never inherits the previous one.
 		rawMouseInput = false;
 		mouseDelayFix = true;
+		minimalBobbing = false;
+		instantHitFlash = false;
 		borderlessFullscreen = false;
 		disableMouseScrollWheel = false;
 		itemInfo = true;
 		fpsOptimizer = false;
+		opticSnap = false;
+		entityCulling = false;
 		fastRender = true;
 		fastMath = true;
 		smoothFps = false;
@@ -1303,10 +1499,14 @@ public final class OpticConfig {
 		animTerrain = false;
 		rawMouseInput = getBool(o, "rawMouseInput", rawMouseInput);
 		mouseDelayFix = getBool(o, "mouseDelayFix", mouseDelayFix);
+		minimalBobbing = getBool(o, "minimalBobbing", minimalBobbing);
+		instantHitFlash = getBool(o, "instantHitFlash", instantHitFlash);
 		borderlessFullscreen = getBool(o, "borderlessFullscreen", borderlessFullscreen);
 		disableMouseScrollWheel = getBool(o, "disableMouseScrollWheel", disableMouseScrollWheel);
 		itemInfo = getBool(o, "itemInfo", itemInfo);
 		fpsOptimizer = getBool(o, "fpsOptimizer", fpsOptimizer);
+		opticSnap = getBool(o, "opticSnap", opticSnap);
+		entityCulling = getBool(o, "entityCulling", entityCulling);
 		fastRender = getBool(o, "fastRender", fastRender);
 		fastMath = getBool(o, "fastMath", fastMath);
 		smoothFps = getBool(o, "smoothFps", smoothFps);
@@ -1321,6 +1521,7 @@ public final class OpticConfig {
 		animFire = getBool(o, "animFire", animFire);
 		animPortal = getBool(o, "animPortal", animPortal);
 		animTerrain = getBool(o, "animTerrain", animTerrain);
+		readRevamp(o);
 		if (o.has("favoriteModules")) {
 			readIntSet(o.get("favoriteModules").getAsString(), favoriteModules);
 		}
@@ -1380,6 +1581,7 @@ public final class OpticConfig {
 
 	/** Reset one mod's options/colors/layout to built-in defaults. moduleId matches OpticModScreen.MODULE_*. */
 	public void resetModule(int moduleId) {
+		resetRevamp(moduleId);
 		switch (moduleId) {
 			case 10: // FPS
 				fpsShowLabel = true;
@@ -1391,6 +1593,7 @@ public final class OpticConfig {
 				fpsTextColor = DEFAULT_TEXT;
 				fpsX = 6;
 				fpsY = 6;
+				fpsReverseOrder = false;
 				break;
 			case 11: // CPS
 				cpsSeparateButtons = true;
@@ -1414,7 +1617,20 @@ public final class OpticConfig {
 				keystrokesInstant = false;
 				keystrokesFade = true;
 				keystrokesLockKeys = true;
-				keystrokesFadeMs = 200.0F;
+				keystrokesShowMovement = true;
+				keystrokesShowSpace = true;
+				keystrokesUseArrows = false;
+				keystrokesShowLeftCps = false;
+				keystrokesShowRightCps = false;
+				keystrokesBorder = true;
+				keystrokesBoxSize = 18.0F;
+				keystrokesBorderThickness = 1.0F;
+				keystrokesSpaceThickness = 1.0F;
+				keystrokesTextPressedColor = 0x000000;
+				keystrokesBackgroundColor = 0x000000;
+				keystrokesBackgroundPressedColor = 0xFFFFFF;
+				keystrokesBorderColor = 0xFFFFFF;
+				keystrokesFadeMs = 75.0F;
 				keystrokesCpsMode = 0;
 				keystrokesScale = 1.0F;
 				keystrokesColor = DEFAULT_ACCENT;
@@ -1477,14 +1693,14 @@ public final class OpticConfig {
 				anim18Skins = true;
 				animTitles = true;
 				animFixGhostLiquid = false;
-				animItemHold = true;
+				animItemHold = false;
 				animItemSwitch = true;
 				animBlockHit = true;
 				animEating = true;
-				animThrowing = true;
-				animFishingRod = true;
+				animThrowing = false;
+				animFishingRod = false;
 				animSwordSwing = true;
-				animBow = true;
+				animBow = false;
 				animLeftHand = false;
 				animMovableTitles = false;
 				titleOffsetX = 0;
@@ -1504,6 +1720,7 @@ public final class OpticConfig {
 				break;
 			case 19: // Block Overlay
 				blockOverlayFill = true;
+				blockOverlay3d = false;
 				blockOverlayFillColor = 0xFFFFFF;
 				blockOverlayFillAlpha = 0.25F;
 				blockOverlayOutline = true;
@@ -1514,7 +1731,13 @@ public final class OpticConfig {
 			case 20: // Nametags
 				nametagsShowInF5 = true;
 				nametagsShowInF1 = false;
-				nametagsTextShadow = true;
+				nametagsHideInF1 = false;
+				nametagsTextShadow = false;
+				nametagsToggleMessages = true;
+				nametagsReplaceOwnColor = false;
+				nametagsToggleAllKey = 0;
+				nametagsTogglePlayersKey = 0;
+				nametagsBackgroundOpacity = 1.0F;
 				nametagsBadlionFont = false;
 				nametagsRoundedCorners = false;
 				nametagsBackground = true;
@@ -1568,6 +1791,10 @@ public final class OpticConfig {
 				freeLookKeyCode = 56;
 				freeLookToggle = false;
 				freeLookDistance = 4.0F;
+				freeLookInvertYaw = false;
+				freeLookInvertPitch = false;
+				freeLookSmooth = true;
+				freeLookPerspective = 1;
 				break;
 			case 28: // Hitboxes
 				hitboxHideLook = false;
@@ -1664,6 +1891,621 @@ public final class OpticConfig {
 
 	private static String toHex(int rgb) {
 		return String.format("%06X", rgb & 0xFFFFFF);
+	}
+
+	private void loadRevamp(Properties values) {
+		fpsReverseOrder = read(values, "fpsReverseOrder", fpsReverseOrder);
+		cpsReverseText = read(values, "cpsReverseText", cpsReverseText);
+		cpsIgnoreCancelled = read(values, "cpsIgnoreCancelled", cpsIgnoreCancelled);
+		pingReversePrefix = read(values, "pingReversePrefix", pingReversePrefix);
+		String prefix = values.getProperty("pingPrefix");
+		if (prefix != null) pingPrefix = prefix.length() > 16 ? prefix.substring(0, 16) : prefix;
+		pingDynamicColor = read(values, "pingDynamicColor", pingDynamicColor);
+		pingLowColor = readColor(values, "pingLowColor", pingLowColor);
+		pingMediumColor = readColor(values, "pingMediumColor", pingMediumColor);
+		pingHighColor = readColor(values, "pingHighColor", pingHighColor);
+		pingExtremeColor = readColor(values, "pingExtremeColor", pingExtremeColor);
+		pingSpike = read(values, "pingSpike", pingSpike);
+		pingSpikeThreshold = clamp(readInt(values, "pingSpikeThreshold", pingSpikeThreshold), 1, 200);
+		pingSpikeColor = readColor(values, "pingSpikeColor", pingSpikeColor);
+		pingBackground = read(values, "pingBackground", pingBackground);
+		pingBackgroundColor = readColor(values, "pingBackgroundColor", pingBackgroundColor);
+		pingNametag = read(values, "pingNametag", pingNametag);
+		coordinatesHorizontal = read(values, "coordinatesHorizontal", coordinatesHorizontal);
+		coordinatesDirection = read(values, "coordinatesDirection", coordinatesDirection);
+		coordinatesDirectionMarks = read(values, "coordinatesDirectionMarks", coordinatesDirectionMarks);
+		coordinatesBiome = read(values, "coordinatesBiome", coordinatesBiome);
+		coordinatesBackground = read(values, "coordinatesBackground", coordinatesBackground);
+		coordinatesBackgroundColor = readColor(values, "coordinatesBackgroundColor", coordinatesBackgroundColor);
+		coordinatesBorder = read(values, "coordinatesBorder", coordinatesBorder);
+		coordinatesBorderColor = readColor(values, "coordinatesBorderColor", coordinatesBorderColor);
+		coordinatesShowWhileTyping = read(values, "coordinatesShowWhileTyping", coordinatesShowWhileTyping);
+		coordinatesCopyKey = readInt(values, "coordinatesCopyKey", coordinatesCopyKey);
+		freeLookInvertYaw = read(values, "freeLookInvertYaw", freeLookInvertYaw);
+		freeLookInvertPitch = read(values, "freeLookInvertPitch", freeLookInvertPitch);
+		freeLookSmooth = read(values, "freeLookSmooth", freeLookSmooth);
+		freeLookPerspective = readInt(values, "freeLookPerspective", freeLookPerspective) == 2 ? 2 : 1;
+		crosshair = read(values, "crosshair", crosshair);
+		crosshairShape = clamp(readInt(values, "crosshairShape", crosshairShape), 0, 3);
+		crosshairColor = readColor(values, "crosshairColor", crosshairColor);
+		crosshairOutline = read(values, "crosshairOutline", crosshairOutline);
+		crosshairOutlineColor = readColor(values, "crosshairOutlineColor", crosshairOutlineColor);
+		crosshairGap = clampFloat(readFloat(values, "crosshairGap", crosshairGap), 0.0F, 12.0F);
+		crosshairLength = clampFloat(readFloat(values, "crosshairLength", crosshairLength), 1.0F, 16.0F);
+		crosshairThickness = clampFloat(readFloat(values, "crosshairThickness", crosshairThickness), 1.0F, 6.0F);
+		crosshairShowInF5 = read(values, "crosshairShowInF5", crosshairShowInF5);
+		crosshairSpectator = read(values, "crosshairSpectator", crosshairSpectator);
+		crosshairDynamicAttack = read(values, "crosshairDynamicAttack", crosshairDynamicAttack);
+		crosshairAttackSpread = clampFloat(readFloat(values, "crosshairAttackSpread", crosshairAttackSpread), 0.0F, 12.0F);
+		crosshairDynamicBow = read(values, "crosshairDynamicBow", crosshairDynamicBow);
+		crosshairBowSpread = clampFloat(readFloat(values, "crosshairBowSpread", crosshairBowSpread), 0.0F, 16.0F);
+		crosshairHealthShift = read(values, "crosshairHealthShift", crosshairHealthShift);
+		crosshairHealthThreshold = clampFloat(readFloat(values, "crosshairHealthThreshold", crosshairHealthThreshold), 1.0F, 20.0F);
+		crosshairHealthColor = readColor(values, "crosshairHealthColor", crosshairHealthColor);
+		crosshairEnemy = read(values, "crosshairEnemy", crosshairEnemy);
+		crosshairEnemyColor = readColor(values, "crosshairEnemyColor", crosshairEnemyColor);
+		crosshairFriendly = read(values, "crosshairFriendly", crosshairFriendly);
+		crosshairFriendlyColor = readColor(values, "crosshairFriendlyColor", crosshairFriendlyColor);
+		guiScale = read(values, "guiScale", guiScale);
+		inventoryScale = clamp(readInt(values, "inventoryScale", inventoryScale), 0, 4);
+		guiHotbarScale = clampFloat(readFloat(values, "guiHotbarScale", guiHotbarScale), 0.5F, 2.0F);
+		tab = read(values, "tab", tab);
+		tabToggle = read(values, "tabToggle", tabToggle);
+		tabKeyCode = readInt(values, "tabKeyCode", tabKeyCode);
+		tabDisableHeader = read(values, "tabDisableHeader", tabDisableHeader);
+		tabDisableFooter = read(values, "tabDisableFooter", tabDisableFooter);
+		tabHeads = read(values, "tabHeads", tabHeads);
+		tabHidePing = read(values, "tabHidePing", tabHidePing);
+		tabHidePingOver500 = read(values, "tabHidePingOver500", tabHidePingOver500);
+		tabPingNumbers = read(values, "tabPingNumbers", tabPingNumbers);
+		tabDynamicPing = read(values, "tabDynamicPing", tabDynamicPing);
+		tabPingColor = readColor(values, "tabPingColor", tabPingColor);
+		tabHighlightSelf = read(values, "tabHighlightSelf", tabHighlightSelf);
+		tabSelfColor = readColor(values, "tabSelfColor", tabSelfColor);
+		tabNameShadow = read(values, "tabNameShadow", tabNameShadow);
+		tabMoveSelfTop = read(values, "tabMoveSelfTop", tabMoveSelfTop);
+		tabHideNpc = read(values, "tabHideNpc", tabHideNpc);
+		tabBackgroundColor = readColor(values, "tabBackgroundColor", tabBackgroundColor);
+		tabHeaderColor = readColor(values, "tabHeaderColor", tabHeaderColor);
+		tabFooterColor = readColor(values, "tabFooterColor", tabFooterColor);
+		titles = read(values, "titles", titles);
+		titlesShowTitle = read(values, "titlesShowTitle", titlesShowTitle);
+		titlesShowSubtitle = read(values, "titlesShowSubtitle", titlesShowSubtitle);
+		titlesTitleColor = readColor(values, "titlesTitleColor", titlesTitleColor);
+		titlesSubtitleColor = readColor(values, "titlesSubtitleColor", titlesSubtitleColor);
+		titlesScale = clampFloat(readFloat(values, "titlesScale", titlesScale), 0.5F, 3.0F);
+		titlesCentered = read(values, "titlesCentered", titlesCentered);
+		titlesX = readInt(values, "titlesX", titlesX);
+		titlesY = readInt(values, "titlesY", titlesY);
+		windowTitle = read(values, "windowTitle", windowTitle);
+		windowTitleMode = clamp(readInt(values, "windowTitleMode", windowTitleMode), 0, 2);
+		hitColor = read(values, "hitColor", hitColor);
+		hitColorRgb = readColor(values, "hitColorRgb", hitColorRgb);
+		hitColorAlpha = clampFloat(readFloat(values, "hitColorAlpha", hitColorAlpha), 0.05F, 1.0F);
+		hitColorArmor = read(values, "hitColorArmor", hitColorArmor);
+		potions = read(values, "potions", potions);
+		potionsHorizontal = read(values, "potionsHorizontal", potionsHorizontal);
+		potionsShowName = read(values, "potionsShowName", potionsShowName);
+		potionsShowDuration = read(values, "potionsShowDuration", potionsShowDuration);
+		potionsShowAmplifier = read(values, "potionsShowAmplifier", potionsShowAmplifier);
+		potionsBlink = read(values, "potionsBlink", potionsBlink);
+		potionsBlinkSeconds = clamp(readInt(values, "potionsBlinkSeconds", potionsBlinkSeconds), 2, 20);
+		potionsHideVanilla = read(values, "potionsHideVanilla", potionsHideVanilla);
+		potionsShowInInventory = read(values, "potionsShowInInventory", potionsShowInInventory);
+		potionsBackground = read(values, "potionsBackground", potionsBackground);
+		potionsBackgroundColor = readColor(values, "potionsBackgroundColor", potionsBackgroundColor);
+		potionsTextColor = readColor(values, "potionsTextColor", potionsTextColor);
+		potionsTextShadow = read(values, "potionsTextShadow", potionsTextShadow);
+		potionsScale = clampFloat(readFloat(values, "potionsScale", potionsScale), 0.5F, 3.0F);
+		potionsX = readInt(values, "potionsX", potionsX);
+		potionsY = readInt(values, "potionsY", potionsY);
+		potionsSymbols = read(values, "potionsSymbols", potionsSymbols);
+		menuScale = clamp(readInt(values, "menuScale", menuScale), 0, 4);
+		crosshairSize = clampFloat(readFloat(values, "crosshairSize", crosshairSize), 0.4F, 3.0F);
+		keystrokesShowMovement = read(values, "keystrokesShowMovement", keystrokesShowMovement);
+		keystrokesShowSpace = read(values, "keystrokesShowSpace", keystrokesShowSpace);
+		keystrokesUseArrows = read(values, "keystrokesUseArrows", keystrokesUseArrows);
+		keystrokesShowLeftCps = read(values, "keystrokesShowLeftCps", keystrokesShowLeftCps);
+		keystrokesShowRightCps = read(values, "keystrokesShowRightCps", keystrokesShowRightCps);
+		keystrokesBorder = read(values, "keystrokesBorder", keystrokesBorder);
+		keystrokesBoxSize = clampFloat(readFloat(values, "keystrokesBoxSize", keystrokesBoxSize), 10.0F, 32.0F);
+		keystrokesBorderThickness = clampFloat(readFloat(values, "keystrokesBorderThickness", keystrokesBorderThickness), 0.5F, 3.0F);
+		keystrokesSpaceThickness = clampFloat(readFloat(values, "keystrokesSpaceThickness", keystrokesSpaceThickness), 1.0F, 4.25F);
+		keystrokesTextPressedColor = readColor(values, "keystrokesTextPressedColor", keystrokesTextPressedColor);
+		keystrokesBackgroundColor = readColor(values, "keystrokesBackgroundColor", keystrokesBackgroundColor);
+		keystrokesBackgroundPressedColor = readColor(values, "keystrokesBackgroundPressedColor", keystrokesBackgroundPressedColor);
+		keystrokesBorderColor = readColor(values, "keystrokesBorderColor", keystrokesBorderColor);
+	}
+
+	private void saveRevamp(Properties values) {
+		values.setProperty("fpsReverseOrder", Boolean.toString(fpsReverseOrder));
+		values.setProperty("cpsReverseText", Boolean.toString(cpsReverseText));
+		values.setProperty("cpsIgnoreCancelled", Boolean.toString(cpsIgnoreCancelled));
+		values.setProperty("pingReversePrefix", Boolean.toString(pingReversePrefix));
+		values.setProperty("pingPrefix", pingPrefix == null ? "PING" : pingPrefix);
+		values.setProperty("pingDynamicColor", Boolean.toString(pingDynamicColor));
+		values.setProperty("pingLowColor", toHex(pingLowColor));
+		values.setProperty("pingMediumColor", toHex(pingMediumColor));
+		values.setProperty("pingHighColor", toHex(pingHighColor));
+		values.setProperty("pingExtremeColor", toHex(pingExtremeColor));
+		values.setProperty("pingSpike", Boolean.toString(pingSpike));
+		values.setProperty("pingSpikeThreshold", Integer.toString(pingSpikeThreshold));
+		values.setProperty("pingSpikeColor", toHex(pingSpikeColor));
+		values.setProperty("pingBackground", Boolean.toString(pingBackground));
+		values.setProperty("pingBackgroundColor", toHex(pingBackgroundColor));
+		values.setProperty("pingNametag", Boolean.toString(pingNametag));
+		values.setProperty("coordinatesHorizontal", Boolean.toString(coordinatesHorizontal));
+		values.setProperty("coordinatesDirection", Boolean.toString(coordinatesDirection));
+		values.setProperty("coordinatesDirectionMarks", Boolean.toString(coordinatesDirectionMarks));
+		values.setProperty("coordinatesBiome", Boolean.toString(coordinatesBiome));
+		values.setProperty("coordinatesBackground", Boolean.toString(coordinatesBackground));
+		values.setProperty("coordinatesBackgroundColor", toHex(coordinatesBackgroundColor));
+		values.setProperty("coordinatesBorder", Boolean.toString(coordinatesBorder));
+		values.setProperty("coordinatesBorderColor", toHex(coordinatesBorderColor));
+		values.setProperty("coordinatesShowWhileTyping", Boolean.toString(coordinatesShowWhileTyping));
+		values.setProperty("coordinatesCopyKey", Integer.toString(coordinatesCopyKey));
+		values.setProperty("freeLookInvertYaw", Boolean.toString(freeLookInvertYaw));
+		values.setProperty("freeLookInvertPitch", Boolean.toString(freeLookInvertPitch));
+		values.setProperty("freeLookSmooth", Boolean.toString(freeLookSmooth));
+		values.setProperty("freeLookPerspective", Integer.toString(freeLookPerspective));
+		values.setProperty("crosshair", Boolean.toString(crosshair));
+		values.setProperty("crosshairShape", Integer.toString(crosshairShape));
+		values.setProperty("crosshairColor", toHex(crosshairColor));
+		values.setProperty("crosshairOutline", Boolean.toString(crosshairOutline));
+		values.setProperty("crosshairOutlineColor", toHex(crosshairOutlineColor));
+		values.setProperty("crosshairGap", Float.toString(crosshairGap));
+		values.setProperty("crosshairLength", Float.toString(crosshairLength));
+		values.setProperty("crosshairThickness", Float.toString(crosshairThickness));
+		values.setProperty("crosshairShowInF5", Boolean.toString(crosshairShowInF5));
+		values.setProperty("crosshairSpectator", Boolean.toString(crosshairSpectator));
+		values.setProperty("crosshairDynamicAttack", Boolean.toString(crosshairDynamicAttack));
+		values.setProperty("crosshairAttackSpread", Float.toString(crosshairAttackSpread));
+		values.setProperty("crosshairDynamicBow", Boolean.toString(crosshairDynamicBow));
+		values.setProperty("crosshairBowSpread", Float.toString(crosshairBowSpread));
+		values.setProperty("crosshairHealthShift", Boolean.toString(crosshairHealthShift));
+		values.setProperty("crosshairHealthThreshold", Float.toString(crosshairHealthThreshold));
+		values.setProperty("crosshairHealthColor", toHex(crosshairHealthColor));
+		values.setProperty("crosshairEnemy", Boolean.toString(crosshairEnemy));
+		values.setProperty("crosshairEnemyColor", toHex(crosshairEnemyColor));
+		values.setProperty("crosshairFriendly", Boolean.toString(crosshairFriendly));
+		values.setProperty("crosshairFriendlyColor", toHex(crosshairFriendlyColor));
+		values.setProperty("guiScale", Boolean.toString(guiScale));
+		values.setProperty("inventoryScale", Integer.toString(inventoryScale));
+		values.setProperty("guiHotbarScale", Float.toString(guiHotbarScale));
+		values.setProperty("tab", Boolean.toString(tab));
+		values.setProperty("tabToggle", Boolean.toString(tabToggle));
+		values.setProperty("tabKeyCode", Integer.toString(tabKeyCode));
+		values.setProperty("tabDisableHeader", Boolean.toString(tabDisableHeader));
+		values.setProperty("tabDisableFooter", Boolean.toString(tabDisableFooter));
+		values.setProperty("tabHeads", Boolean.toString(tabHeads));
+		values.setProperty("tabHidePing", Boolean.toString(tabHidePing));
+		values.setProperty("tabHidePingOver500", Boolean.toString(tabHidePingOver500));
+		values.setProperty("tabPingNumbers", Boolean.toString(tabPingNumbers));
+		values.setProperty("tabDynamicPing", Boolean.toString(tabDynamicPing));
+		values.setProperty("tabPingColor", toHex(tabPingColor));
+		values.setProperty("tabHighlightSelf", Boolean.toString(tabHighlightSelf));
+		values.setProperty("tabSelfColor", toHex(tabSelfColor));
+		values.setProperty("tabNameShadow", Boolean.toString(tabNameShadow));
+		values.setProperty("tabMoveSelfTop", Boolean.toString(tabMoveSelfTop));
+		values.setProperty("tabHideNpc", Boolean.toString(tabHideNpc));
+		values.setProperty("tabBackgroundColor", toHex(tabBackgroundColor));
+		values.setProperty("tabHeaderColor", toHex(tabHeaderColor));
+		values.setProperty("tabFooterColor", toHex(tabFooterColor));
+		values.setProperty("titles", Boolean.toString(titles));
+		values.setProperty("titlesShowTitle", Boolean.toString(titlesShowTitle));
+		values.setProperty("titlesShowSubtitle", Boolean.toString(titlesShowSubtitle));
+		values.setProperty("titlesTitleColor", toHex(titlesTitleColor));
+		values.setProperty("titlesSubtitleColor", toHex(titlesSubtitleColor));
+		values.setProperty("titlesScale", Float.toString(titlesScale));
+		values.setProperty("titlesCentered", Boolean.toString(titlesCentered));
+		values.setProperty("titlesX", Integer.toString(titlesX));
+		values.setProperty("titlesY", Integer.toString(titlesY));
+		values.setProperty("windowTitle", Boolean.toString(windowTitle));
+		values.setProperty("windowTitleMode", Integer.toString(windowTitleMode));
+		values.setProperty("hitColor", Boolean.toString(hitColor));
+		values.setProperty("hitColorRgb", toHex(hitColorRgb));
+		values.setProperty("hitColorAlpha", Float.toString(hitColorAlpha));
+		values.setProperty("hitColorArmor", Boolean.toString(hitColorArmor));
+		values.setProperty("potions", Boolean.toString(potions));
+		values.setProperty("potionsHorizontal", Boolean.toString(potionsHorizontal));
+		values.setProperty("potionsShowName", Boolean.toString(potionsShowName));
+		values.setProperty("potionsShowDuration", Boolean.toString(potionsShowDuration));
+		values.setProperty("potionsShowAmplifier", Boolean.toString(potionsShowAmplifier));
+		values.setProperty("potionsBlink", Boolean.toString(potionsBlink));
+		values.setProperty("potionsBlinkSeconds", Integer.toString(potionsBlinkSeconds));
+		values.setProperty("potionsHideVanilla", Boolean.toString(potionsHideVanilla));
+		values.setProperty("potionsShowInInventory", Boolean.toString(potionsShowInInventory));
+		values.setProperty("potionsBackground", Boolean.toString(potionsBackground));
+		values.setProperty("potionsBackgroundColor", toHex(potionsBackgroundColor));
+		values.setProperty("potionsTextColor", toHex(potionsTextColor));
+		values.setProperty("potionsTextShadow", Boolean.toString(potionsTextShadow));
+		values.setProperty("potionsScale", Float.toString(potionsScale));
+		values.setProperty("potionsX", Integer.toString(potionsX));
+		values.setProperty("potionsY", Integer.toString(potionsY));
+		values.setProperty("potionsSymbols", Boolean.toString(potionsSymbols));
+		values.setProperty("menuScale", Integer.toString(menuScale));
+		values.setProperty("crosshairSize", Float.toString(crosshairSize));
+		values.setProperty("keystrokesShowMovement", Boolean.toString(keystrokesShowMovement));
+		values.setProperty("keystrokesShowSpace", Boolean.toString(keystrokesShowSpace));
+		values.setProperty("keystrokesUseArrows", Boolean.toString(keystrokesUseArrows));
+		values.setProperty("keystrokesShowLeftCps", Boolean.toString(keystrokesShowLeftCps));
+		values.setProperty("keystrokesShowRightCps", Boolean.toString(keystrokesShowRightCps));
+		values.setProperty("keystrokesBorder", Boolean.toString(keystrokesBorder));
+		values.setProperty("keystrokesBoxSize", Float.toString(keystrokesBoxSize));
+		values.setProperty("keystrokesBorderThickness", Float.toString(keystrokesBorderThickness));
+		values.setProperty("keystrokesSpaceThickness", Float.toString(keystrokesSpaceThickness));
+		values.setProperty("keystrokesTextPressedColor", toHex(keystrokesTextPressedColor));
+		values.setProperty("keystrokesBackgroundColor", toHex(keystrokesBackgroundColor));
+		values.setProperty("keystrokesBackgroundPressedColor", toHex(keystrokesBackgroundPressedColor));
+		values.setProperty("keystrokesBorderColor", toHex(keystrokesBorderColor));
+	}
+
+	private void writeRevamp(JsonObject o) {
+		o.addProperty("fpsReverseOrder", fpsReverseOrder);
+		o.addProperty("cpsReverseText", cpsReverseText);
+		o.addProperty("cpsIgnoreCancelled", cpsIgnoreCancelled);
+		o.addProperty("pingReversePrefix", pingReversePrefix);
+		o.addProperty("pingPrefix", pingPrefix);
+		o.addProperty("pingDynamicColor", pingDynamicColor);
+		o.addProperty("pingLowColor", toHex(pingLowColor));
+		o.addProperty("pingMediumColor", toHex(pingMediumColor));
+		o.addProperty("pingHighColor", toHex(pingHighColor));
+		o.addProperty("pingExtremeColor", toHex(pingExtremeColor));
+		o.addProperty("pingSpike", pingSpike);
+		o.addProperty("pingSpikeThreshold", pingSpikeThreshold);
+		o.addProperty("pingSpikeColor", toHex(pingSpikeColor));
+		o.addProperty("pingBackground", pingBackground);
+		o.addProperty("pingBackgroundColor", toHex(pingBackgroundColor));
+		o.addProperty("pingNametag", pingNametag);
+		o.addProperty("coordinatesHorizontal", coordinatesHorizontal);
+		o.addProperty("coordinatesDirection", coordinatesDirection);
+		o.addProperty("coordinatesDirectionMarks", coordinatesDirectionMarks);
+		o.addProperty("coordinatesBiome", coordinatesBiome);
+		o.addProperty("coordinatesBackground", coordinatesBackground);
+		o.addProperty("coordinatesBackgroundColor", toHex(coordinatesBackgroundColor));
+		o.addProperty("coordinatesBorder", coordinatesBorder);
+		o.addProperty("coordinatesBorderColor", toHex(coordinatesBorderColor));
+		o.addProperty("coordinatesShowWhileTyping", coordinatesShowWhileTyping);
+		o.addProperty("coordinatesCopyKey", coordinatesCopyKey);
+		o.addProperty("freeLookInvertYaw", freeLookInvertYaw);
+		o.addProperty("freeLookInvertPitch", freeLookInvertPitch);
+		o.addProperty("freeLookSmooth", freeLookSmooth);
+		o.addProperty("freeLookPerspective", freeLookPerspective);
+		o.addProperty("crosshair", crosshair);
+		o.addProperty("crosshairShape", crosshairShape);
+		o.addProperty("crosshairColor", toHex(crosshairColor));
+		o.addProperty("crosshairOutline", crosshairOutline);
+		o.addProperty("crosshairOutlineColor", toHex(crosshairOutlineColor));
+		o.addProperty("crosshairGap", crosshairGap);
+		o.addProperty("crosshairLength", crosshairLength);
+		o.addProperty("crosshairThickness", crosshairThickness);
+		o.addProperty("crosshairShowInF5", crosshairShowInF5);
+		o.addProperty("crosshairSpectator", crosshairSpectator);
+		o.addProperty("crosshairDynamicAttack", crosshairDynamicAttack);
+		o.addProperty("crosshairAttackSpread", crosshairAttackSpread);
+		o.addProperty("crosshairDynamicBow", crosshairDynamicBow);
+		o.addProperty("crosshairBowSpread", crosshairBowSpread);
+		o.addProperty("crosshairHealthShift", crosshairHealthShift);
+		o.addProperty("crosshairHealthThreshold", crosshairHealthThreshold);
+		o.addProperty("crosshairHealthColor", toHex(crosshairHealthColor));
+		o.addProperty("crosshairEnemy", crosshairEnemy);
+		o.addProperty("crosshairEnemyColor", toHex(crosshairEnemyColor));
+		o.addProperty("crosshairFriendly", crosshairFriendly);
+		o.addProperty("crosshairFriendlyColor", toHex(crosshairFriendlyColor));
+		o.addProperty("guiScale", guiScale);
+		o.addProperty("inventoryScale", inventoryScale);
+		o.addProperty("guiHotbarScale", guiHotbarScale);
+		o.addProperty("tab", tab);
+		o.addProperty("tabToggle", tabToggle);
+		o.addProperty("tabKeyCode", tabKeyCode);
+		o.addProperty("tabDisableHeader", tabDisableHeader);
+		o.addProperty("tabDisableFooter", tabDisableFooter);
+		o.addProperty("tabHeads", tabHeads);
+		o.addProperty("tabHidePing", tabHidePing);
+		o.addProperty("tabHidePingOver500", tabHidePingOver500);
+		o.addProperty("tabPingNumbers", tabPingNumbers);
+		o.addProperty("tabDynamicPing", tabDynamicPing);
+		o.addProperty("tabPingColor", toHex(tabPingColor));
+		o.addProperty("tabHighlightSelf", tabHighlightSelf);
+		o.addProperty("tabSelfColor", toHex(tabSelfColor));
+		o.addProperty("tabNameShadow", tabNameShadow);
+		o.addProperty("tabMoveSelfTop", tabMoveSelfTop);
+		o.addProperty("tabHideNpc", tabHideNpc);
+		o.addProperty("tabBackgroundColor", toHex(tabBackgroundColor));
+		o.addProperty("tabHeaderColor", toHex(tabHeaderColor));
+		o.addProperty("tabFooterColor", toHex(tabFooterColor));
+		o.addProperty("titles", titles);
+		o.addProperty("titlesShowTitle", titlesShowTitle);
+		o.addProperty("titlesShowSubtitle", titlesShowSubtitle);
+		o.addProperty("titlesTitleColor", toHex(titlesTitleColor));
+		o.addProperty("titlesSubtitleColor", toHex(titlesSubtitleColor));
+		o.addProperty("titlesScale", titlesScale);
+		o.addProperty("titlesCentered", titlesCentered);
+		o.addProperty("titlesX", titlesX);
+		o.addProperty("titlesY", titlesY);
+		o.addProperty("windowTitle", windowTitle);
+		o.addProperty("windowTitleMode", windowTitleMode);
+		o.addProperty("hitColor", hitColor);
+		o.addProperty("hitColorRgb", toHex(hitColorRgb));
+		o.addProperty("hitColorAlpha", hitColorAlpha);
+		o.addProperty("hitColorArmor", hitColorArmor);
+		o.addProperty("potions", potions);
+		o.addProperty("potionsHorizontal", potionsHorizontal);
+		o.addProperty("potionsShowName", potionsShowName);
+		o.addProperty("potionsShowDuration", potionsShowDuration);
+		o.addProperty("potionsShowAmplifier", potionsShowAmplifier);
+		o.addProperty("potionsBlink", potionsBlink);
+		o.addProperty("potionsBlinkSeconds", potionsBlinkSeconds);
+		o.addProperty("potionsHideVanilla", potionsHideVanilla);
+		o.addProperty("potionsShowInInventory", potionsShowInInventory);
+		o.addProperty("potionsBackground", potionsBackground);
+		o.addProperty("potionsBackgroundColor", toHex(potionsBackgroundColor));
+		o.addProperty("potionsTextColor", toHex(potionsTextColor));
+		o.addProperty("potionsTextShadow", potionsTextShadow);
+		o.addProperty("potionsScale", potionsScale);
+		o.addProperty("potionsX", potionsX);
+		o.addProperty("potionsY", potionsY);
+		o.addProperty("potionsSymbols", potionsSymbols);
+		o.addProperty("menuScale", menuScale);
+		o.addProperty("crosshairSize", crosshairSize);
+		o.addProperty("keystrokesShowMovement", keystrokesShowMovement);
+		o.addProperty("keystrokesShowSpace", keystrokesShowSpace);
+		o.addProperty("keystrokesUseArrows", keystrokesUseArrows);
+		o.addProperty("keystrokesShowLeftCps", keystrokesShowLeftCps);
+		o.addProperty("keystrokesShowRightCps", keystrokesShowRightCps);
+		o.addProperty("keystrokesBorder", keystrokesBorder);
+		o.addProperty("keystrokesBoxSize", keystrokesBoxSize);
+		o.addProperty("keystrokesBorderThickness", keystrokesBorderThickness);
+		o.addProperty("keystrokesSpaceThickness", keystrokesSpaceThickness);
+		o.addProperty("keystrokesTextPressedColor", toHex(keystrokesTextPressedColor));
+		o.addProperty("keystrokesBackgroundColor", toHex(keystrokesBackgroundColor));
+		o.addProperty("keystrokesBackgroundPressedColor", toHex(keystrokesBackgroundPressedColor));
+		o.addProperty("keystrokesBorderColor", toHex(keystrokesBorderColor));
+	}
+
+	private void readRevamp(JsonObject o) {
+		fpsReverseOrder = getBool(o, "fpsReverseOrder", fpsReverseOrder);
+		cpsReverseText = getBool(o, "cpsReverseText", cpsReverseText);
+		cpsIgnoreCancelled = getBool(o, "cpsIgnoreCancelled", cpsIgnoreCancelled);
+		pingReversePrefix = getBool(o, "pingReversePrefix", pingReversePrefix);
+		if (o.has("pingPrefix")) pingPrefix = o.get("pingPrefix").getAsString();
+		pingDynamicColor = getBool(o, "pingDynamicColor", pingDynamicColor);
+		pingLowColor = getColor(o, "pingLowColor", pingLowColor);
+		pingMediumColor = getColor(o, "pingMediumColor", pingMediumColor);
+		pingHighColor = getColor(o, "pingHighColor", pingHighColor);
+		pingExtremeColor = getColor(o, "pingExtremeColor", pingExtremeColor);
+		pingSpike = getBool(o, "pingSpike", pingSpike);
+		pingSpikeThreshold = clamp(getInt(o, "pingSpikeThreshold", pingSpikeThreshold), 1, 200);
+		pingSpikeColor = getColor(o, "pingSpikeColor", pingSpikeColor);
+		pingBackground = getBool(o, "pingBackground", pingBackground);
+		pingBackgroundColor = getColor(o, "pingBackgroundColor", pingBackgroundColor);
+		pingNametag = getBool(o, "pingNametag", pingNametag);
+		coordinatesHorizontal = getBool(o, "coordinatesHorizontal", coordinatesHorizontal);
+		coordinatesDirection = getBool(o, "coordinatesDirection", coordinatesDirection);
+		coordinatesDirectionMarks = getBool(o, "coordinatesDirectionMarks", coordinatesDirectionMarks);
+		coordinatesBiome = getBool(o, "coordinatesBiome", coordinatesBiome);
+		coordinatesBackground = getBool(o, "coordinatesBackground", coordinatesBackground);
+		coordinatesBackgroundColor = getColor(o, "coordinatesBackgroundColor", coordinatesBackgroundColor);
+		coordinatesBorder = getBool(o, "coordinatesBorder", coordinatesBorder);
+		coordinatesBorderColor = getColor(o, "coordinatesBorderColor", coordinatesBorderColor);
+		coordinatesShowWhileTyping = getBool(o, "coordinatesShowWhileTyping", coordinatesShowWhileTyping);
+		coordinatesCopyKey = getInt(o, "coordinatesCopyKey", coordinatesCopyKey);
+		freeLookInvertYaw = getBool(o, "freeLookInvertYaw", freeLookInvertYaw);
+		freeLookInvertPitch = getBool(o, "freeLookInvertPitch", freeLookInvertPitch);
+		freeLookSmooth = getBool(o, "freeLookSmooth", freeLookSmooth);
+		freeLookPerspective = getInt(o, "freeLookPerspective", freeLookPerspective) == 2 ? 2 : 1;
+		crosshair = getBool(o, "crosshair", crosshair);
+		crosshairShape = clamp(getInt(o, "crosshairShape", crosshairShape), 0, 3);
+		crosshairColor = getColor(o, "crosshairColor", crosshairColor);
+		crosshairOutline = getBool(o, "crosshairOutline", crosshairOutline);
+		crosshairOutlineColor = getColor(o, "crosshairOutlineColor", crosshairOutlineColor);
+		crosshairGap = clampFloat(getFloat(o, "crosshairGap", crosshairGap), 0.0F, 12.0F);
+		crosshairLength = clampFloat(getFloat(o, "crosshairLength", crosshairLength), 1.0F, 16.0F);
+		crosshairThickness = clampFloat(getFloat(o, "crosshairThickness", crosshairThickness), 1.0F, 6.0F);
+		crosshairShowInF5 = getBool(o, "crosshairShowInF5", crosshairShowInF5);
+		crosshairSpectator = getBool(o, "crosshairSpectator", crosshairSpectator);
+		crosshairDynamicAttack = getBool(o, "crosshairDynamicAttack", crosshairDynamicAttack);
+		crosshairAttackSpread = clampFloat(getFloat(o, "crosshairAttackSpread", crosshairAttackSpread), 0.0F, 12.0F);
+		crosshairDynamicBow = getBool(o, "crosshairDynamicBow", crosshairDynamicBow);
+		crosshairBowSpread = clampFloat(getFloat(o, "crosshairBowSpread", crosshairBowSpread), 0.0F, 16.0F);
+		crosshairHealthShift = getBool(o, "crosshairHealthShift", crosshairHealthShift);
+		crosshairHealthThreshold = clampFloat(getFloat(o, "crosshairHealthThreshold", crosshairHealthThreshold), 1.0F, 20.0F);
+		crosshairHealthColor = getColor(o, "crosshairHealthColor", crosshairHealthColor);
+		crosshairEnemy = getBool(o, "crosshairEnemy", crosshairEnemy);
+		crosshairEnemyColor = getColor(o, "crosshairEnemyColor", crosshairEnemyColor);
+		crosshairFriendly = getBool(o, "crosshairFriendly", crosshairFriendly);
+		crosshairFriendlyColor = getColor(o, "crosshairFriendlyColor", crosshairFriendlyColor);
+		guiScale = getBool(o, "guiScale", guiScale);
+		inventoryScale = clamp(getInt(o, "inventoryScale", inventoryScale), 0, 4);
+		guiHotbarScale = clampFloat(getFloat(o, "guiHotbarScale", guiHotbarScale), 0.5F, 2.0F);
+		tab = getBool(o, "tab", tab);
+		tabToggle = getBool(o, "tabToggle", tabToggle);
+		tabKeyCode = getInt(o, "tabKeyCode", tabKeyCode);
+		tabDisableHeader = getBool(o, "tabDisableHeader", tabDisableHeader);
+		tabDisableFooter = getBool(o, "tabDisableFooter", tabDisableFooter);
+		tabHeads = getBool(o, "tabHeads", tabHeads);
+		tabHidePing = getBool(o, "tabHidePing", tabHidePing);
+		tabHidePingOver500 = getBool(o, "tabHidePingOver500", tabHidePingOver500);
+		tabPingNumbers = getBool(o, "tabPingNumbers", tabPingNumbers);
+		tabDynamicPing = getBool(o, "tabDynamicPing", tabDynamicPing);
+		tabPingColor = getColor(o, "tabPingColor", tabPingColor);
+		tabHighlightSelf = getBool(o, "tabHighlightSelf", tabHighlightSelf);
+		tabSelfColor = getColor(o, "tabSelfColor", tabSelfColor);
+		tabNameShadow = getBool(o, "tabNameShadow", tabNameShadow);
+		tabMoveSelfTop = getBool(o, "tabMoveSelfTop", tabMoveSelfTop);
+		tabHideNpc = getBool(o, "tabHideNpc", tabHideNpc);
+		tabBackgroundColor = getColor(o, "tabBackgroundColor", tabBackgroundColor);
+		tabHeaderColor = getColor(o, "tabHeaderColor", tabHeaderColor);
+		tabFooterColor = getColor(o, "tabFooterColor", tabFooterColor);
+		titles = getBool(o, "titles", titles);
+		titlesShowTitle = getBool(o, "titlesShowTitle", titlesShowTitle);
+		titlesShowSubtitle = getBool(o, "titlesShowSubtitle", titlesShowSubtitle);
+		titlesTitleColor = getColor(o, "titlesTitleColor", titlesTitleColor);
+		titlesSubtitleColor = getColor(o, "titlesSubtitleColor", titlesSubtitleColor);
+		titlesScale = clampFloat(getFloat(o, "titlesScale", titlesScale), 0.5F, 3.0F);
+		titlesCentered = getBool(o, "titlesCentered", titlesCentered);
+		titlesX = getInt(o, "titlesX", titlesX);
+		titlesY = getInt(o, "titlesY", titlesY);
+		windowTitle = getBool(o, "windowTitle", windowTitle);
+		windowTitleMode = clamp(getInt(o, "windowTitleMode", windowTitleMode), 0, 2);
+		hitColor = getBool(o, "hitColor", hitColor);
+		hitColorRgb = getColor(o, "hitColorRgb", hitColorRgb);
+		hitColorAlpha = clampFloat(getFloat(o, "hitColorAlpha", hitColorAlpha), 0.05F, 1.0F);
+		hitColorArmor = getBool(o, "hitColorArmor", hitColorArmor);
+		potions = getBool(o, "potions", potions);
+		potionsHorizontal = getBool(o, "potionsHorizontal", potionsHorizontal);
+		potionsShowName = getBool(o, "potionsShowName", potionsShowName);
+		potionsShowDuration = getBool(o, "potionsShowDuration", potionsShowDuration);
+		potionsShowAmplifier = getBool(o, "potionsShowAmplifier", potionsShowAmplifier);
+		potionsBlink = getBool(o, "potionsBlink", potionsBlink);
+		potionsBlinkSeconds = clamp(getInt(o, "potionsBlinkSeconds", potionsBlinkSeconds), 2, 20);
+		potionsHideVanilla = getBool(o, "potionsHideVanilla", potionsHideVanilla);
+		potionsShowInInventory = getBool(o, "potionsShowInInventory", potionsShowInInventory);
+		potionsBackground = getBool(o, "potionsBackground", potionsBackground);
+		potionsBackgroundColor = getColor(o, "potionsBackgroundColor", potionsBackgroundColor);
+		potionsTextColor = getColor(o, "potionsTextColor", potionsTextColor);
+		potionsTextShadow = getBool(o, "potionsTextShadow", potionsTextShadow);
+		potionsScale = clampFloat(getFloat(o, "potionsScale", potionsScale), 0.5F, 3.0F);
+		potionsX = getInt(o, "potionsX", potionsX);
+		potionsY = getInt(o, "potionsY", potionsY);
+		potionsSymbols = getBool(o, "potionsSymbols", potionsSymbols);
+		menuScale = clamp(getInt(o, "menuScale", menuScale), 0, 4);
+		crosshairSize = clampFloat(getFloat(o, "crosshairSize", crosshairSize), 0.4F, 3.0F);
+		keystrokesShowMovement = getBool(o, "keystrokesShowMovement", keystrokesShowMovement);
+		keystrokesShowSpace = getBool(o, "keystrokesShowSpace", keystrokesShowSpace);
+		keystrokesUseArrows = getBool(o, "keystrokesUseArrows", keystrokesUseArrows);
+		keystrokesShowLeftCps = getBool(o, "keystrokesShowLeftCps", keystrokesShowLeftCps);
+		keystrokesShowRightCps = getBool(o, "keystrokesShowRightCps", keystrokesShowRightCps);
+		keystrokesBorder = getBool(o, "keystrokesBorder", keystrokesBorder);
+		keystrokesBoxSize = clampFloat(getFloat(o, "keystrokesBoxSize", keystrokesBoxSize), 10.0F, 32.0F);
+		keystrokesBorderThickness = clampFloat(getFloat(o, "keystrokesBorderThickness", keystrokesBorderThickness), 0.5F, 3.0F);
+		keystrokesSpaceThickness = clampFloat(getFloat(o, "keystrokesSpaceThickness", keystrokesSpaceThickness), 1.0F, 4.25F);
+		keystrokesTextPressedColor = getColor(o, "keystrokesTextPressedColor", keystrokesTextPressedColor);
+		keystrokesBackgroundColor = getColor(o, "keystrokesBackgroundColor", keystrokesBackgroundColor);
+		keystrokesBackgroundPressedColor = getColor(o, "keystrokesBackgroundPressedColor", keystrokesBackgroundPressedColor);
+		keystrokesBorderColor = getColor(o, "keystrokesBorderColor", keystrokesBorderColor);
+	}
+
+	private void resetRevamp(int moduleId) {
+		switch (moduleId) {
+			case 11:
+				cpsReverseText = false;
+				cpsIgnoreCancelled = false;
+				break;
+			case 13:
+				pingReversePrefix = false;
+				pingPrefix = "PING";
+				pingDynamicColor = false;
+				pingLowColor = 0x55FF55;
+				pingMediumColor = 0xFFFF55;
+				pingHighColor = 0xFFAA00;
+				pingExtremeColor = 0xFF5555;
+				pingSpike = false;
+				pingSpikeThreshold = 20;
+				pingSpikeColor = 0xFFAA00;
+				pingBackground = false;
+				pingBackgroundColor = 0x000000;
+				pingNametag = false;
+				break;
+			case 14:
+				coordinatesHorizontal = false;
+				coordinatesDirection = true;
+				coordinatesDirectionMarks = true;
+				coordinatesBiome = false;
+				coordinatesBackground = false;
+				coordinatesBackgroundColor = 0x000000;
+				coordinatesBorder = false;
+				coordinatesBorderColor = 0xFFFFFF;
+				coordinatesShowWhileTyping = true;
+				coordinatesCopyKey = 0;
+				break;
+			case 32:
+				crosshairShape = 0;
+				crosshairColor = 0xFFFFFF;
+				crosshairOutline = false;
+				crosshairOutlineColor = 0x000000;
+				crosshairGap = 2.0F;
+				crosshairLength = 5.0F;
+				crosshairThickness = 1.0F;
+				crosshairShowInF5 = true;
+				crosshairSpectator = true;
+				crosshairDynamicAttack = false;
+				crosshairAttackSpread = 4.0F;
+				crosshairDynamicBow = false;
+				crosshairBowSpread = 6.0F;
+				crosshairHealthShift = false;
+				crosshairHealthThreshold = 6.0F;
+				crosshairHealthColor = 0xFF5555;
+				crosshairEnemy = false;
+				crosshairEnemyColor = 0xFF5555;
+				crosshairFriendly = false;
+				crosshairFriendlyColor = 0x55FF55;
+				break;
+			case 33:
+				inventoryScale = 0;
+				menuScale = 0;
+				crosshairSize = 1.0F;
+				guiHotbarScale = 1.0F;
+				break;
+			case 34:
+				tabToggle = false;
+				tabKeyCode = 15;
+				tabDisableHeader = false;
+				tabDisableFooter = false;
+				tabHeads = true;
+				tabHidePing = false;
+				tabHidePingOver500 = false;
+				tabPingNumbers = false;
+				tabDynamicPing = true;
+				tabPingColor = 0xFFFF55;
+				tabHighlightSelf = false;
+				tabSelfColor = 0x55FF55;
+				tabNameShadow = true;
+				tabMoveSelfTop = false;
+				tabHideNpc = false;
+				tabBackgroundColor = 0x000000;
+				tabHeaderColor = 0x000000;
+				tabFooterColor = 0x000000;
+				break;
+			case 35:
+				titlesShowTitle = true;
+				titlesShowSubtitle = true;
+				titlesTitleColor = 0xFF5555;
+				titlesSubtitleColor = 0xFFFFFF;
+				titlesScale = 1.0F;
+				titlesCentered = true;
+				titlesX = -1;
+				titlesY = 0;
+				windowTitle = false;
+				windowTitleMode = 0;
+				gg.optic.client.hud.OpticTitles.restoreWindowTitle();
+				break;
+			case 36:
+				hitColorRgb = 0xFF0000;
+				hitColorAlpha = 0.4F;
+				hitColorArmor = true;
+				break;
+			case 37:
+				potionsHorizontal = false;
+				potionsShowName = true;
+				potionsShowDuration = true;
+				potionsShowAmplifier = true;
+				potionsSymbols = false;
+				potionsBlink = true;
+				potionsBlinkSeconds = 10;
+				potionsHideVanilla = true;
+				potionsShowInInventory = true;
+				potionsBackground = true;
+				potionsBackgroundColor = 0x000000;
+				potionsTextColor = 0xFFFFFF;
+				potionsTextShadow = true;
+				potionsScale = 1.0F;
+				potionsX = -1;
+				potionsY = -1;
+				break;
+			default:
+				break;
+		}
 	}
 
 	private static int clamp(int value, int min, int max) {

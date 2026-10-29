@@ -5,6 +5,7 @@ import gg.optic.client.OpticUiFont;
 import gg.optic.client.gui.OfflineSignInScreen;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawableHelper;
+import net.minecraft.client.gui.screen.GameMenuScreen;
 import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
 import net.minecraft.client.gui.screen.world.SelectWorldScreen;
@@ -37,7 +38,8 @@ public abstract class ButtonWidgetMixin extends DrawableHelper {
 		boolean account = client != null && client.currentScreen instanceof OfflineSignInScreen;
 		boolean browser = client != null
 			&& (client.currentScreen instanceof MultiplayerScreen || client.currentScreen instanceof SelectWorldScreen);
-		if (!title && !account && !browser) return;
+		boolean pause = client != null && client.currentScreen instanceof GameMenuScreen;
+		if (!title && !account && !browser && !pause) return;
 		if (!visible) {
 			ci.cancel();
 			return;
@@ -57,8 +59,8 @@ public abstract class ButtonWidgetMixin extends DrawableHelper {
 		String label = message == null ? "" : message;
 		if (title && id == 1) label = "Singleplayer";
 		else if (title && id == 2) label = "Multiplayer";
-		float size = browser ? 8.0F : LABEL_SIZE;
-		if (!browser) label = label.toUpperCase();
+		float size = browser || pause ? 8.0F : LABEL_SIZE;
+		if (!browser && !pause) label = label.toUpperCase();
 		if (!label.isEmpty()) {
 			int color = !active ? 0xFF6A7A6A : ACCENT;
 			int textW = OpticUiFont.widthSharp(client, label, color, size);

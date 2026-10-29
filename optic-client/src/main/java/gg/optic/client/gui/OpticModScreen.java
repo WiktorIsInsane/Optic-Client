@@ -10,6 +10,7 @@ import gg.optic.client.OpticSmooth;
 import gg.optic.client.OpticTextures;
 import gg.optic.client.OpticUiDraw;
 import gg.optic.client.OpticUiFont;
+import gg.optic.client.hud.OpticCrosshair;
 import gg.optic.client.display.OpticBorderless;
 import gg.optic.client.input.OpticRawInput;
 import net.minecraft.client.gui.DrawableHelper;
@@ -54,6 +55,12 @@ public final class OpticModScreen extends Screen {
 	public static final int MODULE_HIT_PREDICT = 29;
 	public static final int MODULE_FOV = 30;
 	public static final int MODULE_FREE_LOOK = 31;
+	public static final int MODULE_CROSSHAIR = 32;
+	public static final int MODULE_GUI_SCALE = 33;
+	public static final int MODULE_TAB = 34;
+	public static final int MODULE_TITLES = 35;
+	public static final int MODULE_HIT_COLOR = 36;
+	public static final int MODULE_POTIONS = 37;
 
 	private static final int FPS = MODULE_FPS;
 	private static final int CPS = MODULE_CPS;
@@ -77,6 +84,12 @@ public final class OpticModScreen extends Screen {
 	private static final int HIT_PREDICT = MODULE_HIT_PREDICT;
 	private static final int FOV = MODULE_FOV;
 	private static final int FREE_LOOK = MODULE_FREE_LOOK;
+	private static final int CROSSHAIR = MODULE_CROSSHAIR;
+	private static final int GUI_SCALE = MODULE_GUI_SCALE;
+	private static final int TAB = MODULE_TAB;
+	private static final int TITLES = MODULE_TITLES;
+	private static final int HIT_COLOR = MODULE_HIT_COLOR;
+	private static final int POTIONS = MODULE_POTIONS;
 
 	// Optic launcher theme: near-black panels + green accent (#5cff8a).
 	private static final int ACCENT = 0xFF5CFF8A;
@@ -155,6 +168,12 @@ public final class OpticModScreen extends Screen {
 
 	private int settingsScroll;
 	private int modsScroll;
+	private boolean modsScrollDrag;
+	private int modsTrackX;
+	private int modsTrackY;
+	private int modsTrackW;
+	private int modsTrackH;
+	private int modsThumbH;
 	private int modsMaxScroll;
 	private ModFilter modFilter = ModFilter.ALL;
 	private int filterAllX;
@@ -170,6 +189,12 @@ public final class OpticModScreen extends Screen {
 	private int modsGridW;
 	private int modsGridH;
 
+	private static MainTab resumeTab = MainTab.MODS;
+	private static int resumeModule = -1;
+	private static SettingsCategory resumeSettings = SettingsCategory.GENERAL;
+	private static int resumeConfigScroll;
+	private static int resumeModsScroll;
+	private final boolean restorePlace;
 	private MainTab mainTab = MainTab.MODS;
 	private SettingsCategory settingsCategory = SettingsCategory.GENERAL;
 	private int modsTabX;
@@ -209,23 +234,30 @@ public final class OpticModScreen extends Screen {
 	}
 
 	public OpticModScreen(int openModuleId) {
+		restorePlace = openModuleId < 0;
 		modules.add(new ModuleCard(ANIMATIONS, "Animations", "1.7 / 1.8 item animations", "\u2694\uFE0F"));
 		modules.add(new ModuleCard(BLOCK_OVERLAY, "Block Overlay", "Fill and outline on lookat block", "\uD83D\uDCE6"));
 		modules.add(new ModuleCard(CHAT, "Chat", "Spam filter, history, background", "\uD83D\uDCAC"));
-		modules.add(new ModuleCard(COORDINATES, "Coordinates", "World position", "\uD83D\uDCCD"));
-		modules.add(new ModuleCard(CPS, "CPS", "Click speed", "\uD83D\uDDB1"));
+		modules.add(new ModuleCard(COORDINATES, "Coordinates", "Position, facing, and biome", "\uD83D\uDCCD"));
+		modules.add(new ModuleCard(CPS, "CPS", "Left and right click speed", "\uD83D\uDDB1"));
+		modules.add(new ModuleCard(CROSSHAIR, "Crosshair", "Shape, color, and dynamic gap", "\uD83C\uDFAF"));
 		modules.add(new ModuleCard(FPS, "FPS", "Frame counter", "\uD83D\uDCCA"));
 		modules.add(new ModuleCard(FOV, "FOV", "Field of view from 30 to 150", "\uD83D\uDC41"));
-		modules.add(new ModuleCard(FREE_LOOK, "Free Look", "Hold Left Alt to look around your player", "\u21BA"));
+		modules.add(new ModuleCard(FREE_LOOK, "Free Look", "Look around without turning your player", "\u21BA"));
 		modules.add(new ModuleCard(FULLBRIGHT, "Fullbright", "Maximum brightness", "\u2600\uFE0F"));
+		modules.add(new ModuleCard(GUI_SCALE, "GUI Scale", "Crosshair, menus, and inventories", "\uD83D\uDD0D"));
+		modules.add(new ModuleCard(HIT_COLOR, "Hit Color", "Custom damage tint", "\uD83D\uDCA5"));
 		modules.add(new ModuleCard(HOTBAR, "Hotbar", "Move and resize the hotbar", "\uD83C\uDFAE"));
 		modules.add(new ModuleCard(HURT_CAM, "Hurt Cam", "Damage camera shake", "\uD83D\uDC94"));
 		modules.add(new ModuleCard(HITBOXES, "Hitboxes", "Colored entity boxes and look lines", "\uD83C\uDFAF"));
-		modules.add(new ModuleCard(KEYSTROKES, "Keystrokes", "Movement overlay", "\u2328\uFE0F"));
-		modules.add(new ModuleCard(NAMETAGS, "Nametags", "Nameplate options and colors", "\uD83C\uDFF7"));
+		modules.add(new ModuleCard(KEYSTROKES, "Keystrokes", "WASD, clicks, and spacebar", "\u2328\uFE0F"));
+		modules.add(new ModuleCard(NAMETAGS, "Nametags", "Opacity, shadow, and toggles", "\uD83C\uDFF7"));
 		modules.add(new ModuleCard(PARTICLES, "Particles", "Client-side hit particles", "\u2728"));
-		modules.add(new ModuleCard(PING, "Ping", "Server latency", "\uD83D\uDCF6"));
+		modules.add(new ModuleCard(PING, "Ping", "Latency, spikes, and nametags", "\uD83D\uDCF6"));
+		modules.add(new ModuleCard(POTIONS, "Potion Status", "Effect names and timers", "\uD83E\uDDEA"));
 		modules.add(new ModuleCard(SCOREBOARD, "Scoreboard", "Sidebar scoreboard style", "\uD83D\uDCCB"));
+		modules.add(new ModuleCard(TAB, "Tab", "Player list colors and ping", "\uD83D\uDC65"));
+		modules.add(new ModuleCard(TITLES, "Titles", "Title overlay and window title bar", "\uD83D\uDCDD"));
 		modules.add(new ModuleCard(TIME_CHANGER, "Time Changer", "Freeze time and sky type", "\uD83C\uDF19"));
 		modules.add(new ModuleCard(TOGGLE_SPRINT, "Toggle Sprint", "Persistent sprint", "\uD83C\uDFC3"));
 		modules.add(new ModuleCard(WEATHER_CHANGER, "Weather Changer", "Client-side weather override", "\uD83C\uDF27"));
@@ -238,12 +270,12 @@ public final class OpticModScreen extends Screen {
 			}
 		});
 		if (openModuleId >= 0) {
-			for (ModuleCard module : modules) {
-				if (module.id == openModuleId) {
-					selected = module;
-					break;
-				}
-			}
+			mainTab = MainTab.MODS;
+			selected = findModule(openModuleId);
+		} else {
+			mainTab = resumeTab;
+			settingsCategory = resumeSettings;
+			if (resumeTab == MainTab.MODS && resumeModule >= 0) selected = findModule(resumeModule);
 		}
 	}
 
@@ -255,11 +287,10 @@ public final class OpticModScreen extends Screen {
 	public void init() {
 		buttons.clear();
 		Keyboard.enableRepeatEvents(true);
-		// Compact centered window. Drawing stays hi-res (supersampled), only the layout is smaller.
-		int targetW = Math.min(width - 16, 560);
-		int targetH = Math.min(height - 16, 330);
-		panelW = Math.max(360, targetW);
-		panelH = Math.max(240, targetH);
+		// Stay inside the game window. A fixed minimum used to push the last column off the screen.
+		int margin = 12;
+		panelW = Math.min(560, Math.max(1, width - margin * 2));
+		panelH = Math.min(330, Math.max(1, height - margin * 2));
 		panelX = (width - panelW) / 2;
 		panelY = (height - panelH) / 2;
 		closeX = panelX + panelW - 26;
@@ -271,8 +302,8 @@ public final class OpticModScreen extends Screen {
 		activeSlider = null;
 		activeColor = null;
 		openColorKey = null;
-		configScroll = 0;
-		modsScroll = 0;
+		configScroll = restorePlace ? resumeConfigScroll : 0;
+		modsScroll = restorePlace ? resumeModsScroll : 0;
 		editX = panelX + 10;
 		editY = panelY + panelH - 34;
 		editW = Math.max(88, sidebarW - 8);
@@ -291,6 +322,11 @@ public final class OpticModScreen extends Screen {
 
 	@Override
 	public void removed() {
+		resumeTab = mainTab;
+		resumeModule = selected == null ? -1 : selected.id;
+		resumeSettings = settingsCategory;
+		resumeConfigScroll = configScroll;
+		resumeModsScroll = modsScroll;
 		Keyboard.enableRepeatEvents(false);
 		OpticClient.get().config().save();
 	}
@@ -327,6 +363,12 @@ public final class OpticModScreen extends Screen {
 			case HIT_PREDICT: return c.hitPredict;
 			case FOV: return c.fovMod;
 			case FREE_LOOK: return c.freeLook;
+			case CROSSHAIR: return c.crosshair;
+			case GUI_SCALE: return c.guiScale;
+			case TAB: return c.tab;
+			case TITLES: return c.titles;
+			case HIT_COLOR: return c.hitColor;
+			case POTIONS: return c.potions;
 			default: return false;
 		}
 	}
@@ -374,6 +416,16 @@ public final class OpticModScreen extends Screen {
 			c.save();
 			return;
 		}
+		if ("minimalBobbing".equals(key)) {
+			c.minimalBobbing = !c.minimalBobbing;
+			c.save();
+			return;
+		}
+		if ("instantHitFlash".equals(key)) {
+			c.instantHitFlash = !c.instantHitFlash;
+			c.save();
+			return;
+		}
 		if ("disableMouseScrollWheel".equals(key)) {
 			c.disableMouseScrollWheel = !c.disableMouseScrollWheel;
 			c.save();
@@ -389,6 +441,16 @@ public final class OpticModScreen extends Screen {
 		}
 		if ("fpsOptimizer".equals(key)) {
 			c.fpsOptimizer = !c.fpsOptimizer;
+			c.save();
+			return;
+		}
+		if ("opticSnap".equals(key)) {
+			c.opticSnap = !c.opticSnap;
+			c.save();
+			return;
+		}
+		if ("entityCulling".equals(key)) {
+			c.entityCulling = !c.entityCulling;
 			c.save();
 		}
 	}
@@ -430,6 +492,15 @@ public final class OpticModScreen extends Screen {
 			case HIT_PREDICT: c.hitPredict = !c.hitPredict; break;
 			case FOV: c.fovMod = !c.fovMod; break;
 			case FREE_LOOK: c.freeLook = !c.freeLook; break;
+			case CROSSHAIR: c.crosshair = !c.crosshair; break;
+			case GUI_SCALE: c.guiScale = !c.guiScale; break;
+			case TAB: c.tab = !c.tab; break;
+			case TITLES:
+				c.titles = !c.titles;
+				if (!c.titles || !c.windowTitle) gg.optic.client.hud.OpticTitles.restoreWindowTitle();
+				break;
+			case HIT_COLOR: c.hitColor = !c.hitColor; break;
+			case POTIONS: c.potions = !c.potions; break;
 			default: return;
 		}
 		c.save();
@@ -456,6 +527,13 @@ public final class OpticModScreen extends Screen {
 				activeColor = null;
 			} else {
 				updateColorDrag(mouseX, mouseY);
+			}
+		}
+		if (modsScrollDrag) {
+			if (!Mouse.isButtonDown(0)) {
+				modsScrollDrag = false;
+			} else {
+				dragModsScroll(mouseY);
 			}
 		}
 		renderBackground();
@@ -574,19 +652,16 @@ public final class OpticModScreen extends Screen {
 		String name = OpticProfiles.displayName(file);
 		boolean selectedProfile = active != null && active.equalsIgnoreCase(name);
 		boolean hover = inside(mouseX, mouseY, x, y, w, h);
-		fillRound(x, y, w, h, RADIUS, hover ? CARD_HOVER : CARD);
-		outlineRound(x, y, w, h, RADIUS, selectedProfile ? ACCENT : (hover ? ACCENT_SOFT : BORDER_SOFT));
-		if (selectedProfile) {
-			outlineRound(x + 1, y + 1, w - 2, h - 2, RADIUS_SM, 0x665CFF8A);
-		}
+		fillExact(x, y, w, h, RADIUS, hover ? CARD_HOVER : CARD);
+		outlineExact(x, y, w, h, RADIUS, selectedProfile || hover ? ACCENT : BORDER_SOFT);
 
 		OpticUiFont.drawCenteredSized(client, name, x + w / 2, y + 10, 0xFFFFFFFF, 10.0F);
 
 		int iconBox = 48;
 		int ix = x + (w - iconBox) / 2;
 		int iy = y + 32;
-		fillRound(ix, iy, iconBox, iconBox, RADIUS_SM, 0xFF15181C);
-		outlineRound(ix, iy, iconBox, iconBox, RADIUS_SM, 0x445CFF8A);
+		fillExact(ix, iy, iconBox, iconBox, RADIUS_SM, 0xFF15181C);
+		outlineExact(ix, iy, iconBox, iconBox, RADIUS_SM, 0x885CFF8A);
 		Identifier logo = OpticTextures.logo(client);
 		if (logo != null) {
 		OpticSmooth.bindMip(client, logo);
@@ -658,12 +733,11 @@ public final class OpticModScreen extends Screen {
 	}
 
 	private void drawSettingsShell(int mouseX, int mouseY) {
-		int bodyTop = panelY + 52;
-		fill(panelX, bodyTop, panelX + sidebarW, panelY + panelH, SIDEBAR);
-		fill(panelX + sidebarW, bodyTop, panelX + panelW, panelY + panelH, 0x00000000);
+		fill(panelX, panelY, panelX + sidebarW, panelY + panelH, SIDEBAR);
+		fill(panelX + sidebarW, panelY + 48, panelX + panelW, panelY + panelH, 0x00000000);
 
-		OpticUiFont.drawSized(client, "Overview", panelX + 12, bodyTop + 10, MUTED, 8.0F);
-		int catY = bodyTop + 28;
+		OpticUiFont.drawSized(client, "Overview", panelX + 12, panelY + 16, MUTED, 8.0F);
+		int catY = panelY + 40;
 		drawSettingsCategory("General", SettingsCategory.GENERAL, panelX + 6, catY, sidebarW - 12, 22, mouseX, mouseY);
 		catY += 26;
 		drawSettingsCategory("Performance", SettingsCategory.PERFORMANCE, panelX + 6, catY, sidebarW - 12, 22, mouseX, mouseY);
@@ -681,18 +755,20 @@ public final class OpticModScreen extends Screen {
 
 	private void drawSettingsList(int mouseX, int mouseY) {
 		settingHits.clear();
-		// Re-add category hits after clear — drawSettingsShell already drew them, so rebuild.
-		int bodyTop = panelY + 52;
-		int catY = bodyTop + 28;
+		int catY = panelY + 40;
 		settingHits.add(new SettingHit("cat:GENERAL", panelX + 6, catY, sidebarW - 12, 22));
 		settingHits.add(new SettingHit("cat:PERFORMANCE", panelX + 6, catY + 26, sidebarW - 12, 22));
 
 		int contentX = panelX + sidebarW + 16;
-		int contentY = panelY + 62;
+		int contentY = panelY + 58;
 		int contentW = panelW - sidebarW - 28;
 		int contentBottom = panelY + panelH - 40;
-		ensureSettingsSearch(contentX, contentY, Math.min(220, contentW));
-		drawSmoothField(settingsSearchField, contentX, contentY, Math.min(220, contentW), 16, "Search");
+		String page = settingsCategory == SettingsCategory.PERFORMANCE ? "Performance" : "General";
+		OpticUiFont.drawSized(client, page, contentX, contentY + 1, 0xFFFFFFFF, 12.0F);
+		int settingsSearchWidth = Math.min(160, Math.max(72, contentW / 2));
+		int settingsSearchLeft = contentX + contentW - settingsSearchWidth;
+		ensureSettingsSearch(settingsSearchLeft, contentY, settingsSearchWidth);
+		drawSmoothField(settingsSearchField, settingsSearchLeft, contentY, settingsSearchWidth, 16, "Search");
 		contentY += 24;
 
 		if (settingsCategory == SettingsCategory.PERFORMANCE) {
@@ -719,6 +795,26 @@ public final class OpticModScreen extends Screen {
 			"Mouse Delay Fix",
 			OpticClient.get().config().mouseDelayFix,
 			"mouseDelayFix",
+			contentX,
+			rowY,
+			contentW,
+			mouseX,
+			mouseY
+		);
+		rowY = drawSettingToggle(
+			"Minimal Bobbing",
+			OpticClient.get().config().minimalBobbing,
+			"minimalBobbing",
+			contentX,
+			rowY,
+			contentW,
+			mouseX,
+			mouseY
+		);
+		rowY = drawSettingToggle(
+			"Instant Hit Flash",
+			OpticClient.get().config().instantHitFlash,
+			"instantHitFlash",
 			contentX,
 			rowY,
 			contentW,
@@ -791,7 +887,9 @@ public final class OpticModScreen extends Screen {
 		settingsScroll = 0;
 		int rowY = contentY;
 		rowY = drawSettingsHeader(contentX, rowY, "Performance");
-		drawSettingToggleClipped("FPS Optimizer", c.fpsOptimizer, "fpsOptimizer", contentX, rowY, contentW, contentY, contentBottom, mouseX, mouseY);
+		rowY = drawSettingToggleClipped("FPS Optimizer", c.fpsOptimizer, "fpsOptimizer", contentX, rowY, contentW, contentY, contentBottom, mouseX, mouseY);
+		rowY = drawSettingToggleClipped("Optic Snap", c.opticSnap, "opticSnap", contentX, rowY, contentW, contentY, contentBottom, mouseX, mouseY);
+		drawSettingToggleClipped("Optimized entity culling", c.entityCulling, "entityCulling", contentX, rowY, contentW, contentY, contentBottom, mouseX, mouseY);
 	}
 
 	private int drawSettingsHeader(int x, int y, String label) {
@@ -880,11 +978,12 @@ public final class OpticModScreen extends Screen {
 		fill(panelX, headerBottom - RADIUS, panelX + panelW, headerBottom, TOPBAR);
 		fill(panelX, headerBottom - 1, panelX + panelW, headerBottom, BORDER_SOFT);
 
-		drawHeaderLogo();
-		OpticUiFont.drawSized(client, "OPTIC CLIENT", panelX + 44, panelY + 16, 0xFFFFFFFF, 12.0F);
+		int brandX = mainTab == MainTab.SETTINGS ? panelX + sidebarW + 12 : panelX + 12;
+		drawHeaderLogo(brandX);
+		OpticUiFont.drawSized(client, "OPTIC CLIENT", brandX + 32, panelY + 16, 0xFFFFFFFF, 12.0F);
 
 		this.tabY = panelY + 12;
-		modsTabX = panelX + 148;
+		modsTabX = brandX + 128;
 		modsTabW = 56;
 		settingsTabX = modsTabX + modsTabW + 8;
 		settingsTabW = 68;
@@ -916,24 +1015,23 @@ public final class OpticModScreen extends Screen {
 	private void drawPillTab(String label, int x, int y, int w, int h, boolean active, int mouseX, int mouseY) {
 		boolean hover = inside(mouseX, mouseY, x, y, w, h);
 		if (active) {
-			fillRound(x, y, w, h, RADIUS_SM, ACCENT);
+			fillExact(x, y, w, h, RADIUS_SM, ACCENT);
 		} else {
-			fillRound(x, y, w, h, RADIUS_SM, hover ? ACCENT_SOFT : TAB_IDLE);
-			outlineRound(x, y, w, h, RADIUS_SM, hover ? ACCENT : TAB_OUTLINE);
+			fillExact(x, y, w, h, RADIUS_SM, hover ? ACCENT_SOFT : TAB_IDLE);
+			outlineExact(x, y, w, h, RADIUS_SM, hover ? ACCENT : 0xFF3A403C);
 		}
-		OpticUiFont.drawCenteredSized(
+		OpticUiFont.drawCrispCentered(
 			client,
 			label,
 			x + w / 2,
-			y + 7,
+			y + h / 2,
 			active ? 0xFF07110A : (hover ? 0xFFFFFFFF : MUTED),
-			10.5F
+			11.0F
 		);
 	}
 
-	private void drawHeaderLogo() {
+	private void drawHeaderLogo(int x) {
 		Identifier logo = OpticTextures.logo(client);
-		int x = panelX + 12;
 		int y = panelY + (44 - HEADER_LOGO) / 2;
 		if (logo == null) {
 			OpticUiFont.drawSized(client, "OPTIC", x, panelY + 14, ACCENT, 14.0F);
@@ -968,10 +1066,13 @@ public final class OpticModScreen extends Screen {
 		editW = sidebarW - 16;
 		drawEditGuiButton(mouseX, mouseY);
 
+		int edge = 14;
 		int contentX = panelX + sidebarW + 12;
 		int contentY = bodyTop + 8;
-		int contentW = panelW - sidebarW - 24;
-		int contentH = panelH - 48 - 16;
+		int contentRight = panelX + panelW - edge;
+		int contentBottom = panelY + panelH - edge;
+		int contentW = Math.max(1, contentRight - contentX);
+		int contentH = Math.max(1, contentBottom - contentY);
 		if (selected != null) {
 			drawConfigView(mouseX, mouseY, contentX, contentY, contentW, contentH);
 			return;
@@ -982,17 +1083,25 @@ public final class OpticModScreen extends Screen {
 		modsGridY = contentY;
 		modsGridW = contentW;
 		modsGridH = contentH;
-		ensureModSearch(modsGridX, modsGridY, Math.min(220, modsGridW));
-		drawSmoothField(modSearchField, modsGridX, modsGridY, Math.min(220, modsGridW), 16, "Search");
+		int scrollGap = 12;
+		int searchW = Math.min(160, Math.max(72, modsGridW - scrollGap));
+		int searchX = modsGridX + modsGridW - scrollGap - searchW;
+		ensureModSearch(searchX, modsGridY, searchW);
+		drawSmoothField(modSearchField, searchX, modsGridY, searchW, 16, "Search");
 		modsGridY += 22;
-		modsGridH -= 22;
+		modsGridH = Math.max(32, contentBottom - modsGridY);
 
 		int gap = 6;
-		int cardSize = 72;
-		int columns = Math.max(2, (modsGridW + gap) / (cardSize + gap));
-		int cardW = Math.min(92, (modsGridW - gap * (columns - 1) - 10) / columns);
+		int innerW = Math.max(1, modsGridW - scrollGap);
+		int columns = Math.max(1, (innerW + gap) / (64 + gap));
+		int cardW = (innerW - gap * (columns - 1)) / columns;
+		if (cardW > 96) {
+			columns = Math.max(1, (innerW + gap) / (96 + gap));
+			cardW = Math.min(96, (innerW - gap * (columns - 1)) / columns);
+		}
+		if (cardW < 1) cardW = 1;
 		int cardH = cardW + 6;
-		int rows = (visible.size() + columns - 1) / Math.max(1, columns);
+		int rows = (visible.size() + columns - 1) / columns;
 		int gridContentH = rows * (cardH + gap) - (rows > 0 ? gap : 0);
 		modsMaxScroll = Math.max(0, gridContentH - modsGridH);
 		modsScroll = Math.max(0, Math.min(modsScroll, modsMaxScroll));
@@ -1013,20 +1122,48 @@ public final class OpticModScreen extends Screen {
 			int x = modsGridX + column * (cardW + gap);
 			int y = modsGridY + row * (cardH + gap) - modsScroll;
 			if (y + cardH < modsGridY || y > modsGridY + modsGridH) continue;
+			if (x + cardW > modsGridX + innerW) continue;
 			boolean hover = inside(mouseX, mouseY, x, y, cardW, cardH)
-				&& inside(mouseX, mouseY, modsGridX, modsGridY, modsGridW, modsGridH);
-			cardBounds.add(drawCard(module, x, y, cardW, cardH, hover));
+				&& inside(mouseX, mouseY, modsGridX, modsGridY, innerW, modsGridH);
+			int clipX = x;
+			int clipY = Math.max(y, modsGridY);
+			int clipR = Math.min(x + cardW, modsGridX + innerW);
+			int clipB = Math.min(y + cardH, modsGridY + modsGridH);
+			clipGui(clipX, clipY, clipR - clipX, clipB - clipY);
+			try {
+				cardBounds.add(drawCard(module, x, y, cardW, cardH, hover));
+			} finally {
+				GL11.glDisable(GL11.GL_SCISSOR_TEST);
+			}
 		}
 
 		if (modsMaxScroll > 0) {
-			int trackX = panelX + panelW - 10;
+			int trackX = modsGridX + innerW + 4;
+			if (trackX > panelX + panelW - 8) trackX = panelX + panelW - 8;
 			int trackY = modsGridY;
 			int trackH = modsGridH;
+			modsTrackX = trackX - 4;
+			modsTrackY = trackY;
+			modsTrackW = 12;
+			modsTrackH = trackH;
 			fill(trackX, trackY, trackX + 3, trackY + trackH, 0x44101010);
 			int thumbH = Math.max(18, trackH * trackH / Math.max(1, gridContentH));
+			modsThumbH = thumbH;
 			int thumbY = trackY + (int) ((trackH - thumbH) * (modsScroll / (float) modsMaxScroll));
 			fill(trackX, thumbY, trackX + 3, thumbY + thumbH, ACCENT);
+		} else {
+			modsTrackW = 0;
+			modsTrackH = 0;
 		}
+	}
+
+	private void dragModsScroll(int mouseY) {
+		if (modsMaxScroll <= 0 || modsTrackH <= modsThumbH) return;
+		float span = modsTrackH - modsThumbH;
+		float t = (mouseY - modsTrackY - modsThumbH * 0.5F) / span;
+		if (t < 0.0F) t = 0.0F;
+		if (t > 1.0F) t = 1.0F;
+		modsScroll = Math.round(t * modsMaxScroll);
 	}
 
 	private List<ModuleCard> visibleModules() {
@@ -1052,7 +1189,12 @@ public final class OpticModScreen extends Screen {
 			|| id == PARTICLES
 			|| id == TOGGLE_SPRINT
 			|| id == ZOOM
-			|| id == FREE_LOOK;
+			|| id == FREE_LOOK
+			|| id == CROSSHAIR
+			|| id == HIT_COLOR
+			|| id == POTIONS
+			|| id == PING
+			|| id == TAB;
 	}
 
 	private void drawFilterRow(String label, ModFilter filter, int x, int y, int w, int h, int mouseX, int mouseY) {
@@ -1062,7 +1204,13 @@ public final class OpticModScreen extends Screen {
 		if (filter == ModFilter.FAVORITES) {
 			drawFavoriteStar(x + 14, y + h / 2, 11.0F, true, active || hover);
 		} else if (filter == ModFilter.PVP) {
-			OpticUiFont.drawSized(client, "\u2694", x + 8, y + 6, active ? 0xFF07110A : (hover ? 0xFFFFFFFF : MUTED), 10.0F);
+			OpticUiFont.drawSwordsCentered(
+				client,
+				x + 14,
+				y + h / 2,
+				11.0F,
+				active ? 0xFF07110A : (hover ? 0xFFFFFFFF : MUTED)
+			);
 		} else {
 			OpticUiFont.drawSized(client, "\u2630", x + 8, y + 6, active ? 0xFF07110A : (hover ? 0xFFFFFFFF : MUTED), 10.0F);
 		}
@@ -1079,26 +1227,35 @@ public final class OpticModScreen extends Screen {
 	private CardBounds drawCard(ModuleCard module, int x, int y, int w, int h, boolean hover) {
 		boolean on = enabled(module.id);
 		boolean fav = OpticClient.get().config().isFavoriteModule(module.id);
-		fillRound(x, y, w, h, RADIUS, hover ? CARD_HOVER : (on ? CARD_ON : CARD));
-		outlineRound(x, y, w, h, RADIUS, hover ? ACCENT : BORDER_SOFT);
+		fillExact(x, y, w, h, RADIUS, hover ? CARD_HOVER : (on ? CARD_ON : CARD));
+		outlineExact(x, y, w, h, RADIUS, hover ? ACCENT : BORDER_SOFT);
 
 		float titleSize = w < 80 ? 8.5F : 9.5F;
+		int titleLimit = Math.max(8, w - 10);
+		int titleWidth = OpticUiFont.widthSized(client, module.name, 0xFFFFFFFF, titleSize);
+		if (titleWidth > titleLimit && titleWidth > 0) {
+			titleSize = Math.max(5.0F, titleSize * titleLimit / (float) titleWidth);
+			int fitted = OpticUiFont.widthSized(client, module.name, 0xFFFFFFFF, titleSize);
+			if (fitted > titleLimit && fitted > 0) {
+				titleSize = Math.max(5.0F, titleSize * titleLimit / (float) fitted);
+			}
+		}
 		OpticUiFont.drawCenteredSized(client, module.name, x + w / 2, y + 7, 0xFFFFFFFF, titleSize);
 
 		float emojiSize = Math.min(22.0F, Math.max(16.0F, w * 0.26F));
 		int emojiY = y + (h / 2) - Math.round(emojiSize * 0.62F);
 		OpticUiFont.drawEmojiCentered(client, module.icon, x + w / 2, emojiY, emojiSize);
 
-		int toggleW = 34;
+		int toggleW = Math.min(34, Math.max(18, w - 20));
 		int toggleH = 14;
 		int toggleX = x + (w - toggleW) / 2;
 		int toggleY = y + h - toggleH - 8;
 		drawToggle(toggleX, toggleY, toggleW, toggleH, on);
 
-		int starSize = 12;
-		int starHitX = x + w - starSize - 4;
-		int starHitY = y + h - starSize - 4;
-		drawFavoriteStar(starHitX + starSize / 2, starHitY + starSize / 2, 12.0F, fav, hover);
+		int starSize = 8;
+		int starHitX = x + w - starSize - 5;
+		int starHitY = y + h - starSize - 5;
+		drawFavoriteStar(starHitX + starSize / 2, starHitY + starSize / 2, 7.0F, fav, hover);
 		return new CardBounds(module.id, x, y, w, h, toggleX, toggleY, toggleW, toggleH, starHitX - 2, starHitY - 2, starSize + 4, starSize + 4);
 	}
 
@@ -1107,14 +1264,14 @@ public final class OpticModScreen extends Screen {
 		int knob = h - 4;
 		int knobX = on ? x + w - knob - 2 : x + 2;
 		fillRound(knobX, y + 2, knob, knob, knob / 2, 0xFFF2F4F7);
-		OpticUiFont.drawCenteredSized(
-			client,
-			on ? "\u2713" : "\u00d7",
-			knobX + knob / 2,
-			y + 2,
-			on ? ACCENT_DIM : 0xFF6A6A78,
-			8.0F
-		);
+	}
+
+	private void clipGui(int x, int y, int w, int h) {
+		int sf = Math.max(1, new Window(client).getScaleFactor());
+		if (w < 0) w = 0;
+		if (h < 0) h = 0;
+		GL11.glEnable(GL11.GL_SCISSOR_TEST);
+		GL11.glScissor(x * sf, client.height - (y + h) * sf, w * sf, h * sf);
 	}
 
 	private void drawConfigView(int mouseX, int mouseY, int areaX, int areaY, int areaW, int areaH) {
@@ -1148,10 +1305,20 @@ public final class OpticModScreen extends Screen {
 
 		int rowX = areaX;
 		int rowW = areaW;
+		int previewH = 0;
+		if (selected.id == CROSSHAIR) {
+			previewH = 78;
+			int boxY = areaY + 24;
+			fillRound(areaX, boxY, areaW, 70, RADIUS_SM, 0xFF101014);
+			outlineRound(areaX, boxY, areaW, 70, RADIUS_SM, BORDER_SOFT);
+			clipGui(areaX + 4, boxY + 4, areaW - 8, 62);
+			OpticCrosshair.preview(areaX + areaW / 2, boxY + 35);
+			GL11.glDisable(GL11.GL_SCISSOR_TEST);
+		}
 		List<ConfigOption> options = optionsFor(selected.id);
 		boolean leadHeader = options.isEmpty() || options.get(0).type != OptionType.HEADER;
 		int lead = leadHeader ? 18 : 0;
-		int contentTop = areaY + 26;
+		int contentTop = areaY + 26 + previewH;
 		int contentBottom = areaY + areaH - 16;
 		int totalH = lead;
 		for (int i = 0; i < options.size(); i++) {
@@ -1162,6 +1329,7 @@ public final class OpticModScreen extends Screen {
 		configScroll = Math.max(0, Math.min(configScroll, maxScroll));
 
 		int rowY = contentTop - configScroll;
+		clipGui(rowX, contentTop, rowW, Math.max(1, contentBottom - contentTop));
 		if (leadHeader && rowY + 16 >= contentTop && rowY <= contentBottom) {
 			drawSectionHeader(rowX, rowY, "General");
 		}
@@ -1175,6 +1343,7 @@ public final class OpticModScreen extends Screen {
 			}
 			rowY += stride;
 		}
+		GL11.glDisable(GL11.GL_SCISSOR_TEST);
 		if (options.isEmpty()) {
 			OpticUiFont.drawSized(client, "No extra options for this mod.", rowX + 30, contentTop + 2, MUTED, 10.0F);
 		}
@@ -1229,7 +1398,9 @@ public final class OpticModScreen extends Screen {
 			OpticUiFont.drawSized(client, option.label, toggleX + 34, y + 4, 0xFFFFFFFF, 11.0F);
 			optionHits.add(OptionHit.bool(option.key, x, y, w, h));
 		} else if (option.type == OptionType.KEY) {
-			String value = bindingKey != null && bindingKey.equals(option.key) ? "Press a key" : OpticFreeLook.keyName(OpticClient.get().config().freeLookKeyCode);
+			Integer bound = OpticRevampOptions.getKey(OpticClient.get().config(), option.key);
+			int code = bound == null ? OpticClient.get().config().freeLookKeyCode : bound.intValue();
+			String value = bindingKey != null && bindingKey.equals(option.key) ? "Press a key" : OpticFreeLook.keyName(code);
 			OpticUiFont.drawSized(client, option.label, x, y + 4, 0xFFFFFFFF, 11.0F);
 			int valueW = OpticUiFont.widthSized(client, value, 0xFFFFFFFF, 11.0F);
 			int valueColor = bindingKey != null && bindingKey.equals(option.key) ? ACCENT : 0xFFB4B4BE;
@@ -1372,6 +1543,7 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.color("fpsColor", "Accent Color"));
 				options.add(ConfigOption.color("fpsTextColor", "Text Color"));
 				options.add(ConfigOption.toggle("fpsShowLabel", "Show FPS Label"));
+				options.add(ConfigOption.toggle("fpsReverseOrder", "Reverse Order"));
 				options.add(ConfigOption.toggle("fpsBrackets", "Brackets"));
 				break;
 			case CPS:
@@ -1382,21 +1554,28 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.toggle("cpsShowLabel", "Show CPS Label"));
 				options.add(ConfigOption.toggle("cpsBrackets", "Brackets"));
 				options.add(ConfigOption.toggle("cpsSeparateButtons", "Separate LMB / RMB"));
+				options.add(ConfigOption.toggle("cpsReverseText", "Reverse Text"));
+				options.add(ConfigOption.toggle("cpsIgnoreCancelled", "Ignore Cancelled Clicks"));
 				break;
 			case KEYSTROKES:
+				options.add(ConfigOption.toggle("keystrokesShowMovement", "Movement Keys"));
+				options.add(ConfigOption.toggle("keystrokesUseArrows", "Use Arrow Keys"));
+				options.add(ConfigOption.toggle("keystrokesShowMouse", "Mouse Buttons"));
+				options.add(ConfigOption.toggle("keystrokesShowLeftCps", "Left CPS"));
+				options.add(ConfigOption.toggle("keystrokesShowRightCps", "Right CPS"));
+				options.add(ConfigOption.toggle("keystrokesShowSpace", "Spacebar"));
 				options.add(ConfigOption.toggle("keystrokesTextShadow", "Text Shadow"));
-				options.add(ConfigOption.cycle("keystrokesOpticFont", "Font"));
-				options.add(ConfigOption.color("keystrokesColor", "Accent Color"));
-				options.add(ConfigOption.color("keystrokesTextColor", "Text Color"));
-				options.add(ConfigOption.toggle("keystrokesLockKeys", "Lock Keys"));
-				options.add(ConfigOption.toggle("keystrokesShowMouse", "Show Mouse Buttons"));
-				options.add(ConfigOption.toggle("keystrokesShowLabels", "Show Key Labels"));
-				options.add(ConfigOption.toggle("keystrokesBackground", "Background"));
-				options.add(ConfigOption.toggle("keystrokesModernStyle", "Modern Style"));
-				options.add(ConfigOption.toggle("keystrokesInstant", "Instant Clicks"));
+				options.add(ConfigOption.toggle("keystrokesBorder", "Border"));
+				options.add(ConfigOption.slider("keystrokesBoxSize", "Box Size", 10.0F, 32.0F));
+				options.add(ConfigOption.slider("keystrokesBorderThickness", "Border Thickness", 0.5F, 3.0F));
+				options.add(ConfigOption.slider("keystrokesSpaceThickness", "Spacebar Thickness", 1.0F, 4.25F));
 				options.add(ConfigOption.toggle("keystrokesFade", "Fade"));
-				options.add(ConfigOption.slider("keystrokesFadeMs", "Fade Duration (ms)", 50.0F, 1000.0F));
-				options.add(ConfigOption.cycle("keystrokesCpsMode", "CPS Display"));
+				options.add(ConfigOption.slider("keystrokesFadeMs", "Fade Delay (ms)", 0.0F, 500.0F));
+				options.add(ConfigOption.color("keystrokesBackgroundColor", "Background"));
+				options.add(ConfigOption.color("keystrokesBackgroundPressedColor", "Pressed Background"));
+				options.add(ConfigOption.color("keystrokesTextColor", "Text"));
+				options.add(ConfigOption.color("keystrokesTextPressedColor", "Pressed Text"));
+				options.add(ConfigOption.color("keystrokesBorderColor", "Border Color"));
 				break;
 			case PING:
 				options.add(ConfigOption.toggle("pingTextShadow", "Text Shadow"));
@@ -1406,6 +1585,18 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.toggle("pingShowLabel", "Show Ping Label"));
 				options.add(ConfigOption.toggle("pingBrackets", "Brackets"));
 				options.add(ConfigOption.toggle("pingShowMs", "Show ms Suffix"));
+				options.add(ConfigOption.toggle("pingReversePrefix", "Value Before Label"));
+				options.add(ConfigOption.toggle("pingDynamicColor", "Dynamic Ping Color"));
+				options.add(ConfigOption.color("pingLowColor", "Low Ping"));
+				options.add(ConfigOption.color("pingMediumColor", "Medium Ping"));
+				options.add(ConfigOption.color("pingHighColor", "High Ping"));
+				options.add(ConfigOption.color("pingExtremeColor", "Extreme Ping"));
+				options.add(ConfigOption.toggle("pingSpike", "Spike Detection"));
+				options.add(ConfigOption.slider("pingSpikeThreshold", "Spike Threshold %", 1.0F, 200.0F));
+				options.add(ConfigOption.color("pingSpikeColor", "Spike Color"));
+				options.add(ConfigOption.toggle("pingBackground", "Background"));
+				options.add(ConfigOption.color("pingBackgroundColor", "Background Color"));
+				options.add(ConfigOption.toggle("pingNametag", "Ping On Nametags"));
 				break;
 			case COORDINATES:
 				options.add(ConfigOption.toggle("coordinatesTextShadow", "Text Shadow"));
@@ -1416,6 +1607,16 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.toggle("coordinatesBrackets", "Brackets"));
 				options.add(ConfigOption.toggle("coordinatesShowY", "Show Y Coordinate"));
 				options.add(ConfigOption.cycle("coordinatesDecimals", "Decimal Places"));
+				options.add(ConfigOption.toggle("coordinatesHorizontal", "Horizontal Layout"));
+				options.add(ConfigOption.toggle("coordinatesDirection", "Show Direction"));
+				options.add(ConfigOption.toggle("coordinatesDirectionMarks", "Direction Marks"));
+				options.add(ConfigOption.toggle("coordinatesBiome", "Show Biome"));
+				options.add(ConfigOption.toggle("coordinatesShowWhileTyping", "Show While Typing"));
+				options.add(ConfigOption.toggle("coordinatesBackground", "Background"));
+				options.add(ConfigOption.color("coordinatesBackgroundColor", "Background Color"));
+				options.add(ConfigOption.toggle("coordinatesBorder", "Border"));
+				options.add(ConfigOption.color("coordinatesBorderColor", "Border Color"));
+				options.add(ConfigOption.key("coordinatesCopyKey", "Copy Coordinates"));
 				break;
 			case TOGGLE_SPRINT:
 				options.add(ConfigOption.toggle("toggleSprintTextShadow", "Text Shadow"));
@@ -1464,6 +1665,7 @@ public final class OpticModScreen extends Screen {
 			case BLOCK_OVERLAY:
 				options.add(ConfigOption.header("Fill"));
 				options.add(ConfigOption.toggle("blockOverlayFill", "Fill"));
+				options.add(ConfigOption.toggle("blockOverlay3d", "3D Overlay"));
 				options.add(ConfigOption.color("blockOverlayFillColor", "Fill Color"));
 				options.add(ConfigOption.slider("blockOverlayFillAlpha", "Fill Opacity", 0.0F, 1.0F));
 				options.add(ConfigOption.header("Outline"));
@@ -1474,15 +1676,19 @@ public final class OpticModScreen extends Screen {
 				break;
 			case NAMETAGS:
 				options.add(ConfigOption.header("General"));
-				options.add(ConfigOption.toggle("nametagsShowInF5", "Show Name Tag in F5"));
-				options.add(ConfigOption.toggle("nametagsShowInF1", "Show Name Tags in F1"));
 				options.add(ConfigOption.toggle("nametagsTextShadow", "Text Shadow"));
+				options.add(ConfigOption.toggle("nametagsShowInF5", "Show Own Nametag"));
+				options.add(ConfigOption.toggle("nametagsToggleMessages", "Toggle Messages"));
+				options.add(ConfigOption.key("nametagsToggleAllKey", "Toggle All Nametags"));
+				options.add(ConfigOption.key("nametagsTogglePlayersKey", "Toggle Player Nametags"));
+				options.add(ConfigOption.toggle("nametagsHideInF1", "Hide Nametags in F1"));
+				options.add(ConfigOption.slider("nametagsBackgroundOpacity", "Background Opacity", 0.0F, 1.0F));
+				options.add(ConfigOption.toggle("nametagsBackground", "Background"));
+				options.add(ConfigOption.color("nametagsBackgroundColor", "Background Color"));
+				options.add(ConfigOption.toggle("nametagsReplaceOwnColor", "Replace Own Nametag Color"));
+				options.add(ConfigOption.color("nametagsPersonalColor", "Own Nametag Color"));
 				options.add(ConfigOption.toggle("nametagsBadlionFont", "Badlion Font"));
 				options.add(ConfigOption.toggle("nametagsRoundedCorners", "Rounded Corners"));
-				options.add(ConfigOption.header("Color"));
-				options.add(ConfigOption.toggle("nametagsBackground", "Background Color"));
-				options.add(ConfigOption.color("nametagsBackgroundColor", "Background"));
-				options.add(ConfigOption.color("nametagsPersonalColor", "Personal Tag Color"));
 				addNametagUserColorOptions(options);
 				break;
 			case CHAT:
@@ -1543,7 +1749,95 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.header("General"));
 				options.add(ConfigOption.key("freeLookKeyCode", "Keybind"));
 				options.add(ConfigOption.toggle("freeLookToggle", "Toggle Mode"));
+				options.add(ConfigOption.cycle("freeLookPerspective", "Perspective"));
 				options.add(ConfigOption.slider("freeLookDistance", "Camera Distance", 1.5F, 12.0F));
+				options.add(ConfigOption.toggle("freeLookInvertYaw", "Invert Yaw"));
+				options.add(ConfigOption.toggle("freeLookInvertPitch", "Invert Pitch"));
+				options.add(ConfigOption.toggle("freeLookSmooth", "Smooth Camera"));
+				break;
+			case CROSSHAIR:
+				options.add(ConfigOption.header("Shape"));
+				options.add(ConfigOption.cycle("crosshairShape", "Shape"));
+				options.add(ConfigOption.color("crosshairColor", "Color"));
+				options.add(ConfigOption.slider("crosshairGap", "Gap", 0.0F, 12.0F));
+				options.add(ConfigOption.slider("crosshairLength", "Length", 1.0F, 16.0F));
+				options.add(ConfigOption.slider("crosshairThickness", "Thickness", 1.0F, 6.0F));
+				options.add(ConfigOption.toggle("crosshairOutline", "Outline"));
+				options.add(ConfigOption.color("crosshairOutlineColor", "Outline Color"));
+				options.add(ConfigOption.header("Behavior"));
+				options.add(ConfigOption.toggle("crosshairShowInF5", "Show In Third Person"));
+				options.add(ConfigOption.toggle("crosshairSpectator", "Show In Spectator"));
+				options.add(ConfigOption.toggle("crosshairDynamicAttack", "Spread On Attack"));
+				options.add(ConfigOption.slider("crosshairAttackSpread", "Attack Spread", 0.0F, 12.0F));
+				options.add(ConfigOption.toggle("crosshairDynamicBow", "Spread While Drawing"));
+				options.add(ConfigOption.slider("crosshairBowSpread", "Bow Spread", 0.0F, 16.0F));
+				options.add(ConfigOption.toggle("crosshairHealthShift", "Color When Low Health"));
+				options.add(ConfigOption.slider("crosshairHealthThreshold", "Health Threshold", 1.0F, 20.0F));
+				options.add(ConfigOption.color("crosshairHealthColor", "Low Health Color"));
+				options.add(ConfigOption.toggle("crosshairEnemy", "Enemy Color"));
+				options.add(ConfigOption.color("crosshairEnemyColor", "Enemy"));
+				options.add(ConfigOption.toggle("crosshairFriendly", "Friendly Color"));
+				options.add(ConfigOption.color("crosshairFriendlyColor", "Friendly"));
+				break;
+			case GUI_SCALE:
+				options.add(ConfigOption.slider("crosshairSize", "Crosshair Size", 0.4F, 3.0F));
+				options.add(ConfigOption.cycle("menuScale", "Menu Size"));
+				options.add(ConfigOption.cycle("inventoryScale", "Inventory / Chest Size"));
+				break;
+			case TAB:
+				options.add(ConfigOption.header("General"));
+				options.add(ConfigOption.key("tabKeyCode", "Keybind"));
+				options.add(ConfigOption.toggle("tabToggle", "Toggle Key"));
+				options.add(ConfigOption.toggle("tabHeads", "Player Heads"));
+				options.add(ConfigOption.toggle("tabDisableHeader", "Hide Header"));
+				options.add(ConfigOption.toggle("tabDisableFooter", "Hide Footer"));
+				options.add(ConfigOption.toggle("tabHideNpc", "Hide 0 Ping Entries"));
+				options.add(ConfigOption.toggle("tabMoveSelfTop", "Move Self To Top"));
+				options.add(ConfigOption.toggle("tabNameShadow", "Name Shadow"));
+				options.add(ConfigOption.toggle("tabHighlightSelf", "Highlight Own Name"));
+				options.add(ConfigOption.color("tabSelfColor", "Own Name Color"));
+				options.add(ConfigOption.header("Ping"));
+				options.add(ConfigOption.toggle("tabHidePing", "Hide Ping"));
+				options.add(ConfigOption.toggle("tabHidePingOver500", "Hide Ping Over 500"));
+				options.add(ConfigOption.toggle("tabPingNumbers", "Ping As Number"));
+				options.add(ConfigOption.toggle("tabDynamicPing", "Dynamic Ping Color"));
+				options.add(ConfigOption.color("tabPingColor", "Ping Color"));
+				options.add(ConfigOption.header("Colors"));
+				options.add(ConfigOption.color("tabBackgroundColor", "Background"));
+				options.add(ConfigOption.color("tabHeaderColor", "Header"));
+				options.add(ConfigOption.color("tabFooterColor", "Footer"));
+				break;
+			case TITLES:
+				options.add(ConfigOption.header("Overlay"));
+				options.add(ConfigOption.toggle("titlesShowTitle", "Show Title"));
+				options.add(ConfigOption.toggle("titlesShowSubtitle", "Show Subtitle"));
+				options.add(ConfigOption.color("titlesTitleColor", "Title Color"));
+				options.add(ConfigOption.color("titlesSubtitleColor", "Subtitle Color"));
+				options.add(ConfigOption.slider("titlesScale", "Scale", 0.5F, 3.0F));
+				options.add(ConfigOption.toggle("titlesCentered", "Keep Centered"));
+				options.add(ConfigOption.header("Window Title Bar"));
+				options.add(ConfigOption.toggle("windowTitle", "Custom Window Title"));
+				options.add(ConfigOption.cycle("windowTitleMode", "Title Bar Text"));
+				break;
+			case HIT_COLOR:
+				options.add(ConfigOption.color("hitColorRgb", "Hit Color"));
+				options.add(ConfigOption.slider("hitColorAlpha", "Strength", 0.05F, 1.0F));
+				options.add(ConfigOption.toggle("hitColorArmor", "Color Armor"));
+				break;
+			case POTIONS:
+				options.add(ConfigOption.toggle("potionsSymbols", "Effect Icons"));
+				options.add(ConfigOption.toggle("potionsHorizontal", "Horizontal"));
+				options.add(ConfigOption.toggle("potionsShowName", "Effect Name"));
+				options.add(ConfigOption.toggle("potionsShowAmplifier", "Amplifier"));
+				options.add(ConfigOption.toggle("potionsShowDuration", "Duration"));
+				options.add(ConfigOption.toggle("potionsBlink", "Red Time When Expiring"));
+				options.add(ConfigOption.slider("potionsBlinkSeconds", "Red Under (s)", 2.0F, 20.0F));
+				options.add(ConfigOption.toggle("potionsHideVanilla", "Hide Inventory Icons"));
+				options.add(ConfigOption.toggle("potionsShowInInventory", "Show In Inventory"));
+				options.add(ConfigOption.toggle("potionsBackground", "Background"));
+				options.add(ConfigOption.color("potionsBackgroundColor", "Background Color"));
+				options.add(ConfigOption.color("potionsTextColor", "Text Color"));
+				options.add(ConfigOption.toggle("potionsTextShadow", "Text Shadow"));
 				break;
 			case ZOOM:
 				options.add(ConfigOption.header("General"));
@@ -1587,6 +1881,8 @@ public final class OpticModScreen extends Screen {
 
 	private boolean getBool(String key) {
 		OpticConfig c = OpticClient.get().config();
+		Boolean extra = OpticRevampOptions.getBool(c, key);
+		if (extra != null) return extra.booleanValue();
 		if ("fpsTextShadow".equals(key)) return c.fpsTextShadow;
 		if ("fpsShowLabel".equals(key)) return c.fpsShowLabel;
 		if ("fpsBrackets".equals(key)) return c.fpsBrackets;
@@ -1619,10 +1915,14 @@ public final class OpticModScreen extends Screen {
 		if ("renderOwnParticles".equals(key)) return c.renderOwnParticles;
 		if ("blockBreakParticles".equals(key)) return c.blockBreakParticles;
 		if ("blockOverlayFill".equals(key)) return c.blockOverlayFill;
+		if ("blockOverlay3d".equals(key)) return c.blockOverlay3d;
 		if ("blockOverlayOutline".equals(key)) return c.blockOverlayOutline;
 		if ("nametagsShowInF5".equals(key)) return c.nametagsShowInF5;
 		if ("nametagsShowInF1".equals(key)) return c.nametagsShowInF1;
+		if ("nametagsHideInF1".equals(key)) return c.nametagsHideInF1;
 		if ("nametagsTextShadow".equals(key)) return c.nametagsTextShadow;
+		if ("nametagsToggleMessages".equals(key)) return c.nametagsToggleMessages;
+		if ("nametagsReplaceOwnColor".equals(key)) return c.nametagsReplaceOwnColor;
 		if ("nametagsBadlionFont".equals(key)) return c.nametagsBadlionFont;
 		if ("nametagsRoundedCorners".equals(key)) return c.nametagsRoundedCorners;
 		if ("nametagsBackground".equals(key)) return c.nametagsBackground;
@@ -1664,6 +1964,10 @@ public final class OpticModScreen extends Screen {
 
 	private void setBool(String key, boolean value) {
 		OpticConfig c = OpticClient.get().config();
+		if (OpticRevampOptions.setBool(c, key, value)) {
+			c.save();
+			return;
+		}
 		if ("fpsTextShadow".equals(key)) c.fpsTextShadow = value;
 		else if ("fpsShowLabel".equals(key)) c.fpsShowLabel = value;
 		else if ("fpsBrackets".equals(key)) c.fpsBrackets = value;
@@ -1696,10 +2000,14 @@ public final class OpticModScreen extends Screen {
 		else if ("renderOwnParticles".equals(key)) c.renderOwnParticles = value;
 		else if ("blockBreakParticles".equals(key)) c.blockBreakParticles = value;
 		else if ("blockOverlayFill".equals(key)) c.blockOverlayFill = value;
+		else if ("blockOverlay3d".equals(key)) c.blockOverlay3d = value;
 		else if ("blockOverlayOutline".equals(key)) c.blockOverlayOutline = value;
 		else if ("nametagsShowInF5".equals(key)) c.nametagsShowInF5 = value;
 		else if ("nametagsShowInF1".equals(key)) c.nametagsShowInF1 = value;
+		else if ("nametagsHideInF1".equals(key)) c.nametagsHideInF1 = value;
 		else if ("nametagsTextShadow".equals(key)) c.nametagsTextShadow = value;
+		else if ("nametagsToggleMessages".equals(key)) c.nametagsToggleMessages = value;
+		else if ("nametagsReplaceOwnColor".equals(key)) c.nametagsReplaceOwnColor = value;
 		else if ("nametagsBadlionFont".equals(key)) c.nametagsBadlionFont = value;
 		else if ("nametagsRoundedCorners".equals(key)) c.nametagsRoundedCorners = value;
 		else if ("nametagsBackground".equals(key)) c.nametagsBackground = value;
@@ -1742,6 +2050,8 @@ public final class OpticModScreen extends Screen {
 
 	private int getColor(String key) {
 		OpticConfig c = OpticClient.get().config();
+		Integer extra = OpticRevampOptions.getColor(c, key);
+		if (extra != null) return extra.intValue();
 		if ("fpsColor".equals(key)) return c.fpsColor;
 		if ("fpsTextColor".equals(key)) return c.fpsTextColor;
 		if ("cpsColor".equals(key)) return c.cpsColor;
@@ -1771,6 +2081,10 @@ public final class OpticModScreen extends Screen {
 	private void setColor(String key, int color) {
 		OpticConfig c = OpticClient.get().config();
 		color = color & 0xFFFFFF;
+		if (OpticRevampOptions.setColor(c, key, color)) {
+			c.save();
+			return;
+		}
 		if ("fpsColor".equals(key)) c.fpsColor = color;
 		else if ("fpsTextColor".equals(key)) c.fpsTextColor = color;
 		else if ("cpsColor".equals(key)) c.cpsColor = color;
@@ -1799,6 +2113,8 @@ public final class OpticModScreen extends Screen {
 
 	private String getCycleLabel(String key) {
 		OpticConfig c = OpticClient.get().config();
+		String extra = OpticRevampOptions.cycleLabel(c, key);
+		if (extra != null) return extra;
 		if ("coordinatesDecimals".equals(key)) {
 			return Integer.toString(c.coordinatesDecimals);
 		}
@@ -1848,6 +2164,10 @@ public final class OpticModScreen extends Screen {
 
 	private void cycle(String key) {
 		OpticConfig c = OpticClient.get().config();
+		if (OpticRevampOptions.cycle(c, key)) {
+			c.save();
+			return;
+		}
 		if ("coordinatesDecimals".equals(key)) {
 			c.coordinatesDecimals = (c.coordinatesDecimals + 1) % 3;
 			c.save();
@@ -1891,6 +2211,8 @@ public final class OpticModScreen extends Screen {
 
 	private float getFloat(String key) {
 		OpticConfig c = OpticClient.get().config();
+		Float extra = OpticRevampOptions.getFloat(c, key);
+		if (extra != null) return extra.floatValue();
 		if ("fullbrightGamma".equals(key)) return c.fullbrightGamma;
 		if ("particleMultiplier".equals(key)) return c.particleMultiplier;
 		if ("keystrokesFadeMs".equals(key)) return c.keystrokesFadeMs;
@@ -1908,11 +2230,16 @@ public final class OpticModScreen extends Screen {
 		if ("freeLookDistance".equals(key)) return c.freeLookDistance;
 		if ("titleOffsetX".equals(key)) return c.titleOffsetX;
 		if ("titleOffsetY".equals(key)) return c.titleOffsetY;
+		if ("nametagsBackgroundOpacity".equals(key)) return c.nametagsBackgroundOpacity;
 		return 0.0F;
 	}
 
 	private void setFloat(String key, float value) {
 		OpticConfig c = OpticClient.get().config();
+		if (OpticRevampOptions.setFloat(c, key, value)) {
+			c.save();
+			return;
+		}
 		if ("fullbrightGamma".equals(key)) {
 			c.fullbrightGamma = Math.max(1.0F, Math.min(16.0F, value));
 			if (c.fullbright) client.options.gamma = c.fullbrightGamma;
@@ -1924,7 +2251,7 @@ public final class OpticModScreen extends Screen {
 			c.particleMultiplier = Math.max(0.0F, Math.min(10.0F, value));
 			c.save();
 		} else if ("keystrokesFadeMs".equals(key)) {
-			c.keystrokesFadeMs = Math.max(50.0F, Math.min(1000.0F, value));
+			c.keystrokesFadeMs = Math.max(0.0F, Math.min(500.0F, value));
 			c.save();
 		} else if ("blockOverlayFillAlpha".equals(key)) {
 			c.blockOverlayFillAlpha = Math.max(0.0F, Math.min(1.0F, value));
@@ -1934,6 +2261,9 @@ public final class OpticModScreen extends Screen {
 			c.save();
 		} else if ("blockOverlayLineWidth".equals(key)) {
 			c.blockOverlayLineWidth = Math.max(1.0F, Math.min(8.0F, value));
+			c.save();
+		} else if ("nametagsBackgroundOpacity".equals(key)) {
+			c.nametagsBackgroundOpacity = Math.max(0.0F, Math.min(1.0F, value));
 			c.save();
 		} else if ("chatBackgroundOpacity".equals(key)) {
 			c.chatBackgroundOpacity = Math.max(0.0F, Math.min(100.0F, value));
@@ -2093,6 +2423,11 @@ public final class OpticModScreen extends Screen {
 			client.setScreen(new OpticHudEditorScreen(this));
 			return;
 		}
+		if (selected == null && modsTrackW > 0 && inside(mouseX, mouseY, modsTrackX, modsTrackY, modsTrackW, modsTrackH)) {
+			modsScrollDrag = true;
+			dragModsScroll(mouseY);
+			return;
+		}
 		if (selected == null) {
 			if (modSearchField != null && inside(mouseX, mouseY, modSearchX, modSearchY, modSearchW, 16)) {
 				modSearchField.mouseClicked(mouseX, mouseY, button);
@@ -2195,9 +2530,9 @@ public final class OpticModScreen extends Screen {
 
 	private void assignBind(String key, int code) {
 		bindingKey = null;
-		if (!"freeLookKeyCode".equals(key)) return;
-		OpticClient.get().config().freeLookKeyCode = code;
-		OpticClient.get().config().save();
+		OpticConfig c = OpticClient.get().config();
+		if (!OpticRevampOptions.setKey(c, key, code)) return;
+		c.save();
 	}
 
 	@Override
@@ -2211,26 +2546,6 @@ public final class OpticModScreen extends Screen {
 			return;
 		}
 		if (keyCode == Keyboard.KEY_ESCAPE) {
-			if (mainTab == MainTab.MODS && selected == null && modSearchField != null && !modSearchField.getText().isEmpty()) {
-				modSearchField.setText("");
-				modsScroll = 0;
-				return;
-			}
-			if (mainTab == MainTab.SETTINGS && settingsSearchField != null && !settingsSearchField.getText().isEmpty()) {
-				settingsSearchField.setText("");
-				settingsScroll = 0;
-				return;
-			}
-			if (selected != null) {
-				if (openColorKey != null) {
-					openColorKey = null;
-					activeColor = null;
-					return;
-				}
-				selected = null;
-				configScroll = 0;
-				return;
-			}
 			client.setScreen(null);
 			return;
 		}
@@ -2430,8 +2745,8 @@ public final class OpticModScreen extends Screen {
 
 	private void drawSmoothField(TextFieldWidget field, int x, int y, int w, int h, String placeholder) {
 		if (field == null || w <= 0 || h <= 0) return;
-		fillRound(x, y, w, h, RADIUS_SM, 0xFF101014);
-		outlineRound(x, y, w, h, RADIUS_SM, field.isFocused() ? ACCENT : 0xFF2C3038);
+		fillExact(x, y, w, h, RADIUS_SM, 0xFF101014);
+		outlineExact(x, y, w, h, RADIUS_SM, field.isFocused() ? ACCENT : 0xFF3A403C);
 
 		float size = 9.0F;
 		String text = field.getText() == null ? "" : field.getText();
@@ -2537,6 +2852,14 @@ public final class OpticModScreen extends Screen {
 
 	private void outlineRound(int x, int y, int w, int h, int radius, int argb) {
 		OpticUiDraw.outlineRound(client, x, y, w, h, radius, argb);
+	}
+
+	private void fillExact(int x, int y, int w, int h, int radius, int argb) {
+		OpticUiDraw.fillExact(client, x, y, w, h, radius, argb);
+	}
+
+	private void outlineExact(int x, int y, int w, int h, int radius, int argb) {
+		OpticUiDraw.outlineExact(client, x, y, w, h, radius, argb);
 	}
 
 	private void drawFavoriteStar(int cx, int cy, float size, boolean favorited, boolean hover) {

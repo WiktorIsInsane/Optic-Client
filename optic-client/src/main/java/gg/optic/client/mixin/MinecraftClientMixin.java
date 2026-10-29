@@ -1,7 +1,6 @@
 package gg.optic.client.mixin;
 
 import gg.optic.client.OpticClient;
-import gg.optic.client.OpticFreeLook;
 import gg.optic.client.OpticGui;
 import gg.optic.client.OpticNet;
 import gg.optic.client.OpticZoom;
@@ -12,6 +11,10 @@ import gg.optic.client.account.SharedAccounts;
 import gg.optic.client.display.OpticBorderless;
 import gg.optic.client.gui.OpticHudEditorScreen;
 import gg.optic.client.gui.OpticModScreen;
+import gg.optic.client.hud.OpticGuiScale;
+import gg.optic.client.hud.OpticHud;
+import gg.optic.client.hud.OpticTab;
+import gg.optic.client.hud.OpticTitles;
 import gg.optic.client.render.OpticHitPredict;
 import gg.optic.client.input.OpticRawInput;
 import net.minecraft.client.MinecraftClient;
@@ -75,7 +78,7 @@ public abstract class MinecraftClientMixin implements SessionSwap.SessionHolder 
 	@Inject(method = "initializeGame()V", at = @At("TAIL"))
 	private void optic$initialized(CallbackInfo ci) {
 		optic$refreshMicrosoft((MinecraftClient) (Object) this);
-		Display.setTitle("Optic 1.0.0 | Minecraft 1.8.9");
+		Display.setTitle("Optic 1.8.9");
 		options.heldItemTooltips = OpticClient.get().config().itemInfo;
 		if (OpticClient.get().config().fullbright) {
 			options.gamma = OpticClient.get().config().fullbrightGamma;
@@ -155,8 +158,17 @@ public abstract class MinecraftClientMixin implements SessionSwap.SessionHolder 
 			}
 		}
 		OpticZoom.tick();
+		OpticHud.tickCopy(client);
+		OpticTab.tick(client);
+		OpticTitles.tick(client);
+		gg.optic.client.render.OpticNametags.tick(client);
 		// The tick's look and position are written by now. Push them out immediately.
 		OpticNet.flush(client);
+	}
+
+	@Inject(method = "setScreen(Lnet/minecraft/client/gui/screen/Screen;)V", at = @At("HEAD"))
+	private void optic$inventoryScale(net.minecraft.client.gui.screen.Screen screen, CallbackInfo ci) {
+		OpticGuiScale.beforeScreen((MinecraftClient) (Object) this, screen);
 	}
 
 	/**
@@ -169,11 +181,9 @@ public abstract class MinecraftClientMixin implements SessionSwap.SessionHolder 
 		if (this.currentScreen != null) return;
 		// A miss must not arm the 10-tick client wait. Server immunity is untouched.
 		this.attackCooldown = 0;
-		MinecraftClient client = (MinecraftClient) (Object) this;
-		// Same 3-block ray, aimed with the camera yaw from the mouse delay fix.
-		if (client.player != null && client.world != null && client.gameRenderer != null) {
-			client.gameRenderer.updateTargetedEntity(1.0F);
-		}
+		// The target stays the one picked for the last drawn frame, as in vanilla and Lunar.
+		// Re-picking here at tickDelta 1.0 aimed up to a tick ahead of the screen and
+		// dropped hits that were under the crosshair.
 		if (!OpticGui.isOpticScreenOpen()) {
 			OpticClient.get().clicks().click(0);
 		}
@@ -183,6 +193,9 @@ public abstract class MinecraftClientMixin implements SessionSwap.SessionHolder 
 	private void optic$noHitDelay(CallbackInfo ci) {
 		if (this.currentScreen == null) this.attackCooldown = 0;
 		MinecraftClient client = (MinecraftClient) (Object) this;
+		if (OpticClient.get().config().cpsIgnoreCancelled && client.player != null && !client.player.handSwinging) {
+			OpticClient.get().clicks().undo(0);
+		}
 		OpticHitPredict.onSwing(client);
 		OpticNet.flush(client);
 	}
@@ -205,8 +218,6 @@ public abstract class MinecraftClientMixin implements SessionSwap.SessionHolder 
 	)
 	private int optic$disableScrollWheel() {
 		int wheel = Mouse.getEventDWheel();
-		// Zoom scroll always wins while zoomed.
-		if (OpticFreeLook.handleScroll(wheel)) return 0;
 		if (OpticZoom.handleScroll(wheel)) return 0;
 		// Only block in-world hotbar slot changes — GUIs/chat keep scrolling.
 		if (OpticClient.get().config().disableMouseScrollWheel && this.currentScreen == null) {

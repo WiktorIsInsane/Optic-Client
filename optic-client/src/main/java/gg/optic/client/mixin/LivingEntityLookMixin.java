@@ -26,10 +26,6 @@ public abstract class LivingEntityLookMixin {
 		Entity self = (Entity) (Object) this;
 		float pitch = self.pitch;
 		float yaw = self.yaw;
-		if (tickDelta != 1.0F) {
-			pitch = self.prevPitch + (self.pitch - self.prevPitch) * tickDelta;
-			yaw = self.prevYaw + (self.yaw - self.prevYaw) * tickDelta;
-		}
 		float yawCos = MathHelper.cos(-yaw * 0.017453292F - (float) Math.PI);
 		float yawSin = MathHelper.sin(-yaw * 0.017453292F - (float) Math.PI);
 		float pitchCos = -MathHelper.cos(-pitch * 0.017453292F);

@@ -41,7 +41,10 @@ public final class OpticBlockOverlay {
 
 		if (c.blockOverlayFill) {
 			float[] rgba = rgba(c.blockOverlayFillColor, c.blockOverlayFillAlpha);
+			boolean depth = GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
+			if (c.blockOverlay3d) GlStateManager.disableDepthTest();
 			drawFilled(expanded, rgba[0], rgba[1], rgba[2], rgba[3]);
+			if (c.blockOverlay3d && depth) GlStateManager.enableDepthTest();
 		}
 
 		if (c.blockOverlayOutline) {

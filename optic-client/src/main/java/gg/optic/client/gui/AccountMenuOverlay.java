@@ -12,12 +12,12 @@ import gg.optic.client.account.SharedAccounts;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.texture.AbstractTexture;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.client.texture.Texture;
 import net.minecraft.client.util.Session;
 import net.minecraft.util.Identifier;
+import org.lwjgl.input.Keyboard;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -42,11 +42,13 @@ public final class AccountMenuOverlay {
 	private static final int CHIP_Y = OpticMenuChrome.BAR_Y;
 	private static Identifier chevronIcon;
 	private static Identifier removeMark;
-	private static final int ROW_H = 20;
-	private static final int ROW_HEAD = 12;
-	private static final int ROW_X = 10;
-	private static final int MENU_MIN_W = 168;
+	private static final int ROW_H = 26;
+	private static final int ROW_HEAD = 14;
+	private static final int HEADER_H = 42;
+	private static final int MENU_W = 200;
 	private static final float ROW_SIZE = 8.0F;
+	private static final float KIND_SIZE = 7.0F;
+	private static final int INK = 0xFF07110A;
 	/** Room for the close button plus the gap between the two boxes. */
 	private static final int RIGHT_GUTTER = OpticMenuChrome.BAR_EDGE + OpticMenuChrome.BAR_H + OpticMenuChrome.BAR_GAP;
 
@@ -54,6 +56,7 @@ public final class AccountMenuOverlay {
 		CLOSED,
 		LIST,
 		SIGN_IN,
+		OFFLINE,
 		MICROSOFT
 	}
 
@@ -65,6 +68,7 @@ public final class AccountMenuOverlay {
 	private String msStatus = "";
 	private String msCode = "";
 	private boolean msBusy;
+	private String offlineName = "";
 
 	public void reload() {
 		snap = SharedAccounts.load();
@@ -104,53 +108,13 @@ public final class AccountMenuOverlay {
 		drawIcon(client, chevron(client), x + chipW - 8 - CHEV, y + (CHIP_H - CHEV) / 2, CHEV, 0xFFE4E4EA, mode != Mode.CLOSED);
 
 		if (mode == Mode.LIST) {
-			List<SharedAccount> others = others(active);
-			int menuW = menuW(chipW);
-			int menuH = listHeight(others.size());
-			int menuX = menuX(x, chipW, menuW);
-			int menuY = y + CHIP_H + 4;
-			OpticUiDraw.fillExact(client, menuX, menuY, menuW, menuH, 8, PANEL);
-
-			int rowY = menuY + 4;
-			for (SharedAccount account : others) {
-				boolean rowHot = inside(mouseX, mouseY, menuX, rowY, menuW, ROW_H);
-				if (rowHot) OpticUiDraw.fillExact(client, menuX + 3, rowY, menuW - 6, ROW_H, 4, 0x22FFFFFF);
-				drawHead(client, account.uuid, menuX + 6, rowY + (ROW_H - ROW_HEAD) / 2, ROW_HEAD);
-				int nameMax = menuW - 6 - ROW_HEAD - 6 - ROW_X - 10;
-				String ign = fitText(client, account.username == null ? "" : account.username, nameMax, ROW_SIZE);
-				int ignH = OpticUiFont.heightSharp(client, ign, 0xFFFFFFFF, ROW_SIZE);
-				OpticUiFont.drawSharp(client, ign, menuX + 6 + ROW_HEAD + 6, rowY + (ROW_H - ignH) / 2, 0xFFFFFFFF, ROW_SIZE);
-				int xBtn = menuX + menuW - 6 - ROW_X;
-				int xBtnY = rowY + (ROW_H - ROW_X) / 2;
-				boolean xHot = inside(mouseX, mouseY, xBtn - 2, xBtnY - 2, ROW_X + 4, ROW_X + 4);
-				drawIcon(client, removeIcon(client), xBtn, xBtnY, ROW_X, xHot ? 0xFFFFFFFF : 0xFF9A9AA8, false);
-				rowY += ROW_H;
-			}
-			String add = "Add account";
-			boolean addHot = inside(mouseX, mouseY, menuX, rowY, menuW, ROW_H);
-			int addColor = addHot ? ACCENT_HOVER : ACCENT;
-			int addW = OpticUiFont.widthSharp(client, add, addColor, ROW_SIZE);
-			int addH = OpticUiFont.heightSharp(client, add, addColor, ROW_SIZE);
-			OpticUiFont.drawSharp(client, add, menuX + (menuW - addW) / 2, rowY + (ROW_H - addH) / 2, addColor, ROW_SIZE);
+			drawList(client, active, x, chipW, y, mouseX, mouseY);
 		} else if (mode == Mode.SIGN_IN) {
-			int menuW = menuW(chipW);
-			int menuH = 8 + ROW_H * 3;
-			int menuX = menuX(x, chipW, menuW);
-			int menuY = y + CHIP_H + 4;
-			OpticUiDraw.fillExact(client, menuX, menuY, menuW, menuH, 8, PANEL);
-			int line = menuY + 4;
-			OpticUiFont.drawSharp(client, "Back", menuX + 8, line + 4, BACK, ROW_SIZE);
-			OpticUiFont.drawSharp(client, "Offline account", menuX + 8, line + ROW_H + 4, 0xFFFFFFFF, ROW_SIZE);
-			OpticUiFont.drawSharp(client, "Microsoft account", menuX + 8, line + ROW_H * 2 + 4, ACCENT, ROW_SIZE);
+			drawAdd(client, x, chipW, y, mouseX, mouseY);
+		} else if (mode == Mode.OFFLINE) {
+			drawOffline(client, x, chipW, y, mouseX, mouseY);
 		} else if (mode == Mode.MICROSOFT) {
-			int menuW = menuW(chipW);
-			int menuH = 52;
-			int menuX = menuX(x, chipW, menuW);
-			int menuY = y + CHIP_H + 4;
-			OpticUiDraw.fillExact(client, menuX, menuY, menuW, menuH, 8, PANEL);
-			OpticUiFont.drawSharp(client, "Microsoft sign-in", menuX + 8, menuY + 8, 0xFFE8E8E8, 9.0F);
-			OpticUiFont.drawSharp(client, msStatus.isEmpty() ? "Starting..." : msStatus, menuX + 8, menuY + 24, 0xFFAAAAAA, 9.0F);
-			OpticUiFont.drawSharp(client, msBusy ? "Waiting in browser..." : "Click to cancel", menuX + 8, menuY + 38, 0xFF777777, 9.0F);
+			drawMicrosoft(client, x, chipW, y);
 		}
 
 		if (statusUntil > System.currentTimeMillis() && !status.isEmpty() && mode == Mode.CLOSED) {
@@ -172,76 +136,268 @@ public final class AccountMenuOverlay {
 		}
 
 		if (mode == Mode.LIST) {
-			List<SharedAccount> others = others(active);
-			int menuW = menuW(chipW);
-			int menuH = listHeight(others.size());
-			int menuX = menuX(x, chipW, menuW);
-			int menuY = y + CHIP_H + 4;
-			int rowY = menuY + 4;
-			for (SharedAccount account : others) {
-				int xBtn = menuX + menuW - 6 - ROW_X;
-				int xBtnY = rowY + (ROW_H - ROW_X) / 2;
-				if (inside(mouseX, mouseY, xBtn - 2, xBtnY - 2, ROW_X + 4, ROW_X + 4)) {
-					SharedAccounts.remove(account.id);
-					reload();
-					return true;
-				}
-				if (inside(mouseX, mouseY, menuX, rowY, menuW, ROW_H)) {
-					SessionSwap.apply(client, account);
-					reload();
-					mode = Mode.CLOSED;
-					toast("Signed in as " + account.username);
-					return true;
-				}
-				rowY += ROW_H;
-			}
-			if (inside(mouseX, mouseY, menuX, rowY, menuW, ROW_H)) {
-				mode = Mode.SIGN_IN;
-				return true;
-			}
-			if (!inside(mouseX, mouseY, menuX, menuY, menuW, menuH)) {
-				mode = Mode.CLOSED;
-			}
-			return true;
+			return clickList(client, active, x, chipW, y, mouseX, mouseY);
 		}
-
 		if (mode == Mode.SIGN_IN) {
-			int menuW = menuW(chipW);
-			int menuH = 8 + ROW_H * 3;
-			int menuX = menuX(x, chipW, menuW);
-			int menuY = y + CHIP_H + 4;
-			int backY = menuY + 4;
-			int offlineY = backY + ROW_H;
-			int msY = offlineY + ROW_H;
-			if (inside(mouseX, mouseY, menuX, backY, menuW, ROW_H)) {
-				mode = Mode.LIST;
-				return true;
-			}
-			if (inside(mouseX, mouseY, menuX, offlineY, menuW, ROW_H)) {
-				mode = Mode.CLOSED;
-				client.setScreen(new OfflineSignInScreen(client.currentScreen instanceof TitleScreen
-					? client.currentScreen
-					: new TitleScreen()));
-				return true;
-			}
-			if (inside(mouseX, mouseY, menuX, msY, menuW, ROW_H)) {
-				startMicrosoft(client);
-				return true;
-			}
-			if (!inside(mouseX, mouseY, menuX, menuY, menuW, menuH)) {
-				mode = Mode.CLOSED;
-			}
-			return true;
+			return clickAdd(client, x, chipW, y, mouseX, mouseY);
 		}
-
+		if (mode == Mode.OFFLINE) {
+			return clickOffline(client, x, chipW, y, mouseX, mouseY);
+		}
 		if (mode == Mode.MICROSOFT) {
-			if (!msBusy) {
-				mode = Mode.LIST;
-			}
+			if (!msBusy) mode = Mode.SIGN_IN;
 			return true;
 		}
-
 		return false;
+	}
+
+	public boolean keyPressed(MinecraftClient client, char typed, int key) {
+		if (mode == Mode.CLOSED) return false;
+		if (key == Keyboard.KEY_ESCAPE) {
+			if (mode == Mode.OFFLINE) mode = Mode.SIGN_IN;
+			else if (mode == Mode.SIGN_IN || mode == Mode.MICROSOFT) mode = Mode.LIST;
+			else mode = Mode.CLOSED;
+			return true;
+		}
+		if (mode != Mode.OFFLINE) return true;
+		if (key == Keyboard.KEY_RETURN) {
+			confirmOffline(client);
+			return true;
+		}
+		if (key == Keyboard.KEY_BACK && offlineName.length() > 0) {
+			offlineName = offlineName.substring(0, offlineName.length() - 1);
+			return true;
+		}
+		if (typed >= 32 && typed < 127 && offlineName.length() < 16) {
+			offlineName += typed;
+		}
+		return true;
+	}
+
+	public boolean confirmOffline(MinecraftClient client) {
+		if (mode != Mode.OFFLINE) return false;
+		String name = offlineName == null ? "" : offlineName.trim();
+		try {
+			SharedAccount created = gg.optic.client.account.OfflineAccounts.create(name);
+			SessionSwap.applyNew(client, created);
+			offlineName = "";
+			reload();
+			mode = Mode.CLOSED;
+			toast("Signed in as " + created.username);
+		} catch (RuntimeException e) {
+			toast(e.getMessage() == null ? "Could not add account" : e.getMessage());
+		}
+		return true;
+	}
+
+	private void drawList(MinecraftClient client, SharedAccount active, int chipX, int chipW, int chipY, int mouseX, int mouseY) {
+		List<SharedAccount> others = others(active);
+		boolean saved = savedAccount(active);
+		int menuH = 8 + HEADER_H + others.size() * ROW_H + (saved ? ROW_H : 0) + ROW_H + 6;
+		int menuX = menuX(chipX, chipW, MENU_W);
+		int menuY = chipY + CHIP_H + 6;
+		OpticUiDraw.fillExact(client, menuX, menuY, MENU_W, menuH, 8, PANEL);
+		OpticUiDraw.outlineExact(client, menuX, menuY, MENU_W, menuH, 8, 0x22FFFFFF);
+
+		int head = 18;
+		drawHead(client, active == null ? "" : active.uuid, menuX + 8, menuY + 8, head);
+		String name = active == null || active.username == null ? "Not signed in" : active.username;
+		name = fitText(client, name, MENU_W - 40, 9.0F);
+		OpticUiFont.drawSharp(client, name, menuX + 8 + head + 8, menuY + 8, 0xFFFFFFFF, 9.0F);
+		OpticUiFont.drawSharp(client, kindLabel(active), menuX + 8 + head + 8, menuY + 20, 0xFF9A9AA8, KIND_SIZE);
+		fill(menuX + 8, menuY + HEADER_H, menuX + MENU_W - 8, menuY + HEADER_H + 1, 0x18FFFFFF);
+
+		int rowY = menuY + HEADER_H + 4;
+		for (SharedAccount account : others) {
+			if (inside(mouseX, mouseY, menuX + 4, rowY, MENU_W - 8, ROW_H)) {
+				OpticUiDraw.fillExact(client, menuX + 4, rowY, MENU_W - 8, ROW_H, 4, 0x14FFFFFF);
+			}
+			drawHead(client, account.uuid, menuX + 8, rowY + (ROW_H - ROW_HEAD) / 2, ROW_HEAD);
+			String ign = fitText(client, account.username == null ? "" : account.username, MENU_W - 48, ROW_SIZE);
+			OpticUiFont.drawSharp(client, ign, menuX + 8 + ROW_HEAD + 8, rowY + 4, 0xFFFFFFFF, ROW_SIZE);
+			OpticUiFont.drawSharp(client, kindLabel(account), menuX + 8 + ROW_HEAD + 8, rowY + 14, 0xFF9A9AA8, KIND_SIZE);
+			rowY += ROW_H;
+		}
+		if (others.size() > 0) {
+			fill(menuX + 8, rowY, menuX + MENU_W - 8, rowY + 1, 0x18FFFFFF);
+			rowY += 4;
+		}
+		if (saved) {
+			drawTextRow(client, "Sign out", menuX, rowY, MENU_W, mouseX, mouseY, 0xFFFFFFFF);
+			rowY += ROW_H;
+		}
+		boolean addHot = inside(mouseX, mouseY, menuX + 4, rowY, MENU_W - 8, ROW_H);
+		if (addHot) OpticUiDraw.fillExact(client, menuX + 4, rowY, MENU_W - 8, ROW_H, 4, 0x14FFFFFF);
+		OpticUiDraw.fillExact(client, menuX + 8, rowY + 4, 16, 16, 4, 0x335CFF8A);
+		OpticUiFont.drawSharp(client, "+", menuX + 12, rowY + 6, ACCENT, 9.0F);
+		OpticUiFont.drawSharp(client, "Add account", menuX + 30, rowY + 8, 0xFFFFFFFF, ROW_SIZE);
+	}
+
+	private boolean clickList(MinecraftClient client, SharedAccount active, int chipX, int chipW, int chipY, int mouseX, int mouseY) {
+		List<SharedAccount> others = others(active);
+		boolean saved = savedAccount(active);
+		int menuH = 8 + HEADER_H + others.size() * ROW_H + (saved ? ROW_H : 0) + ROW_H + 6;
+		int menuX = menuX(chipX, chipW, MENU_W);
+		int menuY = chipY + CHIP_H + 6;
+		int rowY = menuY + HEADER_H + 4;
+		for (SharedAccount account : others) {
+			if (inside(mouseX, mouseY, menuX, rowY, MENU_W, ROW_H)) {
+				SessionSwap.apply(client, account);
+				reload();
+				mode = Mode.CLOSED;
+				toast("Signed in as " + account.username);
+				return true;
+			}
+			rowY += ROW_H;
+		}
+		if (others.size() > 0) rowY += 4;
+		if (saved) {
+			if (inside(mouseX, mouseY, menuX, rowY, MENU_W, ROW_H)) {
+				signOut(client, active);
+				return true;
+			}
+			rowY += ROW_H;
+		}
+		if (inside(mouseX, mouseY, menuX, rowY, MENU_W, ROW_H)) {
+			mode = Mode.SIGN_IN;
+			return true;
+		}
+		if (!inside(mouseX, mouseY, menuX, menuY, MENU_W, menuH)) mode = Mode.CLOSED;
+		return true;
+	}
+
+	private void drawAdd(MinecraftClient client, int chipX, int chipW, int chipY, int mouseX, int mouseY) {
+		int extra = msStatus.isEmpty() ? 0 : 28;
+		int menuH = 8 + 18 + 28 + 28 + extra;
+		int menuX = menuX(chipX, chipW, MENU_W);
+		int menuY = chipY + CHIP_H + 6;
+		OpticUiDraw.fillExact(client, menuX, menuY, MENU_W, menuH, 8, PANEL);
+		OpticUiDraw.outlineExact(client, menuX, menuY, MENU_W, menuH, 8, 0x22FFFFFF);
+		boolean backHot = inside(mouseX, mouseY, menuX, menuY + 4, MENU_W, 16);
+		OpticUiFont.drawSharp(client, "Back", menuX + 10, menuY + 6, backHot ? 0xFFFFFFFF : 0xFF9A9AA8, KIND_SIZE);
+
+		int msY = menuY + 24;
+		boolean msHot = inside(mouseX, mouseY, menuX + 8, msY, MENU_W - 16, 24);
+		OpticUiDraw.fillExact(client, menuX + 8, msY, MENU_W - 16, 24, 6, msHot ? ACCENT_HOVER : ACCENT);
+		String ms = "Microsoft account";
+		int msW = OpticUiFont.widthSharp(client, ms, INK, ROW_SIZE);
+		OpticUiFont.drawSharp(client, ms, menuX + (MENU_W - msW) / 2, msY + 7, INK, ROW_SIZE);
+
+		int offY = msY + 28;
+		boolean offHot = inside(mouseX, mouseY, menuX + 8, offY, MENU_W - 16, 24);
+		OpticUiDraw.fillExact(client, menuX + 8, offY, MENU_W - 16, 24, 6, offHot ? 0xFF1C1C22 : 0xFF141418);
+		OpticUiDraw.outlineExact(client, menuX + 8, offY, MENU_W - 16, 24, 6, 0x33FFFFFF);
+		String off = "Offline account";
+		int offW = OpticUiFont.widthSharp(client, off, 0xFFFFFFFF, ROW_SIZE);
+		OpticUiFont.drawSharp(client, off, menuX + (MENU_W - offW) / 2, offY + 7, 0xFFFFFFFF, ROW_SIZE);
+		if (!msStatus.isEmpty()) {
+			String line = msCode.isEmpty() ? msStatus : msStatus + " " + msCode;
+			OpticUiFont.drawSharp(client, fitText(client, line, MENU_W - 20, KIND_SIZE), menuX + 10, offY + 30, 0xFF9A9AA8, KIND_SIZE);
+		}
+	}
+
+	private boolean clickAdd(MinecraftClient client, int chipX, int chipW, int chipY, int mouseX, int mouseY) {
+		int extra = msStatus.isEmpty() ? 0 : 28;
+		int menuH = 8 + 18 + 28 + 28 + extra;
+		int menuX = menuX(chipX, chipW, MENU_W);
+		int menuY = chipY + CHIP_H + 6;
+		if (inside(mouseX, mouseY, menuX, menuY + 4, MENU_W, 16)) {
+			mode = Mode.LIST;
+			return true;
+		}
+		int msY = menuY + 24;
+		if (inside(mouseX, mouseY, menuX + 8, msY, MENU_W - 16, 24)) {
+			startMicrosoft(client);
+			return true;
+		}
+		int offY = msY + 28;
+		if (inside(mouseX, mouseY, menuX + 8, offY, MENU_W - 16, 24)) {
+			offlineName = "";
+			mode = Mode.OFFLINE;
+			return true;
+		}
+		if (!inside(mouseX, mouseY, menuX, menuY, MENU_W, menuH)) mode = Mode.CLOSED;
+		return true;
+	}
+
+	private void drawOffline(MinecraftClient client, int chipX, int chipW, int chipY, int mouseX, int mouseY) {
+		int menuH = 92;
+		int menuX = menuX(chipX, chipW, MENU_W);
+		int menuY = chipY + CHIP_H + 6;
+		OpticUiDraw.fillExact(client, menuX, menuY, MENU_W, menuH, 8, PANEL);
+		OpticUiDraw.outlineExact(client, menuX, menuY, MENU_W, menuH, 8, 0x22FFFFFF);
+		boolean backHot = inside(mouseX, mouseY, menuX, menuY + 4, MENU_W, 16);
+		OpticUiFont.drawSharp(client, "Back", menuX + 10, menuY + 6, backHot ? 0xFFFFFFFF : 0xFF9A9AA8, KIND_SIZE);
+		OpticUiDraw.fillExact(client, menuX + 8, menuY + 26, MENU_W - 16, 22, 6, 0xFF101014);
+		OpticUiDraw.outlineExact(client, menuX + 8, menuY + 26, MENU_W - 16, 22, 6, ACCENT);
+		String shown = offlineName.isEmpty() ? "Username" : offlineName;
+		int color = offlineName.isEmpty() ? 0xFF9A9AA8 : 0xFFFFFFFF;
+		OpticUiFont.drawSharp(client, shown, menuX + 14, menuY + 32, color, ROW_SIZE);
+		boolean hot = inside(mouseX, mouseY, menuX + 8, menuY + 54, MENU_W - 16, 24);
+		OpticUiDraw.fillExact(client, menuX + 8, menuY + 54, MENU_W - 16, 24, 6, hot ? ACCENT_HOVER : ACCENT);
+		String confirm = "Confirm";
+		int confirmW = OpticUiFont.widthSharp(client, confirm, INK, ROW_SIZE);
+		OpticUiFont.drawSharp(client, confirm, menuX + (MENU_W - confirmW) / 2, menuY + 61, INK, ROW_SIZE);
+	}
+
+	private boolean clickOffline(MinecraftClient client, int chipX, int chipW, int chipY, int mouseX, int mouseY) {
+		int menuX = menuX(chipX, chipW, MENU_W);
+		int menuY = chipY + CHIP_H + 6;
+		if (inside(mouseX, mouseY, menuX, menuY + 4, MENU_W, 16)) {
+			mode = Mode.SIGN_IN;
+			return true;
+		}
+		if (inside(mouseX, mouseY, menuX + 8, menuY + 54, MENU_W - 16, 24)) {
+			confirmOffline(client);
+			return true;
+		}
+		if (!inside(mouseX, mouseY, menuX, menuY, MENU_W, 92)) mode = Mode.CLOSED;
+		return true;
+	}
+
+	private void drawMicrosoft(MinecraftClient client, int chipX, int chipW, int chipY) {
+		int menuX = menuX(chipX, chipW, MENU_W);
+		int menuY = chipY + CHIP_H + 6;
+		OpticUiDraw.fillExact(client, menuX, menuY, MENU_W, 58, 8, PANEL);
+		OpticUiDraw.outlineExact(client, menuX, menuY, MENU_W, 58, 8, 0x22FFFFFF);
+		OpticUiFont.drawSharp(client, "Microsoft sign-in", menuX + 10, menuY + 8, 0xFFFFFFFF, 9.0F);
+		String line = msStatus.isEmpty() ? "Starting..." : msStatus;
+		if (!msCode.isEmpty()) line = line + " " + msCode;
+		OpticUiFont.drawSharp(client, fitText(client, line, MENU_W - 20, KIND_SIZE), menuX + 10, menuY + 24, 0xFF9A9AA8, KIND_SIZE);
+		OpticUiFont.drawSharp(client, msBusy ? "Waiting in the browser" : "Click to go back", menuX + 10, menuY + 40, 0xFF777777, KIND_SIZE);
+	}
+
+	private void drawTextRow(MinecraftClient client, String label, int menuX, int rowY, int menuW, int mouseX, int mouseY, int color) {
+		if (inside(mouseX, mouseY, menuX + 4, rowY, menuW - 8, ROW_H)) {
+			OpticUiDraw.fillExact(client, menuX + 4, rowY, menuW - 8, ROW_H, 4, 0x14FFFFFF);
+		}
+		OpticUiFont.drawSharp(client, label, menuX + 10, rowY + 8, color, ROW_SIZE);
+	}
+
+	private void signOut(MinecraftClient client, SharedAccount active) {
+		SharedAccounts.remove(active.id);
+		reload();
+		SharedAccount next = snap.active();
+		if (next != null) {
+			SessionSwap.apply(client, next);
+			toast("Signed in as " + next.username);
+		} else {
+			toast("Signed out");
+		}
+		mode = Mode.CLOSED;
+	}
+
+	private static boolean savedAccount(SharedAccount active) {
+		return active != null && active.kind != null && !"session".equalsIgnoreCase(active.kind);
+	}
+
+	private static String kindLabel(SharedAccount account) {
+		if (account == null || account.kind == null || account.kind.isEmpty() || "session".equalsIgnoreCase(account.kind)) {
+			return "Guest";
+		}
+		if ("microsoft".equalsIgnoreCase(account.kind)) return "Microsoft";
+		if ("offline".equalsIgnoreCase(account.kind)) return "Offline";
+		return account.kind;
 	}
 
 	private void startMicrosoft(final MinecraftClient client) {
@@ -326,14 +482,6 @@ public final class AccountMenuOverlay {
 	private static String displayName(MinecraftClient client, SharedAccount active) {
 		String name = active != null ? active.username : client.getSession().getUsername();
 		return name == null ? "" : name.toUpperCase();
-	}
-
-	private static int menuW(int chipW) {
-		return Math.max(MENU_MIN_W, chipW);
-	}
-
-	private static int listHeight(int otherCount) {
-		return 4 + otherCount * ROW_H + ROW_H + 4;
 	}
 
 	private static int menuX(int chipX, int chipW, int menuW) {

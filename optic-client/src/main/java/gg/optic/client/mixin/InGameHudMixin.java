@@ -9,6 +9,12 @@ import gg.optic.client.OpticConfig;
 import gg.optic.client.OpticGui;
 import gg.optic.client.OpticHudLayout;
 import gg.optic.client.OpticUiFont;
+import gg.optic.client.gui.OpticHudEditorScreen;
+import gg.optic.client.hud.OpticCrosshair;
+import gg.optic.client.hud.OpticGuiScale;
+import gg.optic.client.hud.OpticHud;
+import gg.optic.client.hud.OpticPotions;
+import gg.optic.client.hud.OpticTitles;
 import gg.optic.client.render.OpticHitPredict;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -34,6 +40,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Collection;
 import java.util.List;
@@ -55,6 +62,7 @@ public abstract class InGameHudMixin extends DrawableHelper {
 
 	@Unique private final float[] optic$keyPress = new float[6];
 	@Unique private long optic$lastKeyFrame = 0L;
+	@Unique private boolean optic$scaledHotbar;
 
 	/** Vanilla gap between hotbar top (height-22) and item-name Y (height-59). */
 	@Unique private static final int OPTIC_ITEM_INFO_GAP = 37;
@@ -117,79 +125,17 @@ public abstract class InGameHudMixin extends DrawableHelper {
 		if (OpticGui.isModMenuOpen()) return;
 		OpticConfig config = OpticClient.get().config();
 		boolean freezeInput = OpticGui.isOpticScreenOpen();
-		if (config.fps) {
-			String text = config.fpsShowLabel
-				? "FPS  " + MinecraftClient.getCurrentFps()
-				: Integer.toString(MinecraftClient.getCurrentFps());
-			drawHudText(
-				OpticConfig.withBrackets(text, config.fpsBrackets),
-				config.fpsX,
-				config.fpsY,
-				config.fpsTextColor,
-				config.fpsOpticFont,
-				config.fpsTextShadow,
-				config.fpsScale
-			);
+		if (config.fps) OpticHud.drawFps(client, config);
+		if (config.cps) OpticHud.drawCps(client, config);
+		if (config.ping) OpticHud.drawPing(client, config);
+		if (config.coordinates) OpticHud.drawCoordinates(client, config);
+		OpticPotions.render(client);
+		Window window = new Window(client);
+		boolean editor = client.currentScreen instanceof OpticHudEditorScreen;
+		if (config.titles && (editor || OpticTitles.drawing())) {
+			OpticTitles.render(client, window.getWidth(), window.getHeight(), editor && !OpticTitles.drawing());
 		}
-		if (config.cps) {
-			String cpsValue = OpticClient.get().clicks().leftCps() + " | " + OpticClient.get().clicks().rightCps();
-			if (!config.cpsSeparateButtons) {
-				cpsValue = Integer.toString(
-					OpticClient.get().clicks().leftCps() + OpticClient.get().clicks().rightCps()
-				);
-			}
-			String text = config.cpsShowLabel ? "CPS  " + cpsValue : cpsValue;
-			drawHudText(
-				OpticConfig.withBrackets(text, config.cpsBrackets),
-				config.cpsX,
-				config.cpsY,
-				config.cpsTextColor,
-				config.cpsOpticFont,
-				config.cpsTextShadow,
-				config.cpsScale
-			);
-		}
-		if (config.ping && client.player != null && client.getNetworkHandler() != null) {
-			PlayerListEntry entry = client.getNetworkHandler().getPlayerListEntry(client.player.getUuid());
-			if (entry != null) {
-				String value = Integer.toString(entry.getLatency());
-				if (config.pingShowMs) value = value + "ms";
-				String text = config.pingShowLabel ? "PING  " + value : value;
-				drawHudText(
-					OpticConfig.withBrackets(text, config.pingBrackets),
-					config.pingX,
-					config.pingY,
-					config.pingTextColor,
-					config.pingOpticFont,
-					config.pingTextShadow,
-					config.pingScale
-				);
-			}
-		}
-		if (config.coordinates && client.player != null) {
-			String format = "%." + config.coordinatesDecimals + "f";
-			String value;
-			if (config.coordinatesShowY) {
-				value = String.format(
-					format + " / " + format + " / " + format,
-					client.player.x,
-					client.player.y,
-					client.player.z
-				);
-			} else {
-				value = String.format(format + " / " + format, client.player.x, client.player.z);
-			}
-			String text = config.coordinatesShowLabel ? "XYZ  " + value : value;
-			drawHudText(
-				OpticConfig.withBrackets(text, config.coordinatesBrackets),
-				config.coordinatesX,
-				config.coordinatesY,
-				config.coordinatesTextColor,
-				config.coordinatesOpticFont,
-				config.coordinatesTextShadow,
-				config.coordinatesScale
-			);
-		}
+		OpticCrosshair.render(client, window.getWidth() / 2, window.getHeight() / 2);
 		if (config.toggleSprint && config.toggleSprintShowHud) {
 			drawHudText(
 				OpticConfig.withBrackets("SPRINT", config.toggleSprintBrackets),
@@ -239,18 +185,7 @@ public abstract class InGameHudMixin extends DrawableHelper {
 	}
 
 	private void renderKeystrokes(OpticConfig config, boolean freezeInput) {
-		long now = System.currentTimeMillis();
-		float dt = optic$lastKeyFrame == 0L ? 0.016F : Math.min(0.05F, (now - optic$lastKeyFrame) / 1000.0F);
-		optic$lastKeyFrame = now;
-
-		key(0, "W", client.options.forwardKey, config, dt, false, 0, freezeInput);
-		key(1, "A", client.options.leftKey, config, dt, false, 0, freezeInput);
-		key(2, "S", client.options.backKey, config, dt, false, 0, freezeInput);
-		key(3, "D", client.options.rightKey, config, dt, false, 0, freezeInput);
-		if (config.keystrokesShowMouse) {
-			key(4, "LMB", client.options.attackKey, config, dt, true, OpticClient.get().clicks().leftCps(), freezeInput);
-			key(5, "RMB", client.options.useKey, config, dt, true, OpticClient.get().clicks().rightCps(), freezeInput);
-		}
+		gg.optic.client.hud.OpticKeystrokes.render(client, config, freezeInput);
 	}
 
 	private void key(
@@ -484,10 +419,35 @@ public abstract class InGameHudMixin extends DrawableHelper {
 		}
 	}
 
+	@Inject(method = "showCrosshair()Z", at = @At("HEAD"), cancellable = true)
+	private void optic$customCrosshair(CallbackInfoReturnable<Boolean> cir) {
+		if (OpticCrosshair.hidesVanilla(OpticClient.get().config())) cir.setReturnValue(false);
+	}
+
+	@Inject(method = "renderHotbar", at = @At("RETURN"))
+	private void optic$hotbarScaleEnd(Window window, float tickDelta, CallbackInfo ci) {
+		if (!optic$scaledHotbar) return;
+		optic$scaledHotbar = false;
+		GlStateManager.popMatrix();
+	}
+
 	@Inject(method = "renderHotbar", at = @At("HEAD"), cancellable = true)
 	private void optic$hotbar(Window window, float tickDelta, CallbackInfo ci) {
 		OpticConfig c = OpticClient.get().config();
-		if (!c.hotbar) return;
+		optic$scaledHotbar = false;
+		if (!c.hotbar) {
+			float scale = OpticGuiScale.hotbarScale(c);
+			if (Math.abs(scale - 1.0F) > 0.01F && this.client.getCameraEntity() instanceof PlayerEntity) {
+				int cx = window.getWidth() / 2;
+				int cy = window.getHeight() - 11;
+				GlStateManager.pushMatrix();
+				GlStateManager.translate(cx, cy, 0.0F);
+				GlStateManager.scale(scale, scale, 1.0F);
+				GlStateManager.translate(-cx, -cy, 0.0F);
+				optic$scaledHotbar = true;
+			}
+			return;
+		}
 		if (!(this.client.getCameraEntity() instanceof PlayerEntity)) return;
 		ci.cancel();
 

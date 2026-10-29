@@ -15,6 +15,12 @@ public final class ClickTracker {
 		trim(right, now);
 	}
 
+	/** Drops the click just recorded when the attack never started. */
+	public void undo(int button) {
+		Deque<Long> clicks = button == 0 ? left : right;
+		if (!clicks.isEmpty()) clicks.removeLast();
+	}
+
 	public int leftCps() {
 		trim(left, System.currentTimeMillis());
 		return left.size();

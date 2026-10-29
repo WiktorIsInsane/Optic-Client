@@ -4,7 +4,9 @@ import gg.optic.client.OpticClient;
 import gg.optic.client.OpticConfig;
 import gg.optic.client.OpticFreeLook;
 import gg.optic.client.OpticZoom;
+import gg.optic.client.render.OpticFrame;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.ClientPlayerEntity;
@@ -21,15 +23,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(GameRenderer.class)
 public abstract class GameRendererMixin {
-	@Shadow
-	private float thirdPersonDistance;
-
-	@Shadow
-	private float lastThirdPersonDistance;
-
 	@Inject(method = "render(FJ)V", at = @At("HEAD"))
 	private void optic$freeLookFrame(float tickDelta, long limitTime, CallbackInfo ci) {
-		OpticFreeLook.beforeRender(MinecraftClient.getInstance());
+		MinecraftClient client = MinecraftClient.getInstance();
+		OpticFreeLook.beforeRender(client);
+		OpticFrame.look(client);
 	}
 
 	@Redirect(
@@ -64,22 +62,6 @@ public abstract class GameRendererMixin {
 		return OpticFreeLook.pitch(entity, entity.prevPitch);
 	}
 
-	@Redirect(
-		method = "transformCamera(F)V",
-		at = @At(value = "FIELD", target = "Lnet/minecraft/client/render/GameRenderer;thirdPersonDistance:F")
-	)
-	private float optic$freeLookDistance(GameRenderer renderer) {
-		return OpticFreeLook.isActive() ? OpticFreeLook.distance() : thirdPersonDistance;
-	}
-
-	@Redirect(
-		method = "transformCamera(F)V",
-		at = @At(value = "FIELD", target = "Lnet/minecraft/client/render/GameRenderer;lastThirdPersonDistance:F")
-	)
-	private float optic$freeLookLastDistance(GameRenderer renderer) {
-		return OpticFreeLook.isActive() ? OpticFreeLook.distance() : lastThirdPersonDistance;
-	}
-
 	@Inject(method = "getFov(FZ)F", at = @At("RETURN"), cancellable = true)
 	private void optic$zoomFov(float tickDelta, boolean changingFov, CallbackInfoReturnable<Float> cir) {
 		float value = cir.getReturnValueF();
@@ -97,12 +79,26 @@ public abstract class GameRendererMixin {
 		cir.setReturnValue(value);
 	}
 
+	/** Hurt Cam module off means the vanilla shake, as on Lunar. Only the module's toggle removes it. */
 	@Inject(method = "bobViewWhenHurt", at = @At("HEAD"), cancellable = true)
 	private void optic$disableHurtCam(float tickDelta, CallbackInfo ci) {
 		OpticConfig c = OpticClient.get().config();
-		if (!c.hurtCam || c.disableHurtCam) {
+		if (c.hurtCam && c.disableHurtCam) {
 			ci.cancel();
 		}
+	}
+
+	/**
+	 * Minimal Bobbing: setupCamera and renderHand each check options.bobView before
+	 * bobbing. Hiding it from setupCamera only keeps the held item bobbing while the
+	 * world view stays level.
+	 */
+	@Redirect(
+		method = "setupCamera(FI)V",
+		at = @At(value = "FIELD", target = "Lnet/minecraft/client/option/GameOptions;bobView:Z")
+	)
+	private boolean optic$minimalBobbing(GameOptions options) {
+		return options.bobView && !OpticClient.get().config().minimalBobbing;
 	}
 
 	/** Portal and nausea camera spin fights the crosshair. The overlay still draws. */
@@ -125,7 +121,7 @@ public abstract class GameRendererMixin {
 	@ModifyConstant(method = "bobViewWhenHurt", constant = @Constant(floatValue = 14.0F))
 	private float optic$hurtCamIntensity(float original) {
 		OpticConfig c = OpticClient.get().config();
-		if (!c.hurtCam || c.disableHurtCam) return original;
+		if (!c.hurtCam) return original;
 		return original * Math.max(0.0F, Math.min(2.0F, c.hurtCamIntensity));
 	}
 

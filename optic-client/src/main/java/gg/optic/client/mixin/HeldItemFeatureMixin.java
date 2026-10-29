@@ -65,14 +65,9 @@ public class HeldItemFeatureMixin {
 		BiPedModel model = (BiPedModel) this.entityRenderer.getModel();
 
 		if (blocking && oldBlock) {
-			model.setArmAngle(0.0325F);
-			GlStateManager.scale(1.05F, 1.05F, 1.05F);
-			if (entity.isSneaking()) {
-				GlStateManager.translate(-0.58F, 0.32F, -0.07F);
-			} else {
-				GlStateManager.translate(-0.45F, 0.25F, -0.07F);
-			}
-			GlStateManager.rotate(-24405.0F, 137290.0F, -2009900.0F, -2654900.0F);
+			model.rightArm.posX = model.rightArm.posX * 0.5F - ((float) Math.PI / 10.0F);
+			model.setArmAngle(0.0625F);
+			GlStateManager.translate(-0.0625F, 0.4375F, 0.0625F);
 		} else if (oldHold && !(blocking && oldBlock)) {
 			model.setArmAngle(0.0625F);
 			GlStateManager.translate(-0.0855F, 0.4775F, 0.1585F);

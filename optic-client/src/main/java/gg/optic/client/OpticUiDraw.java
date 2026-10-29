@@ -58,6 +58,7 @@ public final class OpticUiDraw {
 			DrawableHelper.fill(x, y, x + w, y + h, argb);
 			return;
 		}
+		GlStateManager.enableBlend();
 		drawNine(client, slice, x, y, w, h, r, argb);
 	}
 
@@ -79,7 +80,7 @@ public final class OpticUiDraw {
 	public static void outlineExact(MinecraftClient client, int x, int y, int w, int h, int radius, int argb) {
 		if (client == null || w <= 0 || h <= 0) return;
 		if (((argb >> 24) & 0xFF) == 0) return;
-		Plate plate = plate(client, w, h, radius, false, 1.25F);
+		Plate plate = plate(client, w, h, radius, false, 1.75F);
 		if (plate == null) return;
 		drawPlate(client, plate, x, y, w, h, argb);
 	}
@@ -98,6 +99,7 @@ public final class OpticUiDraw {
 		}
 		Slice slice = slice(client, r, false, strokeGui);
 		if (slice == null) return;
+		GlStateManager.enableBlend();
 		drawNine(client, slice, x, y, w, h, r, argb);
 	}
 
@@ -125,15 +127,13 @@ public final class OpticUiDraw {
 	private static Plate bakePlate(MinecraftClient client, int w, int h, int radius, boolean filled, float strokePx, String name) {
 		try {
 			int sf = Math.max(1, bakedScale);
-			int ss = 2;
-			int imgW = w * sf * ss;
-			int imgH = h * sf * ss;
-			while ((imgW > 1024 || imgH > 1024) && ss > 1) {
-				ss--;
-				imgW = w * sf * ss;
-				imgH = h * sf * ss;
-			}
-			if (imgW <= 0 || imgH <= 0 || imgW > 2048 || imgH > 2048) return null;
+			int screenW = Math.max(1, w * sf);
+			int screenH = Math.max(1, h * sf);
+			int ss = 4;
+			while ((screenW * ss > 2048 || screenH * ss > 2048) && ss > 1) ss /= 2;
+			int imgW = screenW * ss;
+			int imgH = screenH * ss;
+			if (imgW <= 0 || imgH <= 0) return null;
 
 			BufferedImage image = new BufferedImage(imgW, imgH, BufferedImage.TYPE_INT_ARGB);
 			Graphics2D g = image.createGraphics();
@@ -142,21 +142,18 @@ public final class OpticUiDraw {
 			g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 			g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
 
-			float inset = Math.max(1.0F, ss * 0.75F);
-			float arc = radius * sf * ss;
-			RoundRectangle2D.Float shape = new RoundRectangle2D.Float(
-				inset,
-				inset,
-				Math.max(1.0F, imgW - inset * 2.0F),
-				Math.max(1.0F, imgH - inset * 2.0F),
-				arc,
-				arc
-			);
+			// Keep the whole stroke, including its antialiased fringe, inside the texture.
+			// A stroke that crosses the edge gets clipped into a stair-step.
+			float stroke = Math.max(ss * 1.25F, strokePx * ss);
+			float pad = filled ? 0.75F : stroke * 0.5F + 1.5F;
+			float innerW = Math.max(1.0F, imgW - pad * 2.0F);
+			float innerH = Math.max(1.0F, imgH - pad * 2.0F);
+			float arc = Math.min(radius * sf * ss * 2.0F, Math.min(innerW, innerH));
+			RoundRectangle2D.Float shape = new RoundRectangle2D.Float(pad, pad, innerW, innerH, arc, arc);
 			g.setColor(Color.WHITE);
 			if (filled) {
 				g.fill(shape);
 			} else {
-				float stroke = Math.max(1.5F, strokePx * sf * ss);
 				g.setStroke(new BasicStroke(stroke, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 				g.draw(shape);
 			}
@@ -177,6 +174,7 @@ public final class OpticUiDraw {
 		float cr = ((argb >> 16) & 0xFF) / 255.0F;
 		float cg = ((argb >> 8) & 0xFF) / 255.0F;
 		float cb = (argb & 0xFF) / 255.0F;
+		GlStateManager.enableBlend();
 		OpticSmooth.bind(client, plate.id);
 		GlStateManager.color(cr, cg, cb, a);
 		DrawableHelper.drawTexture(x, y, 0.0F, 0.0F, w, h, (float) w, (float) h);
@@ -283,7 +281,6 @@ public final class OpticUiDraw {
 
 		tess.draw();
 		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-		GlStateManager.disableBlend();
 	}
 
 	private static void quad(

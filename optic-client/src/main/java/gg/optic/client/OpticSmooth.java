@@ -36,6 +36,21 @@ public final class OpticSmooth {
 		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
 	}
 
+	/** Text is already rasterized at screen resolution. Nearest keeps the edges from smearing. */
+	public static void bindNearest(MinecraftClient client, Identifier id) {
+		GlStateManager.disableAlphaTest();
+		GlStateManager.enableTexture();
+		GlStateManager.enableBlend();
+		GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+		client.getTextureManager().bindTexture(id);
+		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
+		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_MAX_LEVEL, 0);
+		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
+		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
+	}
+
 	/** Bind a UI texture and sample it smoothly, one texel per screen pixel. */
 	public static void bind(MinecraftClient client, Identifier id) {
 		GlStateManager.disableAlphaTest();

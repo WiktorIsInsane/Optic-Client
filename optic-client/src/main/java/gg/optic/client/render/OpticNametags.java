@@ -6,6 +6,8 @@ import gg.optic.client.OpticConfig;
 import gg.optic.client.OpticUiFont;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.hud.ChatHud;
+import net.minecraft.text.LiteralText;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.Tessellator;
@@ -13,15 +15,70 @@ import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.render.entity.EntityRenderDispatcher;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.GL11;
 
 public final class OpticNametags {
+	private static boolean allHidden;
+	private static boolean playersHidden;
+	private static boolean allKeyDown;
+	private static boolean playersKeyDown;
+
 	private OpticNametags() {
+	}
+
+	public static boolean allHidden() {
+		return allHidden;
+	}
+
+	public static boolean playersHidden() {
+		return playersHidden;
+	}
+
+	/** Session toggles from the nametag keybinds. Not saved, and not sent. */
+	public static void tick(MinecraftClient client) {
+		if (client == null || client.currentScreen != null) {
+			allKeyDown = false;
+			playersKeyDown = false;
+			return;
+		}
+		OpticConfig c = OpticClient.get().config();
+		if (!c.nametags) return;
+		if (edge(c.nametagsToggleAllKey, allKeyDown)) {
+			allHidden = !allHidden;
+			allKeyDown = true;
+			announce(client, c, "All nametags are " + (allHidden ? "no longer" : "now") + " enabled.");
+		} else if (!down(c.nametagsToggleAllKey)) {
+			allKeyDown = false;
+		}
+		if (edge(c.nametagsTogglePlayersKey, playersKeyDown)) {
+			playersHidden = !playersHidden;
+			playersKeyDown = true;
+			announce(client, c, "Player nametags are " + (playersHidden ? "no longer" : "now") + " enabled.");
+		} else if (!down(c.nametagsTogglePlayersKey)) {
+			playersKeyDown = false;
+		}
+	}
+
+	private static boolean down(int code) {
+		return code > 0 && Keyboard.isKeyDown(code);
+	}
+
+	private static boolean edge(int code, boolean wasDown) {
+		return down(code) && !wasDown;
+	}
+
+	private static void announce(MinecraftClient client, OpticConfig c, String message) {
+		if (!c.nametagsToggleMessages || client.inGameHud == null) return;
+		ChatHud chat = client.inGameHud.getChatHud();
+		if (chat == null) return;
+		chat.addMessage(new LiteralText(message));
 	}
 
 	public static int resolveNameColor(Entity entity, OpticConfig c) {
 		MinecraftClient client = MinecraftClient.getInstance();
 		if (client.player != null && entity == client.player) {
+			if (!c.nametagsReplaceOwnColor) return 0xFFFFFF;
 			return c.nametagsPersonalColor & 0xFFFFFF;
 		}
 		String name = playerName(entity);
@@ -90,8 +147,11 @@ public final class OpticNametags {
 			halfW = textRenderer.getStringWidth(text) / 2;
 		}
 
-		if (c.nametagsBackground) {
-			float[] bg = rgba(c.nametagsBackgroundColor, 0.25F);
+		float plate = c.nametagsBackgroundOpacity;
+		if (plate < 0.0F) plate = 0.0F;
+		else if (plate > 1.0F) plate = 1.0F;
+		if (c.nametagsBackground && plate > 0.0F) {
+			float[] bg = rgba(c.nametagsBackgroundColor, plate * 0.25F);
 			GlStateManager.disableTexture();
 			Tessellator tessellator = Tessellator.getInstance();
 			BufferBuilder buf = tessellator.getBuffer();

@@ -17,6 +17,10 @@ public final class OpticFreeLook {
 	private static int savedPerspective;
 	private static float camYaw;
 	private static float camPitch;
+	private static float renderYaw;
+	private static float renderPitch;
+	private static long lastFrame;
+	private static float savedDistance = 4.0F;
 
 	private OpticFreeLook() {
 	}
@@ -37,14 +41,20 @@ public final class OpticFreeLook {
 		boolean down = keyDown(config.freeLookKeyCode);
 		if (config.freeLookToggle) {
 			if (down && !wasDown) toggled = !toggled;
-			if (toggled) start(client);
+			if (toggled) start(client, config);
 			else stop(client);
 		} else if (down) {
-			start(client);
+			start(client, config);
 		} else {
 			stop(client);
 		}
 		wasDown = down;
+		if (engaged) {
+			ease(config);
+			applyDistance(client, config);
+			int perspective = config.freeLookPerspective == 2 ? 2 : 1;
+			client.options.perspective = perspective;
+		}
 	}
 
 	/**
@@ -52,8 +62,11 @@ public final class OpticFreeLook {
 	 */
 	public static boolean applyLook(float yawDelta, float pitchDelta) {
 		if (!engaged) return false;
-		camYaw += yawDelta * 0.15F;
-		camPitch -= pitchDelta * 0.15F;
+		OpticConfig config = OpticClient.get().config();
+		float yawSign = config.freeLookInvertYaw ? -1.0F : 1.0F;
+		float pitchSign = config.freeLookInvertPitch ? 1.0F : -1.0F;
+		camYaw += yawDelta * 0.15F * yawSign;
+		camPitch += pitchDelta * 0.15F * pitchSign;
 		if (camPitch > 90.0F) camPitch = 90.0F;
 		if (camPitch < -90.0F) camPitch = -90.0F;
 		return true;
@@ -61,31 +74,14 @@ public final class OpticFreeLook {
 
 	public static float yaw(Entity entity, float actual) {
 		if (!useCamera(entity)) return actual;
+		if (OpticClient.get().config().freeLookSmooth) return renderYaw;
 		return camYaw;
 	}
 
 	public static float pitch(Entity entity, float actual) {
 		if (!useCamera(entity)) return actual;
+		if (OpticClient.get().config().freeLookSmooth) return renderPitch;
 		return camPitch;
-	}
-
-	public static float distance() {
-		float value = OpticClient.get().config().freeLookDistance;
-		if (value < 1.5F) return 1.5F;
-		if (value > 12.0F) return 12.0F;
-		return value;
-	}
-
-	/** @return true when the wheel changed the camera distance and hotbar scrolling should wait */
-	public static boolean handleScroll(int wheel) {
-		if (!engaged || wheel == 0) return false;
-		OpticConfig config = OpticClient.get().config();
-		float step = wheel > 0 ? -0.5F : 0.5F;
-		float next = config.freeLookDistance + step;
-		if (next < 1.5F) next = 1.5F;
-		if (next > 12.0F) next = 12.0F;
-		config.freeLookDistance = next;
-		return true;
 	}
 
 	public static String keyName(int code) {
@@ -108,13 +104,26 @@ public final class OpticFreeLook {
 		return client != null && entity == client.player;
 	}
 
-	private static void start(MinecraftClient client) {
+	private static void start(MinecraftClient client, OpticConfig config) {
 		if (engaged) return;
 		engaged = true;
 		camYaw = client.player.yaw;
 		camPitch = client.player.pitch;
+		renderYaw = camYaw;
+		renderPitch = camPitch;
+		lastFrame = 0L;
 		savedPerspective = client.options.perspective;
-		client.options.perspective = 1;
+		client.options.perspective = config.freeLookPerspective == 2 ? 2 : 1;
+		if (client.gameRenderer != null) {
+			savedDistance = ((gg.optic.client.mixin.OpticGameRendererAccess) client.gameRenderer).optic$getThirdPersonDistance();
+		}
+	}
+
+	private static void applyDistance(MinecraftClient client, OpticConfig config) {
+		if (client.gameRenderer == null) return;
+		float distance = Math.max(1.5F, Math.min(12.0F, config.freeLookDistance));
+		((gg.optic.client.mixin.OpticGameRendererAccess) client.gameRenderer).optic$setThirdPersonDistance(distance);
+		((gg.optic.client.mixin.OpticGameRendererAccess) client.gameRenderer).optic$setLastThirdPersonDistance(distance);
 	}
 
 	private static void stop(MinecraftClient client) {
@@ -123,12 +132,36 @@ public final class OpticFreeLook {
 		if (client != null && client.options != null) {
 			client.options.perspective = savedPerspective;
 		}
-		OpticClient.get().config().save();
+		if (client != null && client.gameRenderer != null) {
+			((gg.optic.client.mixin.OpticGameRendererAccess) client.gameRenderer).optic$setThirdPersonDistance(savedDistance);
+			((gg.optic.client.mixin.OpticGameRendererAccess) client.gameRenderer).optic$setLastThirdPersonDistance(savedDistance);
+		}
 	}
 
-	private static boolean keyDown(int code) {
+	public static boolean keyDown(int code) {
 		if (code < 0) return Mouse.isButtonDown(code + 100);
 		if (code == Keyboard.KEY_NONE) return false;
 		return Keyboard.isKeyDown(code);
+	}
+
+	private static void ease(OpticConfig config) {
+		long now = System.currentTimeMillis();
+		float dt = lastFrame == 0L ? 0.016F : Math.min(0.05F, (now - lastFrame) / 1000.0F);
+		lastFrame = now;
+		if (!config.freeLookSmooth) {
+			renderYaw = camYaw;
+			renderPitch = camPitch;
+			return;
+		}
+		float follow = 1.0F - (float) Math.exp(-dt * 10.0F);
+		renderYaw = approachAngle(renderYaw, camYaw, follow);
+		renderPitch += (camPitch - renderPitch) * follow;
+	}
+
+	private static float approachAngle(float from, float to, float amount) {
+		float delta = to - from;
+		while (delta > 180.0F) delta -= 360.0F;
+		while (delta < -180.0F) delta += 360.0F;
+		return from + delta * amount;
 	}
 }
