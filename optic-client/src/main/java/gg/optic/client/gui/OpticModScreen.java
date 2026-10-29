@@ -431,6 +431,11 @@ public final class OpticModScreen extends Screen {
 			c.save();
 			return;
 		}
+		if ("realTimePlayers".equals(key)) {
+			c.realTimePlayers = !c.realTimePlayers;
+			c.save();
+			return;
+		}
 		if ("lowLatencyFrames".equals(key)) {
 			c.lowLatencyFrames = !c.lowLatencyFrames;
 			c.save();
@@ -835,6 +840,16 @@ public final class OpticModScreen extends Screen {
 			"Hit Where Drawn",
 			OpticClient.get().config().hitAtModel,
 			"hitAtModel",
+			contentX,
+			rowY,
+			contentW,
+			mouseX,
+			mouseY
+		);
+		rowY = drawSettingToggle(
+			"Real-Time Players",
+			OpticClient.get().config().realTimePlayers,
+			"realTimePlayers",
 			contentX,
 			rowY,
 			contentW,
