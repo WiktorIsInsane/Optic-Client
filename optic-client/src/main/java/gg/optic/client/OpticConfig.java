@@ -415,6 +415,8 @@ public final class OpticConfig {
 	public boolean minimalBobbing = false;
 	/** Start the arm swing on the frame the attack button goes down. Visual only. */
 	public boolean instantSwing = true;
+	/** Pick attack targets where other players are drawn, not where they were last tick. */
+	public boolean hitAtModel = true;
 	/** Keep at most one frame queued on the GPU so the picture tracks input. */
 	public boolean lowLatencyFrames = true;
 	public boolean borderlessFullscreen = false;
@@ -700,6 +702,7 @@ public final class OpticConfig {
 		mouseDelayFix = read(values, "mouseDelayFix", mouseDelayFix);
 		minimalBobbing = read(values, "minimalBobbing", minimalBobbing);
 		instantSwing = read(values, "instantSwing", instantSwing);
+		hitAtModel = read(values, "hitAtModel", hitAtModel);
 		lowLatencyFrames = read(values, "lowLatencyFrames", lowLatencyFrames);
 		borderlessFullscreen = read(values, "borderlessFullscreen", borderlessFullscreen);
 		disableMouseScrollWheel = read(values, "disableMouseScrollWheel", disableMouseScrollWheel);
@@ -1009,6 +1012,7 @@ public final class OpticConfig {
 		values.setProperty("mouseDelayFix", Boolean.toString(mouseDelayFix));
 		values.setProperty("minimalBobbing", Boolean.toString(minimalBobbing));
 		values.setProperty("instantSwing", Boolean.toString(instantSwing));
+		values.setProperty("hitAtModel", Boolean.toString(hitAtModel));
 		values.setProperty("lowLatencyFrames", Boolean.toString(lowLatencyFrames));
 		values.setProperty("borderlessFullscreen", Boolean.toString(borderlessFullscreen));
 		values.setProperty("disableMouseScrollWheel", Boolean.toString(disableMouseScrollWheel));
@@ -1247,6 +1251,7 @@ public final class OpticConfig {
 		o.addProperty("mouseDelayFix", mouseDelayFix);
 		o.addProperty("minimalBobbing", minimalBobbing);
 		o.addProperty("instantSwing", instantSwing);
+		o.addProperty("hitAtModel", hitAtModel);
 		o.addProperty("lowLatencyFrames", lowLatencyFrames);
 		o.addProperty("borderlessFullscreen", borderlessFullscreen);
 		o.addProperty("disableMouseScrollWheel", disableMouseScrollWheel);
@@ -1482,6 +1487,7 @@ public final class OpticConfig {
 		mouseDelayFix = true;
 		minimalBobbing = false;
 		instantSwing = true;
+		hitAtModel = true;
 		lowLatencyFrames = true;
 		borderlessFullscreen = false;
 		disableMouseScrollWheel = false;
@@ -1507,6 +1513,7 @@ public final class OpticConfig {
 		mouseDelayFix = getBool(o, "mouseDelayFix", mouseDelayFix);
 		minimalBobbing = getBool(o, "minimalBobbing", minimalBobbing);
 		instantSwing = getBool(o, "instantSwing", instantSwing);
+		hitAtModel = getBool(o, "hitAtModel", hitAtModel);
 		lowLatencyFrames = getBool(o, "lowLatencyFrames", lowLatencyFrames);
 		borderlessFullscreen = getBool(o, "borderlessFullscreen", borderlessFullscreen);
 		disableMouseScrollWheel = getBool(o, "disableMouseScrollWheel", disableMouseScrollWheel);

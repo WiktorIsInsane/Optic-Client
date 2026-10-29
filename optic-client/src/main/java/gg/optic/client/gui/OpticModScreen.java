@@ -426,6 +426,11 @@ public final class OpticModScreen extends Screen {
 			c.save();
 			return;
 		}
+		if ("hitAtModel".equals(key)) {
+			c.hitAtModel = !c.hitAtModel;
+			c.save();
+			return;
+		}
 		if ("lowLatencyFrames".equals(key)) {
 			c.lowLatencyFrames = !c.lowLatencyFrames;
 			c.save();
@@ -820,6 +825,16 @@ public final class OpticModScreen extends Screen {
 			"Instant Swing",
 			OpticClient.get().config().instantSwing,
 			"instantSwing",
+			contentX,
+			rowY,
+			contentW,
+			mouseX,
+			mouseY
+		);
+		rowY = drawSettingToggle(
+			"Hit Where Drawn",
+			OpticClient.get().config().hitAtModel,
+			"hitAtModel",
 			contentX,
 			rowY,
 			contentW,

@@ -4,7 +4,6 @@ import gg.optic.client.OpticClient;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.util.hit.BlockHitResult;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
@@ -20,6 +19,7 @@ public final class OpticSwing {
 	private static boolean wasDown;
 	private static long startedAt;
 	private static boolean settling;
+	private static int settleTicks;
 
 	private OpticSwing() {
 	}
@@ -27,7 +27,7 @@ public final class OpticSwing {
 	/** Called once per frame before the world is drawn. */
 	public static void frame(MinecraftClient client) {
 		boolean down = client != null && client.currentScreen == null && client.player != null && pressed(client.options.attackKey);
-		if (down && !wasDown && enabled() && !client.player.isUsingItem() && aimingAtEntityOrAir(client)) {
+		if (down && !wasDown && enabled() && !client.player.isUsingItem()) {
 			long now = System.nanoTime();
 			// Same rule as vanilla: a new click restarts the swing once it is half done.
 			if (startedAt == 0L || now - startedAt >= SWING_NANOS / 2) {
@@ -50,11 +50,13 @@ public final class OpticSwing {
 			if (t < 1.0) return (float) t;
 			startedAt = 0L;
 			settling = true;
+			settleTicks = player.handSwingTicks;
 		}
-		// The tick swing started up to a tick later and is still finishing. Keep the
-		// arm at rest instead of letting it jump back into the middle of a swing.
+		// The tick swing for the same click started up to a tick later and is still
+		// finishing. Keep the arm at rest instead of jumping back into it, but hand
+		// over as soon as vanilla starts a new swing (held mining, more clicks).
 		if (settling) {
-			if (player.handSwinging) return 0.0F;
+			if (player.handSwinging && player.handSwingTicks >= settleTicks) return 0.0F;
 			settling = false;
 		}
 		return -1.0F;
@@ -62,12 +64,6 @@ public final class OpticSwing {
 
 	private static boolean enabled() {
 		return OpticClient.get().config().instantSwing;
-	}
-
-	/** Mining keeps vanilla's tick swing so holding on a block does not double up. */
-	private static boolean aimingAtEntityOrAir(MinecraftClient client) {
-		BlockHitResult hit = client.result;
-		return hit == null || hit.type != BlockHitResult.Type.BLOCK;
 	}
 
 	private static boolean pressed(KeyBinding binding) {
