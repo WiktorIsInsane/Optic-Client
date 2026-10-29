@@ -417,7 +417,7 @@ public final class OpticConfig {
 	public boolean instantSwing = true;
 	/** Pick attack targets where other players are drawn, not where they were last tick. */
 	public boolean hitAtModel = true;
-	/** Other players reach each server position in one tick instead of three. */
+	/** Other players reach each server position in two ticks instead of three. */
 	public boolean realTimePlayers = true;
 	/** Keep at most one frame queued on the GPU so the picture tracks input. */
 	public boolean lowLatencyFrames = true;

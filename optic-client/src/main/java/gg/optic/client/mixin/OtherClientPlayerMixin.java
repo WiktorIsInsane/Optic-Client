@@ -16,14 +16,15 @@ public class OtherClientPlayerMixin {
 
 	/**
 	 * Vanilla eases every position update for other players over 3 ticks, so a hit's
-	 * knockback shows up to 150 ms late. Real-Time Players eases over 1 tick: the
-	 * player still moves smoothly between frames but reaches each server position on
-	 * the next tick. Drawing only; nothing sent changes.
+	 * knockback shows up to 150 ms late. The server only sends player positions every
+	 * 2 ticks, so easing over 1 tick made fast movers jump and pause. Real-Time Players
+	 * eases over 2 ticks: one update ends as the next arrives, 50 ms sooner than vanilla
+	 * with no gaps. Drawing only; nothing sent changes.
 	 */
 	@Inject(method = "updateTrackedPositionAndAngles(DDDFFIZ)V", at = @At("TAIL"))
 	private void optic$smoothKnockback(double x, double y, double z, float yaw, float pitch, int steps, boolean interpolate, CallbackInfo ci) {
 		if (OpticClient.get().config().realTimePlayers) {
-			this.field_1770 = 1;
+			if (this.field_1770 > 2) this.field_1770 = 2;
 			return;
 		}
 		if (!OpticSnap.smooth((OtherClientPlayerEntity) (Object) this)) return;
