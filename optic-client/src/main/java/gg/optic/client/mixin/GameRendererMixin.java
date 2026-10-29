@@ -11,9 +11,7 @@ import net.minecraft.client.render.GameRenderer;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.ClientPlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
-import net.minecraft.util.math.Box;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -30,7 +28,6 @@ public abstract class GameRendererMixin {
 		MinecraftClient client = MinecraftClient.getInstance();
 		OpticFreeLook.beforeRender(client);
 		OpticFrame.look(client);
-		gg.optic.client.render.OpticSwing.frame(client);
 	}
 
 	@Redirect(
@@ -63,35 +60,6 @@ public abstract class GameRendererMixin {
 	)
 	private float optic$freeLookPrevPitch(Entity entity) {
 		return OpticFreeLook.pitch(entity, entity.prevPitch);
-	}
-
-	@Unique
-	private float optic$pickDelta = 1.0F;
-
-	@Inject(method = "updateTargetedEntity(F)V", at = @At("HEAD"))
-	private void optic$pickDelta(float tickDelta, CallbackInfo ci) {
-		this.optic$pickDelta = tickDelta;
-	}
-
-	/**
-	 * Vanilla picks against each player's box at their last tick position, while the
-	 * model is drawn partway between ticks. Against a strafing player the crosshair can
-	 * sit on the model and still miss the box. Test the box where the model is drawn.
-	 * Same box size, same margin, same 3-block cap; only where it sits changes.
-	 */
-	@Redirect(
-		method = "updateTargetedEntity(F)V",
-		at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getBoundingBox()Lnet/minecraft/util/math/Box;")
-	)
-	private Box optic$drawnBox(Entity entity) {
-		Box box = entity.getBoundingBox();
-		MinecraftClient client = MinecraftClient.getInstance();
-		if (entity == client.getCameraEntity() || !OpticClient.get().config().hitAtModel) return box;
-		float d = this.optic$pickDelta;
-		double x = entity.prevTickX + (entity.x - entity.prevTickX) * d;
-		double y = entity.prevTickY + (entity.y - entity.prevTickY) * d;
-		double z = entity.prevTickZ + (entity.z - entity.prevTickZ) * d;
-		return box.offset(x - entity.x, y - entity.y, z - entity.z);
 	}
 
 	@Inject(method = "getFov(FZ)F", at = @At("RETURN"), cancellable = true)
