@@ -110,16 +110,6 @@ public abstract class MinecraftClientMixin implements SessionSwap.SessionHolder 
 		ci.cancel();
 	}
 
-	@Inject(method = "updateDisplay()V", at = @At("HEAD"))
-	private void optic$paceBeforeSwap(CallbackInfo ci) {
-		gg.optic.client.render.OpticFramePacing.beforeSwap();
-	}
-
-	@Inject(method = "updateDisplay()V", at = @At("RETURN"))
-	private void optic$paceAfterSwap(CallbackInfo ci) {
-		gg.optic.client.render.OpticFramePacing.afterSwap();
-	}
-
 	/** Menus are hard-capped at 30, which sleeps the thread. Use the same cap as in-game. */
 	@Inject(method = "getMaxFramerate()I", at = @At("HEAD"), cancellable = true)
 	private void optic$menuFps(CallbackInfoReturnable<Integer> cir) {

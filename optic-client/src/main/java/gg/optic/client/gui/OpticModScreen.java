@@ -421,11 +421,6 @@ public final class OpticModScreen extends Screen {
 			c.save();
 			return;
 		}
-		if ("lowLatencyFrames".equals(key)) {
-			c.lowLatencyFrames = !c.lowLatencyFrames;
-			c.save();
-			return;
-		}
 		if ("disableMouseScrollWheel".equals(key)) {
 			c.disableMouseScrollWheel = !c.disableMouseScrollWheel;
 			c.save();
@@ -805,16 +800,6 @@ public final class OpticModScreen extends Screen {
 			"Minimal Bobbing",
 			OpticClient.get().config().minimalBobbing,
 			"minimalBobbing",
-			contentX,
-			rowY,
-			contentW,
-			mouseX,
-			mouseY
-		);
-		rowY = drawSettingToggle(
-			"Low Latency Frames",
-			OpticClient.get().config().lowLatencyFrames,
-			"lowLatencyFrames",
 			contentX,
 			rowY,
 			contentW,

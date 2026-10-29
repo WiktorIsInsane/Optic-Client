@@ -413,8 +413,6 @@ public final class OpticConfig {
 	public boolean mouseDelayFix = true;
 	/** View bobbing moves only the held item; the world camera stays still. */
 	public boolean minimalBobbing = false;
-	/** Keep at most one frame queued on the GPU so the picture tracks input. */
-	public boolean lowLatencyFrames = true;
 	public boolean borderlessFullscreen = false;
 	public boolean disableMouseScrollWheel = false;
 	/** Show held-item name ("Diamond Sword") when switching slots. */
@@ -697,7 +695,6 @@ public final class OpticConfig {
 		rawMouseInput = read(values, "rawMouseInput", rawMouseInput);
 		mouseDelayFix = read(values, "mouseDelayFix", mouseDelayFix);
 		minimalBobbing = read(values, "minimalBobbing", minimalBobbing);
-		lowLatencyFrames = read(values, "lowLatencyFrames", lowLatencyFrames);
 		borderlessFullscreen = read(values, "borderlessFullscreen", borderlessFullscreen);
 		disableMouseScrollWheel = read(values, "disableMouseScrollWheel", disableMouseScrollWheel);
 		itemInfo = read(values, "itemInfo", itemInfo);
@@ -1005,7 +1002,6 @@ public final class OpticConfig {
 		values.setProperty("rawMouseInput", Boolean.toString(rawMouseInput));
 		values.setProperty("mouseDelayFix", Boolean.toString(mouseDelayFix));
 		values.setProperty("minimalBobbing", Boolean.toString(minimalBobbing));
-		values.setProperty("lowLatencyFrames", Boolean.toString(lowLatencyFrames));
 		values.setProperty("borderlessFullscreen", Boolean.toString(borderlessFullscreen));
 		values.setProperty("disableMouseScrollWheel", Boolean.toString(disableMouseScrollWheel));
 		values.setProperty("itemInfo", Boolean.toString(itemInfo));
@@ -1242,7 +1238,6 @@ public final class OpticConfig {
 		o.addProperty("rawMouseInput", rawMouseInput);
 		o.addProperty("mouseDelayFix", mouseDelayFix);
 		o.addProperty("minimalBobbing", minimalBobbing);
-		o.addProperty("lowLatencyFrames", lowLatencyFrames);
 		o.addProperty("borderlessFullscreen", borderlessFullscreen);
 		o.addProperty("disableMouseScrollWheel", disableMouseScrollWheel);
 		o.addProperty("itemInfo", itemInfo);
@@ -1476,7 +1471,6 @@ public final class OpticConfig {
 		rawMouseInput = false;
 		mouseDelayFix = true;
 		minimalBobbing = false;
-		lowLatencyFrames = true;
 		borderlessFullscreen = false;
 		disableMouseScrollWheel = false;
 		itemInfo = true;
@@ -1500,7 +1494,6 @@ public final class OpticConfig {
 		rawMouseInput = getBool(o, "rawMouseInput", rawMouseInput);
 		mouseDelayFix = getBool(o, "mouseDelayFix", mouseDelayFix);
 		minimalBobbing = getBool(o, "minimalBobbing", minimalBobbing);
-		lowLatencyFrames = getBool(o, "lowLatencyFrames", lowLatencyFrames);
 		borderlessFullscreen = getBool(o, "borderlessFullscreen", borderlessFullscreen);
 		disableMouseScrollWheel = getBool(o, "disableMouseScrollWheel", disableMouseScrollWheel);
 		itemInfo = getBool(o, "itemInfo", itemInfo);
