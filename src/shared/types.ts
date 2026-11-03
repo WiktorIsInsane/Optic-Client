@@ -27,7 +27,11 @@ export type JvmPreset = 'default' | 'aikar' | 'low' | 'zgc' | 'pvp' | 'custom'
 
 export type OnLaunchBehavior = 'minimize' | 'tray' | 'stay'
 
+/** Minecraft version the Play button launches. 1.7.10 runs vanilla + OptiFine, without Optic mods yet. */
+export type GameVersion = '1.8.9' | '1.7.10'
+
 export interface LaunchSettings {
+  gameVersion: GameVersion
   minRamMb: number
   maxRamMb: number
   jvmArgs: string

@@ -15,7 +15,7 @@ import { emit } from '../bus'
 import { instanceRoot } from '../paths'
 import { loadStore } from '../store'
 import { activeAccount, writeGameAccounts } from './auth'
-import { ensureVanilla, runtimeRoot } from './download'
+import { ensureLegacyVersion, ensureVanilla, launchwrapperJars, runtimeRoot } from './download'
 import { ensureJava } from './java'
 import { extractNatives } from './natives'
 import { startLocalServices } from './fakeServices'
@@ -229,6 +229,16 @@ function listJars(dir: string): string[] {
   return jars
 }
 
+/** A user-supplied OptiFine jar for this Minecraft version in libs/optifine, if any. */
+function optifineJar(runtime: string, mcVersion: string): string {
+  const dir = path.join(runtime, 'libs', 'optifine')
+  if (!fs.existsSync(dir)) return ''
+  const name = fs
+    .readdirSync(dir)
+    .find((file) => /^optifine.*\.jar$/i.test(file) && file.includes(mcVersion))
+  return name ? path.join(dir, name) : ''
+}
+
 function forgeJava(runtime: string): string {
   const home = path.join(runtime, '..', '..', 'runtimes', 'temurin-8', 'bin')
   const javaw = path.join(home, 'javaw.exe')
@@ -345,6 +355,75 @@ async function buildPlan(prepare: boolean): Promise<Plan> {
     if (pair.key) env[pair.key] = pair.value
   }
   const quote = (arg: string) => (/\s/.test(arg) ? `"${arg}"` : arg)
+
+  if (settings.gameVersion === '1.7.10') {
+    const version = await ensureLegacyVersion(runtime, '1.7.10', prepare)
+    // Own folder: 1.7 and 1.8 options.txt / optionsof.txt differ.
+    const gameDir17 = path.join(home, 'game-1.7.10')
+    fs.mkdirSync(gameDir17, { recursive: true })
+    const optifine = optifineJar(runtime, '1.7.10')
+    if (!optifine) {
+      warnings.push(
+        `OptiFine 1.7.10 not found. Put OptiFine_1.7.10_HD_U_E7.jar in ${path.join(runtime, 'libs', 'optifine')} to launch with it.`
+      )
+    }
+    const cp = optifine
+      ? [...launchwrapperJars(runtime), optifine, ...version.libraries, version.jar]
+      : [...version.libraries, version.jar]
+    const values: Record<string, string> = {
+      auth_player_name: username,
+      version_name: version.id,
+      game_directory: gameDir17,
+      assets_root: version.assetsDir,
+      assets_index_name: version.assetIndex,
+      auth_uuid: uuid,
+      auth_access_token: token,
+      user_properties: '{}',
+      user_type: 'legacy'
+    }
+    const mcArgs = version.minecraftArguments
+      .split(' ')
+      .filter(Boolean)
+      .map((arg) => arg.replace(/\$\{(\w+)\}/g, (_m, key: string) => values[key] ?? ''))
+    // 1.7.10 and its launchwrapper are Java 8 era; newer Java breaks the class loader.
+    const javaBin = forgeJava(runtime)
+    const args = [
+      ...mem,
+      '-Dlog4j2.formatMsgNoLookups=true',
+      `-Djava.library.path=${version.nativesDir}`,
+      `-Dorg.lwjgl.librarypath=${version.nativesDir}`,
+      '-cp',
+      cp.join(path.delimiter),
+      optifine ? 'net.minecraft.launchwrapper.Launch' : version.mainClass,
+      ...mcArgs,
+      ...(optifine ? ['--tweakClass', 'optifine.OptiFineTweaker'] : []),
+      '--width',
+      String(settings.width),
+      '--height',
+      String(settings.height),
+      ...gameArgs.args
+    ]
+    if (settings.fullscreen) args.push('--fullscreen')
+    return {
+      java: javaBin,
+      args,
+      display: [`"${javaBin}"`, ...args.map(quote)].join(' '),
+      warnings,
+      gameDir: gameDir17,
+      logFile: path.join(logs, 'game.log'),
+      env,
+      pre: settings.preLaunch,
+      post: settings.postExit,
+      wrapper: '',
+      ipc: 0,
+      auth: 0,
+      asset: 0,
+      runtime,
+      dataDir,
+      cwd: gameDir17,
+      nativeClient: true
+    }
+  }
 
   const notch = path.join(runtime, 'libs', 'optic-notch.jar')
   const launch25 = path.join(runtime, 'libs', 'launch-java25.jar')

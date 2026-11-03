@@ -31,6 +31,7 @@ export function defaultSettings(): LaunchSettings {
   const dev = process.env.LUNAR_REVAMPED_RUNTIME || (fs.existsSync(REMOTE_RUNTIME) ? REMOTE_RUNTIME : '')
   const javaPath = resolveDefaultJava()
   return {
+    gameVersion: '1.8.9',
     minRamMb: optimalGameRamMb(Math.round(os.totalmem() / (1024 * 1024))),
     maxRamMb: optimalGameRamMb(Math.round(os.totalmem() / (1024 * 1024))),
     jvmArgs: '',

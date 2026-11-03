@@ -869,9 +869,17 @@ export function rollbackClient(): ClientStatus {
   }
 }
 
+interface MojangArtifact {
+  url: string
+  path: string
+  sha1: string
+  size: number
+}
+
 interface MojangLibrary {
   name: string
-  downloads?: { artifact?: { url: string; path: string; sha1: string; size: number } }
+  downloads?: { artifact?: MojangArtifact; classifiers?: Record<string, MojangArtifact> }
+  natives?: Record<string, string>
   rules?: { action: string; os?: { name?: string } }[]
 }
 
@@ -898,6 +906,145 @@ async function mapPool<T>(items: T[], concurrency: number, worker: (item: T) => 
     }
   }
   await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => run()))
+}
+
+/** What the launcher needs to start a plain Mojang version (1.7.10). */
+export interface LegacyVersion {
+  id: string
+  jar: string
+  libraries: string[]
+  nativesDir: string
+  assetsDir: string
+  assetIndex: string
+  mainClass: string
+  minecraftArguments: string
+}
+
+/** OptiFine runs as a launchwrapper tweaker; vanilla 1.7.10 does not ship these. */
+const LAUNCHWRAPPER_LIBS: MojangArtifact[] = [
+  {
+    url: 'https://libraries.minecraft.net/net/minecraft/launchwrapper/1.12/launchwrapper-1.12.jar',
+    path: 'net/minecraft/launchwrapper/1.12/launchwrapper-1.12.jar',
+    sha1: '',
+    size: 0
+  },
+  {
+    url: 'https://libraries.minecraft.net/org/ow2/asm/asm-all/5.0.3/asm-all-5.0.3.jar',
+    path: 'org/ow2/asm/asm-all/5.0.3/asm-all-5.0.3.jar',
+    sha1: '',
+    size: 0
+  }
+]
+
+export function launchwrapperJars(runtime: string): string[] {
+  return LAUNCHWRAPPER_LIBS.map((lib) => path.join(runtime, 'libs', 'vanilla', 'libraries', lib.path))
+}
+
+function nativeClassifier(lib: MojangLibrary): string {
+  const os = process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'osx' : 'linux'
+  const key = lib.natives?.[os]
+  return key ? key.replace('${arch}', process.arch === 'ia32' ? '32' : '64') : ''
+}
+
+/**
+ * Download a plain Mojang version (game jar, libraries, natives, assets) into the shared
+ * vanilla folder. Files already on disk are kept, so later launches only read the version json.
+ */
+export async function ensureLegacyVersion(runtime: string, id: string, prepare: boolean): Promise<LegacyVersion> {
+  const libRoot = path.join(runtime, 'libs', 'vanilla')
+  const metaPath = path.join(libRoot, 'versions', id, `${id}.json`)
+  const jar = path.join(libRoot, 'versions', id, `${id}.jar`)
+  const nativesDir = path.join(libRoot, 'natives', id)
+  if (!fs.existsSync(metaPath)) {
+    if (!prepare) throw new Error(`Minecraft ${id} is not downloaded yet. Press Play to download it.`)
+    const manifestRes = await fetch('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json')
+    const manifest = (await manifestRes.json()) as { versions: { id: string; url: string }[] }
+    const version = manifest.versions.find((item) => item.id === id)
+    if (!version) throw new Error(`Mojang manifest has no ${id}.`)
+    const text = await (await fetch(version.url)).text()
+    fs.mkdirSync(path.dirname(metaPath), { recursive: true })
+    fs.writeFileSync(metaPath, text)
+  }
+  const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8')) as {
+    mainClass: string
+    minecraftArguments: string
+    downloads: { client: { url: string; sha1: string } }
+    libraries: MojangLibrary[]
+    assetIndex: { id: string; url: string; sha1: string }
+  }
+  const libraries = meta.libraries.filter(libAllowed)
+  const classpath: string[] = []
+  for (const lib of libraries) {
+    const artifact = lib.downloads?.artifact
+    if (artifact?.path && !nativeClassifier(lib)) classpath.push(path.join(libRoot, 'libraries', artifact.path))
+  }
+  const result: LegacyVersion = {
+    id,
+    jar,
+    libraries: classpath,
+    nativesDir,
+    assetsDir: path.join(libRoot, 'assets'),
+    assetIndex: meta.assetIndex.id,
+    mainClass: meta.mainClass,
+    minecraftArguments: meta.minecraftArguments
+  }
+  if (!prepare) return result
+
+  if (!fs.existsSync(jar)) {
+    await downloadFile(meta.downloads.client.url, jar, { label: `Minecraft ${id}`, sha1: meta.downloads.client.sha1 })
+  }
+  const wanted: MojangArtifact[] = [...LAUNCHWRAPPER_LIBS]
+  const natives: MojangArtifact[] = []
+  for (const lib of libraries) {
+    const classifier = nativeClassifier(lib)
+    if (classifier) {
+      const native = lib.downloads?.classifiers?.[classifier]
+      if (native) natives.push(native)
+    } else if (lib.downloads?.artifact?.url) {
+      wanted.push(lib.downloads.artifact)
+    }
+  }
+  let overall = 0
+  const overallTotal = [...wanted, ...natives].reduce((sum, item) => sum + (item.size ?? 0), 0)
+  await mapPool([...wanted, ...natives], 8, async (item) => {
+    const dest = path.join(libRoot, 'libraries', item.path)
+    if (!fs.existsSync(dest)) {
+      await downloadFile(item.url, dest, {
+        label: item.path,
+        sha1: item.sha1 || undefined,
+        overallReceived: overall,
+        overallTotal
+      })
+    }
+    overall += item.size ?? 0
+  })
+  const lwjglMarker = process.platform === 'win32' ? 'lwjgl64.dll' : process.platform === 'darwin' ? 'liblwjgl.dylib' : 'liblwjgl64.so'
+  if (!fs.existsSync(path.join(nativesDir, lwjglMarker))) {
+    fs.mkdirSync(nativesDir, { recursive: true })
+    for (const item of natives) {
+      const zip = new AdmZip(path.join(libRoot, 'libraries', item.path))
+      for (const entry of zip.getEntries()) {
+        if (entry.isDirectory || entry.entryName.startsWith('META-INF/')) continue
+        zip.extractEntryTo(entry, nativesDir, false, true)
+      }
+    }
+  }
+
+  const indexPath = path.join(libRoot, 'assets', 'indexes', `${meta.assetIndex.id}.json`)
+  if (!fs.existsSync(indexPath)) {
+    await downloadFile(meta.assetIndex.url, indexPath, { label: 'Asset index', sha1: meta.assetIndex.sha1 })
+  }
+  const index = JSON.parse(fs.readFileSync(indexPath, 'utf8')) as { objects: Record<string, { hash: string }> }
+  await mapPool(Object.values(index.objects), 8, async (object) => {
+    const hash = object.hash
+    const dest = path.join(libRoot, 'assets', 'objects', hash.slice(0, 2), hash)
+    if (fs.existsSync(dest)) return
+    await downloadFile(`https://resources.download.minecraft.net/${hash.slice(0, 2)}/${hash}`, dest, {
+      label: hash,
+      sha1: hash
+    })
+  })
+  return result
 }
 
 export async function ensureVanilla(runtime: string): Promise<void> {

@@ -191,6 +191,67 @@ select {
   box-shadow: none;
 }
 
+.version-pick {
+  display: flex;
+  height: 64px;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 10px;
+  padding: 0 0.9rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  transition: background 0.15s ease;
+}
+
+.version-pick:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.version-pick:disabled {
+  opacity: 0.5;
+}
+
+.version-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  min-width: 220px;
+  flex-direction: column;
+  gap: 2px;
+  border-radius: 10px;
+  padding: 4px;
+  background: rgba(14, 16, 18, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.version-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  border-radius: 7px;
+  padding: 8px 10px;
+  color: #fff;
+  font-size: 13px;
+  text-align: left;
+}
+
+.version-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.version-menu-item.is-active {
+  background: rgba(92, 255, 138, 0.14);
+  color: #5cff8a;
+}
+
 .launch-cta {
   background: linear-gradient(180deg, #9dffb8 0%, #5cff8a 45%, #2fd66a 100%);
   box-shadow:

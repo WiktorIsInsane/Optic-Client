@@ -1,6 +1,12 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
+import type { GameVersion } from '../../shared/types'
 import { useApp } from '../stores/appStore'
+
+const GAME_VERSIONS: { id: GameVersion; note: string }[] = [
+  { id: '1.8.9', note: 'Optic client' },
+  { id: '1.7.10', note: 'OptiFine, no Optic mods yet' }
+]
 
 function formatBytes(value: number): string {
   if (value > 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1)} MB/s`
@@ -14,9 +20,22 @@ export function PlayPage() {
   const toast = useApp((s) => s.toast)
   const setPage = useApp((s) => s.setPage)
   const openAccountMenu = useApp((s) => s.openAccountMenu)
+  const refresh = useApp((s) => s.refresh)
   const [starting, setStarting] = useState(false)
+  const [versionMenu, setVersionMenu] = useState(false)
 
   if (!snap) return <div className="skel m-4 h-40 rounded-2xl" />
+
+  const gameVersion: GameVersion = snap.settings.gameVersion ?? '1.8.9'
+  const pickVersion = (id: GameVersion) => {
+    setVersionMenu(false)
+    if (id === gameVersion) return
+    void window.lunar
+      .saveSettings({ ...snap.settings, gameVersion: id })
+      .then(() => refresh())
+      .then(() => toast(`Minecraft ${id} selected`))
+      .catch((e: unknown) => toast(e instanceof Error ? e.message : 'Could not switch version'))
+  }
 
   const account = snap.accounts.find((item) => item.id === snap.activeAccountId)
   const launcherUpdateLabel =
@@ -125,18 +144,58 @@ export function PlayPage() {
         {/* Bottom action row */}
         <div className="mt-auto flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex shrink-0 flex-col gap-2">
-            <motion.button
-              whileHover={{ scale: snap.launch.running || starting ? 1 : 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              disabled={Boolean(account) && (snap.launch.running || starting)}
-              onClick={onCta}
-              className="riot-play disabled:cursor-not-allowed"
-            >
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
-                <path d="M8 5.5v13l11-6.5L8 5.5z" />
-              </svg>
-              <span>{ctaLabel}</span>
-            </motion.button>
+            <div className="relative flex items-stretch gap-2">
+              <motion.button
+                whileHover={{ scale: snap.launch.running || starting ? 1 : 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={Boolean(account) && (snap.launch.running || starting)}
+                onClick={onCta}
+                className="riot-play disabled:cursor-not-allowed"
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                  <path d="M8 5.5v13l11-6.5L8 5.5z" />
+                </svg>
+                <span>{ctaLabel}</span>
+              </motion.button>
+              <button
+                type="button"
+                aria-label="Choose Minecraft version"
+                aria-expanded={versionMenu}
+                disabled={snap.launch.running || starting}
+                onClick={() => setVersionMenu((open) => !open)}
+                className="version-pick disabled:cursor-not-allowed"
+              >
+                <span>{gameVersion}</span>
+                <svg
+                  viewBox="0 0 24 24"
+                  className={`h-4 w-4 transition-transform ${versionMenu ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              {versionMenu ? (
+                <div className="version-menu" role="menu">
+                  {GAME_VERSIONS.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={item.id === gameVersion}
+                      onClick={() => pickVersion(item.id)}
+                      className={`version-menu-item ${item.id === gameVersion ? 'is-active' : ''}`}
+                    >
+                      <span className="font-bold">{item.id}</span>
+                      <span className="text-[11px] text-white/50">{item.note}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
 
             {progress ? (
               <div className="w-[200px] text-[11px] text-white/55">
