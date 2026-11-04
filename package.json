@@ -21,7 +21,6 @@
     "build:client": "cd optic-client && gradlew.bat build",
     "install:client": "node scripts/install-optic-native.mjs",
     "install:notch": "node scripts/install-optic-notch.mjs",
-    "package:client": "node scripts/install-optic-native.mjs && node scripts/package-client.mjs",
     "dist": "npm run sync:optic && npm run build && electron-builder --win",
     "release:launcher": "node scripts/release-launcher.mjs",
     "release:client": "node scripts/release-client.mjs",

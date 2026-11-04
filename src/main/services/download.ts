@@ -1,10 +1,9 @@
 import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import { setTimeout as delay } from 'node:timers/promises'
 import AdmZip from 'adm-zip'
 import { IpcChannel } from '../../shared/ipc'
-import { CLIENT_OWNER, CLIENT_REPO, MC_VERSION, type ClientManifest } from '../../shared/manifest'
+import { CLIENT_OWNER, CLIENT_REPO, MC_VERSION } from '../../shared/manifest'
 import type { ClientStatus, DownloadProgress, NewsItem } from '../../shared/types'
 import { emit } from '../bus'
 import { folders } from '../paths'
@@ -31,20 +30,6 @@ function report(progress: DownloadProgress): void {
   if (now - lastProgressAt < 150 && !finished && progress.received > 0) return
   lastProgressAt = now
   emit(IpcChannel.progress, progress)
-}
-
-function beginInstallProgress(version: string, file: string, total = 0): void {
-  lastProgressAt = 0
-  report({
-    file,
-    received: 0,
-    total,
-    speedBps: 0,
-    etaSeconds: 0,
-    overallReceived: 0,
-    overallTotal: total,
-    label: `Optic ${version}`.replace(/Lunar Revamped|Lunar Remake/gi, 'Optic')
-  })
 }
 
 export async function downloadFile(url: string, dest: string, options: DownloadOptions): Promise<void> {
@@ -143,117 +128,6 @@ function githubApiHeaders(): Record<string, string> {
   }
 }
 
-function githubWebHeaders(accept: string): Record<string, string> {
-  return { Accept: accept, 'User-Agent': GITHUB_UA }
-}
-
-function tagFromReleaseText(text: string): string {
-  const fromPath = text.match(/\/releases\/tag\/([^"'<>\s?#]+)/)
-  if (fromPath?.[1]) return decodeURIComponent(fromPath[1])
-  return ''
-}
-
-/** Client game pack zip on the Optic/Atlas-Client release (not launcher blockmaps). */
-function isClientZipName(name: string): boolean {
-  return /^(Optic(?:-[\w.-]+)?|Atlas-Client-[\w.-]+|lunar-revamped-client-[\w.-]+)\.zip$/i.test(name)
-}
-
-function findClientZip(
-  assets: GithubRelease['assets'] | undefined
-): NonNullable<GithubRelease['assets']>[number] | undefined {
-  const zips = (assets || []).filter((asset) => asset.name.toLowerCase().endsWith('.zip'))
-  return (
-    zips.find((asset) => /^Optic-\d/i.test(asset.name)) ||
-    zips.find((asset) => /^Optic\.zip$/i.test(asset.name)) ||
-    zips.find((asset) => isClientZipName(asset.name)) ||
-    zips[0]
-  )
-}
-
-function publicZipName(_repo: string, version: string): string {
-  return version && version !== '0' ? `Optic-${version}.zip` : 'Optic.zip'
-}
-
-function publicZipUrl(repo: string, tag: string, name: string): string {
-  return `https://github.com/${CLIENT_OWNER}/${repo}/releases/download/${tag}/${name}`
-}
-
-function publicLatestZipUrl(repo: string, name: string): string {
-  return `https://github.com/${CLIENT_OWNER}/${repo}/releases/latest/download/${name}`
-}
-
-function publicAssetUrl(url: string, repo: string, releaseTag: string, name: string): string {
-  if (!url || url.includes('api.github.com')) {
-    const tag = releaseTag.startsWith('v') ? releaseTag : `v${releaseTag.replace(/^v/, '')}`
-    return publicZipUrl(repo, tag, name)
-  }
-  return url
-}
-
-function zipNamesFromReleaseHtml(text: string): string[] {
-  const found = new Set<string>()
-  const re =
-    /(?:releases\/download\/[^/"'\s]+\/|expanded_assets\/[^/"'\s]+\/)(Optic(?:-[\w.-]+)?\.zip|Atlas-Client-[\w.-]+\.zip|lunar-revamped-client-[\w.-]+\.zip)/gi
-  for (const match of text.matchAll(re)) {
-    if (match[1]) found.add(match[1])
-  }
-  const loose = text.matchAll(/\b(Optic(?:-[\w.-]+)?\.zip|Atlas-Client-[\w.-]+\.zip)\b/gi)
-  for (const match of loose) {
-    if (match[1]) found.add(match[1])
-  }
-  return [...found]
-}
-
-function syntheticRelease(repo: string, tag: string, zipName?: string): GithubRelease {
-  const version = tag.replace(/^v/, '')
-  const tagName = tag.startsWith('v') ? tag : `v${version}`
-  // Prefer an explicit zip from the release page. Do NOT invent Optic-{launcherTag}.zip —
-  // launcher tags (v1.2.0) often differ from the client pack version (Optic-1.0.0.zip).
-  const names = zipName
-    ? [zipName]
-    : ['Optic-1.0.0.zip', 'Optic.zip', publicZipName(repo, version)]
-  return {
-    tag_name: tagName,
-    body: '',
-    html_url: `https://github.com/${CLIENT_OWNER}/${repo}/releases/tag/${tagName}`,
-    published_at: '',
-    assets: names.map((name) => ({
-      name,
-      browser_download_url: publicLatestZipUrl(repo, name),
-      size: 0
-    }))
-  }
-}
-
-function withPublicZip(repo: string, release: GithubRelease): GithubRelease {
-  const zip = findClientZip(release.assets)
-  if (
-    zip?.browser_download_url &&
-    !zip.browser_download_url.includes('api.github.com')
-  ) {
-    return release
-  }
-  const tag = release.tag_name || releaseVersion(release)
-  if (!tag) return release
-  const generated = syntheticRelease(repo, tag, zip?.name)
-  return {
-    ...release,
-    assets: zip
-      ? (release.assets || []).map((asset) =>
-          asset.name === zip.name
-            ? {
-                ...asset,
-                browser_download_url:
-                  asset.browser_download_url && !asset.browser_download_url.includes('api.github.com')
-                    ? asset.browser_download_url
-                    : publicLatestZipUrl(repo, asset.name)
-              }
-            : asset
-        )
-      : generated.assets
-  }
-}
-
 async function githubHttpError(response: Response, repo: string): Promise<Error> {
   const remaining = response.headers.get('x-ratelimit-remaining')
   const resetHeader = response.headers.get('x-ratelimit-reset')
@@ -288,81 +162,15 @@ async function fetchGithubLatest(repo: string): Promise<{ release: GithubRelease
   if (response.status === 404) return { release: null }
   if (response.ok) {
     const release = (await response.json()) as GithubRelease
-    return { release: withPublicZip(repo, release) }
+    return { release }
   }
   return { release: null, error: await githubHttpError(response, repo) }
 }
 
-async function latestTagFromRedirect(repo: string): Promise<string> {
-  const url = `https://github.com/${CLIENT_OWNER}/${repo}/releases/latest`
-  const headers = githubWebHeaders('text/html')
-  const manual = await fetch(url, { headers, redirect: 'manual' })
-  const fromLocation = tagFromReleaseText(manual.headers.get('location') || '')
-  if (fromLocation) return fromLocation
-  const followed = manual.ok ? manual : await fetch(url, { headers, redirect: 'follow' })
-  return tagFromReleaseText(followed.url)
-}
-
-async function latestTagFromAtom(repo: string): Promise<string> {
-  const response = await fetch(`https://github.com/${CLIENT_OWNER}/${repo}/releases.atom`, {
-    headers: githubWebHeaders('application/atom+xml, application/xml, text/xml')
-  })
-  if (!response.ok) return ''
-  const xml = await response.text()
-  const entry = xml.match(/<entry[\s\S]*?<\/entry>/i)?.[0] ?? xml
-  return tagFromReleaseText(entry)
-}
-
-async function latestTagFromHtml(repo: string): Promise<string> {
-  const response = await fetch(`https://github.com/${CLIENT_OWNER}/${repo}/releases/latest`, {
-    headers: githubWebHeaders('text/html'),
-    redirect: 'follow'
-  })
-  if (!response.ok) return ''
-  return tagFromReleaseText(response.url) || tagFromReleaseText(await response.text())
-}
-
-async function latestReleaseFromPublicSite(repo: string): Promise<GithubRelease | null> {
-  const tag =
-    (await latestTagFromRedirect(repo)) || (await latestTagFromAtom(repo)) || (await latestTagFromHtml(repo))
-  if (!tag) return null
-  let zipName = ''
-  try {
-    const page = await fetch(`https://github.com/${CLIENT_OWNER}/${repo}/releases/tag/${tag}`, {
-      headers: githubWebHeaders('text/html'),
-      redirect: 'follow'
-    })
-    if (page.ok) {
-      const names = zipNamesFromReleaseHtml(await page.text())
-      zipName =
-        names.find((n) => /^Optic-\d/i.test(n)) ||
-        names.find((n) => /^Optic\.zip$/i.test(n)) ||
-        names[0] ||
-        ''
-    }
-  } catch {
-    /* keep synthetic defaults */
-  }
-  return syntheticRelease(repo, tag, zipName || undefined)
-}
-
 async function loadLatestRelease(repo: string): Promise<GithubRelease | null> {
-  let apiError: Error | undefined
-  try {
-    const result = await fetchGithubLatest(repo)
-    if (result.release || !result.error) return result.release
-    apiError = result.error
-  } catch (error) {
-    apiError = error instanceof Error ? error : new Error('Could not check for client updates')
-  }
-  try {
-    const fallback = await latestReleaseFromPublicSite(repo)
-    if (fallback) return fallback
-  } catch {
-    /* keep the API error */
-  }
-  if (apiError) throw apiError
-  return null
+  const result = await fetchGithubLatest(repo)
+  if (result.error) throw result.error
+  return result.release
 }
 
 async function latestRelease(repo: string, force = false): Promise<GithubRelease | null> {
@@ -557,28 +365,6 @@ function libsReady(dir: string): boolean {
   return Boolean(clientLibsRoot(dir))
 }
 
-function releaseVersion(release: GithubRelease | null): string {
-  return (release?.tag_name ?? '').replace(/^v/, '')
-}
-
-/** Prefer version encoded in the client zip name (e.g. Optic-1.0.0.zip). */
-function clientVersionFromRelease(release: GithubRelease | null): string {
-  const zip = findClientZip(release?.assets)
-  if (zip) {
-    const match =
-      zip.name.match(/(?:Optic|Atlas-Client|lunar-revamped-client)-v?(\d[\w.-]*)\.zip/i) ||
-      zip.name.match(/-v?(\d+\.\d[\w.-]*)\.zip/i)
-    if (match?.[1]) return match[1].replace(/^v/, '')
-    // Bare Optic.zip (no version in filename) — stable id so Play still tracks it.
-    if (/^Optic\.zip$/i.test(zip.name)) return '1.0.0'
-  }
-  return releaseVersion(release)
-}
-
-function releaseHasZip(release: GithubRelease | null): boolean {
-  return Boolean(findClientZip(release?.assets))
-}
-
 /** Runs on every Play: pull changed 1.7.10 / 1.8.9 client files before launch. */
 export async function ensureClientBeforePlay(): Promise<ClientPlayPrepare> {
   if (clientSyncDisabled()) return { warning: '' }
@@ -601,217 +387,6 @@ export async function ensureClientBeforePlay(): Promise<ClientPlayPrepare> {
   throw new Error('No Optic client release published yet.')
 }
 
-/** Old full-runtime zip install path. Kept for a manual runtime repair; Play no longer uses it. */
-export async function ensureClientZipBeforePlay(): Promise<ClientPlayPrepare> {
-  const data = loadStore()
-  const installedVersion = data.installedClientVersion
-  const installedReady = libsReady(installedVersion ? path.join(folders.versions(), installedVersion) : '')
-  const devReady = libsReady(configuredDevRuntime())
-
-  let release: GithubRelease | null
-  try {
-    release = await latestRelease(CLIENT_REPO, true)
-  } catch (error) {
-    if (installedReady || devReady) {
-      return {
-        warning: error instanceof Error ? error.message : 'Could not check for client updates'
-      }
-    }
-    throw error instanceof Error ? error : new Error('Could not check for client updates')
-  }
-
-  const ready = release ? withPublicZip(CLIENT_REPO, release) : null
-  const remote = clientVersionFromRelease(ready)
-  const hasZip = releaseHasZip(ready)
-  const needsInstall = Boolean(remote && hasZip && remote !== installedVersion)
-  const launchingLocalRemakeOnly = devReady && !installedReady
-
-  if (needsInstall && !launchingLocalRemakeOnly) {
-    const zip = findClientZip(ready?.assets)
-    beginInstallProgress(remote, zip?.name ?? publicZipName(CLIENT_REPO, remote), zip?.size ?? 0)
-    await installClientZip(ready ?? undefined)
-    return { warning: '' }
-  }
-
-  if (installedReady || devReady) {
-    return { warning: '' }
-  }
-
-  throw new Error(remote ? 'Client release has no zip.' : 'No client release published yet')
-}
-
-function samePath(left: string, right: string): boolean {
-  const normalize = (value: string) => {
-    const resolved = path.resolve(value).replace(/^\\\\\?\\/, '').replace(/[\\/]+$/, '')
-    return process.platform === 'win32' ? resolved.toLowerCase() : resolved
-  }
-  return normalize(left) === normalize(right)
-}
-
-function fsCode(error: unknown): string {
-  if (error && typeof error === 'object' && 'code' in error) return String((error as { code: unknown }).code)
-  return ''
-}
-
-function isFsLock(error: unknown): boolean {
-  const code = fsCode(error)
-  return code === 'EPERM' || code === 'EBUSY' || code === 'EACCES' || code === 'ENOTEMPTY'
-}
-
-function inUseError(target: string): Error {
-  return new Error(
-    `Could not replace ${target}. That folder is in use. Close the game, then press Play again.`
-  )
-}
-
-function clearReadonly(target: string): void {
-  let stat: fs.Stats
-  try {
-    stat = fs.lstatSync(target)
-  } catch {
-    return
-  }
-  try {
-    fs.chmodSync(target, stat.isDirectory() ? 0o777 : 0o666)
-  } catch {
-    /* a locked file can refuse chmod; the caller retries the remove */
-  }
-  if (!stat.isDirectory() || stat.isSymbolicLink()) return
-  let entries: fs.Dirent[]
-  try {
-    entries = fs.readdirSync(target, { withFileTypes: true })
-  } catch {
-    return
-  }
-  for (const entry of entries) {
-    const child = path.join(target, entry.name)
-    if (entry.isSymbolicLink()) {
-      try {
-        fs.chmodSync(child, 0o666)
-      } catch {
-        /* ignore */
-      }
-      continue
-    }
-    clearReadonly(child)
-  }
-}
-
-async function removeTree(target: string): Promise<void> {
-  if (!fs.existsSync(target)) return
-  let cleared = false
-  let last: unknown
-  for (let attempt = 0; attempt < 6; attempt++) {
-    try {
-      fs.rmSync(target, { recursive: true, force: true })
-      return
-    } catch (error) {
-      last = error
-      if (!fs.existsSync(target)) return
-      if (!isFsLock(error)) break
-      if (!cleared) {
-        clearReadonly(target)
-        cleared = true
-      }
-      if (attempt < 5) await delay(200 * (attempt + 1))
-    }
-  }
-  if (!fs.existsSync(target)) return
-  if (isFsLock(last)) throw inUseError(target)
-  throw last instanceof Error ? last : new Error(`Could not remove ${target}.`)
-}
-
-async function moveDir(from: string, to: string): Promise<void> {
-  if (samePath(from, to)) throw new Error('Refusing to move a client folder onto itself.')
-  let cleared = false
-  let last: unknown
-  for (let attempt = 0; attempt < 6; attempt++) {
-    try {
-      if (fs.existsSync(to)) throw new Error(`Cannot move the client folder onto ${to}, which already exists.`)
-      fs.renameSync(from, to)
-      return
-    } catch (error) {
-      last = error
-      if (!isFsLock(error)) break
-      if (!cleared) {
-        clearReadonly(from)
-        cleared = true
-      }
-      if (attempt < 5) await delay(200 * (attempt + 1))
-    }
-  }
-  if (isFsLock(last)) throw inUseError(from)
-  throw last instanceof Error ? last : new Error(`Could not move ${from}.`)
-}
-
-function flattenWrappedRoot(root: string): void {
-  let names: string[]
-  try {
-    names = fs.readdirSync(root)
-  } catch {
-    return
-  }
-  if (names.length !== 1) return
-  const nested = path.join(root, names[0])
-  let stat: fs.Stats
-  try {
-    stat = fs.statSync(nested)
-  } catch {
-    return
-  }
-  if (!stat.isDirectory() || !fs.existsSync(path.join(nested, 'libs'))) return
-  for (const name of fs.readdirSync(nested)) {
-    const from = path.join(nested, name)
-    const to = path.join(root, name)
-    if (samePath(from, to) || samePath(to, nested)) continue
-    if (fs.existsSync(to)) throw new Error('Client archive layout could not be flattened.')
-    fs.renameSync(from, to)
-  }
-  fs.rmdirSync(nested)
-}
-
-async function retiredSlot(dest: string): Promise<string> {
-  const preferred = `${dest}.retiring`
-  if (!fs.existsSync(preferred)) return preferred
-  try {
-    await removeTree(preferred)
-    return preferred
-  } catch {
-    return `${dest}.retiring-${Date.now()}`
-  }
-}
-
-async function swapIncoming(incoming: string, dest: string): Promise<void> {
-  if (samePath(incoming, dest)) throw new Error('Refusing to move a client folder onto itself.')
-  const retiring = fs.existsSync(dest) ? await retiredSlot(dest) : ''
-  if (retiring && (samePath(retiring, dest) || samePath(retiring, incoming))) {
-    throw new Error('Refusing to move a client folder onto itself.')
-  }
-  let movedAside = false
-  try {
-    if (retiring) {
-      await moveDir(dest, retiring)
-      movedAside = true
-    }
-    await moveDir(incoming, dest)
-  } catch (error) {
-    if (movedAside && retiring && !fs.existsSync(dest) && !samePath(retiring, dest)) {
-      try {
-        fs.renameSync(retiring, dest)
-      } catch {
-        /* keep the original failure */
-      }
-    }
-    throw error
-  }
-  if (!retiring || !fs.existsSync(retiring)) return
-  try {
-    await removeTree(retiring)
-  } catch {
-    /* the new client is already in place */
-  }
-}
-
 /** "Install / Update client" button: same file sync that Play runs. */
 export async function installLatestClient(): Promise<ClientStatus> {
   if (clientSyncDisabled()) return clientStatus()
@@ -824,75 +399,6 @@ export async function installLatestClient(): Promise<ClientStatus> {
   const status = await clientStatus()
   emit(IpcChannel.clientStatus, status)
   return status
-}
-
-export async function installClientZip(known?: GithubRelease): Promise<ClientStatus> {
-  installingClient = true
-  try {
-    const fetched = known ?? (await latestRelease(CLIENT_REPO))
-    if (!fetched) throw new Error('No client release to download yet.')
-    const release = withPublicZip(CLIENT_REPO, fetched)
-    const zipAsset = findClientZip(release.assets)
-    if (!zipAsset) throw new Error('Client release has no Optic.zip.')
-    const version = clientVersionFromRelease(release) || '0'
-    const archive = path.join(folders.cache(), zipAsset.name)
-    const releaseTag = release.tag_name || `v${version}`
-    const url = publicAssetUrl(zipAsset.browser_download_url, CLIENT_REPO, releaseTag, zipAsset.name)
-    const fallbackUrl = publicLatestZipUrl(CLIENT_REPO, zipAsset.name)
-    beginInstallProgress(version, zipAsset.name, zipAsset.size)
-    try {
-      await downloadFile(url, archive, { label: `Optic ${version}` })
-    } catch (error) {
-      if (fallbackUrl !== url) {
-        try {
-          await downloadFile(fallbackUrl, archive, { label: `Optic ${version}` })
-        } catch {
-          throw error instanceof Error ? error : new Error('Client download failed')
-        }
-      } else {
-        throw error
-      }
-    }
-    const dest = path.join(folders.versions(), version)
-    const incoming = path.join(folders.versions(), `${version}.incoming`)
-    if (samePath(incoming, dest)) throw new Error('Refusing to move a client folder onto itself.')
-    await removeTree(incoming)
-    fs.mkdirSync(incoming, { recursive: true })
-    try {
-      const zip = new AdmZip(archive)
-      zip.extractAllTo(incoming, true)
-      flattenWrappedRoot(incoming)
-      const manifestPath = path.join(incoming, 'manifest.json')
-      if (fs.existsSync(manifestPath)) {
-        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as ClientManifest
-        if (manifest.minecraft !== MC_VERSION) throw new Error('Client manifest is not Minecraft 1.8.9.')
-      }
-      if (!clientLibsRoot(incoming)) throw new Error('Client archive did not contain libs/.')
-      await swapIncoming(incoming, dest)
-    } catch (error) {
-      if (fs.existsSync(incoming)) {
-        try {
-          await removeTree(incoming)
-        } catch {
-          /* keep the install error */
-        }
-      }
-      throw error
-    }
-    if (!clientLibsRoot(dest)) throw new Error('Client archive did not contain libs/.')
-    updateStore((data) => {
-      if (data.installedClientVersion && data.installedClientVersion !== version) {
-        data.previousClientVersion = data.installedClientVersion
-      }
-      data.installedClientVersion = version
-    })
-    installingClient = false
-    const status = await clientStatus()
-    emit(IpcChannel.clientStatus, status)
-    return status
-  } finally {
-    installingClient = false
-  }
 }
 
 export function rollbackClient(): ClientStatus {

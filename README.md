@@ -1,12 +1,10 @@
 # Optic
 
-Optic is the default launcher for [WiktorDvD/Atlas-Client](https://github.com/WiktorDvD/Atlas-Client).
+Optic launcher and PvP client for Minecraft 1.8.9 and 1.7.10.
 
-**Install:** download [`Optic.exe`](https://github.com/WiktorDvD/Atlas-Client/releases/latest/download/Optic.exe) from the latest GitHub release.
+**Install:** download [`Optic-Setup.exe`](https://github.com/WiktorIsInsane/Optic-Client/releases/latest/download/Optic-Setup.exe).
 
-**Play updates:** pressing Play checks this repo and downloads newer game client builds (`Atlas-Client-*.zip`) before launch. The Optic hitreg / visual pack is applied automatically.
-
-**Launcher updates:** installed copies check this repo for newer `Optic.exe` builds.
+**Updates:** the launcher updates itself from this repo's releases, and on start and every Play it downloads changed 1.8.9 / 1.7.10 client files from the `client` release.
 
 ## Dev
 
@@ -17,10 +15,11 @@ npm run sync:pvp-java
 npm run dev
 ```
 
-## Release launcher
+## Release
+
+See [RELEASING.md](RELEASING.md).
 
 ```bash
-node scripts/release-launcher.mjs --version X.Y.Z --push
+npm run release:client -- --build --notes "..."
+npm run release:launcher -- --version X.Y.Z --notes "..."
 ```
-
-CI builds and publishes `Optic.exe` on tag `vX.Y.Z`.
