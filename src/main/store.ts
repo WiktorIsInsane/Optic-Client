@@ -16,6 +16,8 @@ export interface Persisted {
   settings: LaunchSettings
   installedClientVersion: string
   previousClientVersion: string
+  /** Version from the last applied optic-files.json (client file updates). */
+  clientFilesVersion?: string
 }
 
 const REMOTE_RUNTIME = 'F:\\Projects\\LunarClientremake-main'

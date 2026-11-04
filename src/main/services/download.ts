@@ -9,6 +9,7 @@ import type { ClientStatus, DownloadProgress, NewsItem } from '../../shared/type
 import { emit } from '../bus'
 import { folders } from '../paths'
 import { loadStore, updateStore } from '../store'
+import { cachedClientManifest, clientTargetRoot, fetchClientManifest, syncClientFiles } from './clientSync'
 
 export interface DownloadOptions {
   label: string
@@ -462,26 +463,29 @@ function statusFromLocal(remote = '', changelog = '', errorMessage = ''): Client
   const data = loadStore()
   const root = runtimeRoot()
   const hasLibs = fs.existsSync(path.join(root, 'libs'))
+  const installed = data.clientFilesVersion || ''
   let kind: ClientStatus['kind'] = hasLibs ? 'ready' : 'missing'
   let message = 'Ready'
   if (installingClient) {
     kind = 'downloading'
     message = remote ? `Downloading ${remote}` : 'Downloading client'
+  } else if (clientSyncDisabled()) {
+    message = 'Dev runtime (client auto-update off)'
   } else if (!data.installedClientVersion && configuredDevRuntime() && hasLibs) {
     kind = 'ready'
     message = 'Using local development runtime'
-  } else if (remote && data.installedClientVersion && remote !== data.installedClientVersion) {
+  } else if (remote && hasLibs && remote !== installed) {
     kind = 'update'
-    message = `Update available: ${remote}`
+    message = `Update available: ${remote} (installs when you press Play)`
   } else if (kind === 'missing') {
     message = errorMessage || (remote ? `Install ${remote}` : 'No client release published yet')
     if (errorMessage && !hasLibs) kind = 'error'
   } else {
-    message = data.installedClientVersion ? `Installed ${data.installedClientVersion}` : 'Local runtime'
+    message = installed ? `Client ${installed}` : 'Local runtime'
   }
   return {
     kind,
-    installedVersion: data.installedClientVersion,
+    installedVersion: installed || data.installedClientVersion,
     remoteVersion: remote,
     message,
     runtimeRoot: root,
@@ -489,11 +493,17 @@ function statusFromLocal(remote = '', changelog = '', errorMessage = ''): Client
   }
 }
 
+/**
+ * Dev opt-out: a file named `optic-dev` in the runtime folder (written by
+ * scripts/install-optic-notch.mjs) stops the launcher from replacing locally built jars.
+ */
+export function clientSyncDisabled(): boolean {
+  return fs.existsSync(path.join(clientTargetRoot(), 'optic-dev'))
+}
+
 export function localClientStatus(): ClientStatus {
-  const release = releaseCache?.value ?? null
-  const remote = clientVersionFromRelease(release)
-  const changelog = release?.body ?? ''
-  return statusFromLocal(remote, changelog)
+  const manifest = cachedClientManifest()
+  return statusFromLocal(manifest?.version ?? '', manifest?.notes ?? '')
 }
 
 export function cachedNews(): NewsItem[] {
@@ -501,7 +511,7 @@ export function cachedNews(): NewsItem[] {
 }
 
 export function scheduleClientStatusRefresh(): void {
-  if (releaseCache && Date.now() - releaseCache.at < RELEASE_CACHE_MS) return
+  if (cachedClientManifest() && releaseCache && Date.now() - releaseCache.at < RELEASE_CACHE_MS) return
   if (remoteRefreshScheduled) return
   remoteRefreshScheduled = true
   void clientStatus()
@@ -512,11 +522,11 @@ export function scheduleClientStatusRefresh(): void {
 }
 
 export async function clientStatus(): Promise<ClientStatus> {
+  // News comes from the launcher releases; it must not block the client status.
+  void latestRelease(CLIENT_REPO).catch(() => null)
   try {
-    const release = await latestRelease(CLIENT_REPO)
-    rememberRelease(release)
-    const remote = clientVersionFromRelease(release)
-    return statusFromLocal(remote, release?.body ?? '')
+    const manifest = await fetchClientManifest()
+    return statusFromLocal(manifest?.version ?? '', manifest?.notes ?? '')
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'Could not check for updates'
     if (fs.existsSync(path.join(runtimeRoot(), 'libs'))) {
@@ -569,8 +579,30 @@ function releaseHasZip(release: GithubRelease | null): boolean {
   return Boolean(findClientZip(release?.assets))
 }
 
-/** Check GitHub on Play and download a newer client zip before launch. */
+/** Runs on every Play: pull changed 1.7.10 / 1.8.9 client files before launch. */
 export async function ensureClientBeforePlay(): Promise<ClientPlayPrepare> {
+  if (clientSyncDisabled()) return { warning: '' }
+  const hadLibs = libsReady(runtimeRoot())
+  installingClient = true
+  try {
+    const result = await syncClientFiles(true)
+    if (result.updated.length) {
+      emit(IpcChannel.toast, `Optic client updated to ${result.version}`)
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Could not check for client updates'
+    if (hadLibs || libsReady(configuredDevRuntime())) return { warning: message }
+    throw new Error(message)
+  } finally {
+    installingClient = false
+    emit(IpcChannel.clientStatus, localClientStatus())
+  }
+  if (libsReady(runtimeRoot()) || libsReady(configuredDevRuntime())) return { warning: '' }
+  throw new Error('No Optic client release published yet.')
+}
+
+/** Old full-runtime zip install path. Kept for a manual runtime repair; Play no longer uses it. */
+export async function ensureClientZipBeforePlay(): Promise<ClientPlayPrepare> {
   const data = loadStore()
   const installedVersion = data.installedClientVersion
   const installedReady = libsReady(installedVersion ? path.join(folders.versions(), installedVersion) : '')
@@ -597,7 +629,7 @@ export async function ensureClientBeforePlay(): Promise<ClientPlayPrepare> {
   if (needsInstall && !launchingLocalRemakeOnly) {
     const zip = findClientZip(ready?.assets)
     beginInstallProgress(remote, zip?.name ?? publicZipName(CLIENT_REPO, remote), zip?.size ?? 0)
-    await installLatestClient(ready ?? undefined)
+    await installClientZip(ready ?? undefined)
     return { warning: '' }
   }
 
@@ -780,7 +812,21 @@ async function swapIncoming(incoming: string, dest: string): Promise<void> {
   }
 }
 
-export async function installLatestClient(known?: GithubRelease): Promise<ClientStatus> {
+/** "Install / Update client" button: same file sync that Play runs. */
+export async function installLatestClient(): Promise<ClientStatus> {
+  if (clientSyncDisabled()) return clientStatus()
+  installingClient = true
+  try {
+    await syncClientFiles(true)
+  } finally {
+    installingClient = false
+  }
+  const status = await clientStatus()
+  emit(IpcChannel.clientStatus, status)
+  return status
+}
+
+export async function installClientZip(known?: GithubRelease): Promise<ClientStatus> {
   installingClient = true
   try {
     const fetched = known ?? (await latestRelease(CLIENT_REPO))

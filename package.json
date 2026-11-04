@@ -5,7 +5,7 @@
   "description": "Optic — 1.8.9 PvP client with Wiktor's hitreg / visual pack",
   "repository": {
     "type": "git",
-    "url": "https://github.com/WiktorDvD/Atlas-Client.git"
+    "url": "https://github.com/WiktorIsInsane/Optic-Client.git"
   },
   "author": "Wiktor",
   "main": "dist/main/index.js",
@@ -24,6 +24,8 @@
     "package:client": "node scripts/install-optic-native.mjs && node scripts/package-client.mjs",
     "dist": "npm run sync:optic && npm run build && electron-builder --win",
     "release:launcher": "node scripts/release-launcher.mjs",
+    "release:client": "node scripts/release-client.mjs",
+    "dist:installer": "npm run sync:optic && npm run build && electron-builder --win --publish never",
     "sync:pvp-java": "node scripts/sync-pvp-java-resources.mjs",
     "lint": "eslint src --ext .ts,.tsx",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.mjs\""

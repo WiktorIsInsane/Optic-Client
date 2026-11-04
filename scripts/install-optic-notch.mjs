@@ -112,6 +112,14 @@ function main() {
   if (fs.existsSync(dest)) fs.copyFileSync(dest, `${dest}.bak`)
   fs.copyFileSync(out, dest)
   console.log(`Installed ${dest} (previous copy kept as ${target.output}.bak)`)
+
+  // Stop this PC's launcher from swapping the local build for the published one on Play.
+  // Delete the file to go back to normal auto-updates.
+  const marker = path.join(libs, '..', 'optic-dev')
+  if (!fs.existsSync(marker)) {
+    fs.writeFileSync(marker, 'Client auto-update is off on this PC because a local build is installed.\n')
+    console.log(`Client auto-update paused on this PC (${marker}). Delete it to resume.`)
+  }
 }
 
 main()

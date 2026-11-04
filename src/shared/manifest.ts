@@ -11,18 +11,21 @@ export interface ClientManifest {
 }
 
 /**
- * Game client zip + Optic installer publish to WiktorDvD/Atlas-Client.
- * Play checks this repo and downloads newer client builds before launch.
+ * Everything publishes to github.com/WiktorIsInsane/Optic-Client:
+ * - launcher releases (tag vX.Y.Z): Optic-Setup.exe + latest.yml for electron-updater
+ * - the `client` pre-release: in-game client files + optic-files.json (see clientSync.ts)
  */
-export const CLIENT_OWNER = 'WiktorDvD'
-export const CLIENT_REPO = 'Atlas-Client'
+export const CLIENT_OWNER = 'WiktorIsInsane'
+export const CLIENT_REPO = 'Optic-Client'
+/** Pre-release tag that holds the client files. Pre-release so it never becomes "latest". */
+export const CLIENT_FILES_TAG = 'client'
 
 /** @deprecated use CLIENT_OWNER — kept for older imports */
 export const GITHUB_OWNER = CLIENT_OWNER
 
-/** Launcher installer + electron-updater feed (Optic.exe). */
-export const LAUNCHER_OWNER = 'WiktorDvD'
-export const LAUNCHER_REPO = 'Atlas-Client'
+/** Launcher installer + electron-updater feed (Optic-Setup.exe). */
+export const LAUNCHER_OWNER = 'WiktorIsInsane'
+export const LAUNCHER_REPO = 'Optic-Client'
 
 export const MC_VERSION = '1.8.9'
 /** Official Minecraft launcher client. Sign-in is Minecraft's, and the account is stored only in this app. */

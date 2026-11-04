@@ -23,7 +23,9 @@ win:
   target:
     - target: nsis
       arch: [x64]
-  artifactName: Optic.${ext}
+  # Stable name so https://github.com/WiktorIsInsane/Optic-Client/releases/latest/download/Optic-Setup.exe
+  # always points at the newest installer.
+  artifactName: Optic-Setup.${ext}
 nsis:
   oneClick: false
   perMachine: false
@@ -31,11 +33,17 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: Optic
+  uninstallDisplayName: Optic
+  runAfterFinish: true
+  # Keep accounts, settings and the game folder when the launcher is uninstalled or updated.
+  deleteAppDataOnUninstall: false
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
   installerSidebar: null
 publish:
   provider: github
-  owner: WiktorDvD
-  repo: Atlas-Client
+  owner: WiktorIsInsane
+  repo: Optic-Client
   releaseType: release
 mac:
   target: dmg

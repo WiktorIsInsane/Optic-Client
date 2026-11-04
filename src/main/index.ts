@@ -2,7 +2,8 @@ import { app } from 'electron'
 import { registerIpc } from './ipc'
 import { loadStore } from './store'
 import { bootBundledPvpJava } from './services/java'
-import { bootAutoUpdate } from './services/updater'
+import { installLatestClient } from './services/download'
+import { bootAutoUpdate, checkLauncherUpdate } from './services/updater'
 import { createWindow, ensureTray, getWindow, markQuitting } from './window'
 
 const gotLock = app.requestSingleInstanceLock()
@@ -23,6 +24,10 @@ app.whenReady().then(() => {
   }
   void bootBundledPvpJava()
   void bootAutoUpdate()
+  // Pull client file updates in the background so Play starts instantly; Play re-checks anyway.
+  void installLatestClient().catch(() => undefined)
+  // Launchers left open in the tray still see new versions; they install on the next start.
+  setInterval(() => void checkLauncherUpdate(false).catch(() => undefined), 60 * 60 * 1000)
 })
 
 app.on('before-quit', () => markQuitting())

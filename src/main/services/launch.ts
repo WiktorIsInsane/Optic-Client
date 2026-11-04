@@ -17,6 +17,7 @@ import { loadStore } from '../store'
 import { activeAccount, writeGameAccounts } from './auth'
 import { ensureLegacyVersion, ensureVanilla, launchwrapperJars, runtimeRoot } from './download'
 import { ensureJava } from './java'
+import { ensureTemurin8 } from './clientSync'
 import { extractNatives } from './natives'
 import { startLocalServices } from './fakeServices'
 import { applyPvpFeelProfile } from './pvpFeel'
@@ -508,6 +509,8 @@ async function buildPlan(prepare: boolean): Promise<Plan> {
     // 1.7.10 and its launchwrapper are Java 8 era; newer Java breaks the class loader.
     // GraalVM EE 8 is preferred when installed, then the bundled Temurin 8.
     const graal = graal8Java(runtime)
+    // Fresh installs have no Java 8 yet; fetch Temurin 8 the first time 1.7.10 is played.
+    if (prepare && !graal) await ensureTemurin8()
     const javaBin = graal || forgeJava(runtime)
     // 1.7 never needs more than 4 GB; a smaller heap also keeps collections short.
     const heap17 = Math.min(heapMb, 4096)
