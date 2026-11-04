@@ -37,6 +37,9 @@ public abstract class EntityRendererMixin {
 	@Unique
 	private String optic$withPing(Entity entity, String text) {
 		if (!(entity instanceof PlayerEntity) || text == null) return text;
+		// Only the name line; the below-name scoreboard line goes through here too.
+		String name = OpticNametags.playerName(entity);
+		if (name != null && !text.contains(name)) return text;
 		String suffix = OpticPing.nametagSuffix((PlayerEntity) entity);
 		if (suffix.length() == 0 || text.endsWith(suffix)) return text;
 		return text + suffix;

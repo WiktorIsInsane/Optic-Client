@@ -4,8 +4,14 @@ import gg.optic.client.OpticClient;
 import gg.optic.client.OpticConfig;
 import gg.optic.client.render.OpticHitColor;
 import gg.optic.client.render.OpticNametags;
+import gg.optic.client.render.OpticSkins3D;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.entity.LivingEntityRenderer;
+import net.minecraft.client.render.entity.PlayerEntityRenderer;
+import net.minecraft.client.render.entity.model.BiPedModel;
+import net.minecraft.client.render.entity.model.EntityModel;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import org.lwjgl.opengl.GL11;
@@ -34,6 +40,38 @@ public abstract class LivingEntityRendererMixin {
 			return;
 		}
 		GL11.glColor4f(red, green, blue, alpha);
+	}
+
+	@Shadow protected EntityModel model;
+
+	/** 3D Skins: hide the flat hat before the player model draws. */
+	@Inject(method = "renderModel", at = @At("HEAD"), require = 0)
+	private void optic$skins3dBefore(LivingEntity entity, float a, float b, float c, float d, float e, float scale, CallbackInfo ci) {
+		if (!((Object) this instanceof PlayerEntityRenderer) || !(this.model instanceof BiPedModel)) return;
+		OpticSkins3D.before(entity, (BiPedModel) this.model);
+	}
+
+	/** 3D Skins: voxel outer layer with the part angles the model just used. */
+	@Inject(method = "renderModel", at = @At("TAIL"), require = 0)
+	private void optic$skins3dAfter(LivingEntity entity, float a, float b, float c, float d, float e, float scale, CallbackInfo ci) {
+		if (!((Object) this instanceof PlayerEntityRenderer) || !(this.model instanceof BiPedModel)) return;
+		OpticSkins3D.after(entity, (BiPedModel) this.model, scale);
+	}
+
+	/**
+	 * 1.7 draws sneaking players' tags inline at 1/8 opacity (practically invisible). With the
+	 * Nametags module on, send them through renderLabelIfPresent instead so OpticNametags
+	 * draws them (readable, but hidden behind walls). ordinal 1 is the branch check; ordinal 0
+	 * is the 32-block range for sneaking players, which stays.
+	 */
+	@Redirect(
+		method = "method_5782(Lnet/minecraft/entity/LivingEntity;DDD)V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;isSneaking()Z", ordinal = 1),
+		require = 0
+	)
+	private boolean optic$sneakLabel(LivingEntity entity) {
+		if (OpticClient.get().config().nametags) return false;
+		return entity.isSneaking();
 	}
 
 	/** Nametags module visibility. method_5781 is 1.7's hasLabel; 1.7 has no team nametag rules. */

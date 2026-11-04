@@ -90,14 +90,16 @@ public abstract class InGameHudMixin extends DrawableHelper {
 		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 	}
 
-	/** 1.7 draws the tab list inline in render; hide it while Optic's Tab module draws its own. */
+	/**
+	 * 1.7 draws its own tab list inline in render (a fixed grid sized to the server's max
+	 * players). Always hide it: OpticTab draws the 1.8.9-style list instead.
+	 */
 	@Redirect(
 		method = "render(FZII)V",
 		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/option/KeyBinding;isPressed()Z")
 	)
 	private boolean optic$vanillaTab(KeyBinding binding) {
-		if (OpticClient.get().config().tab) return false;
-		return binding.isPressed();
+		return false;
 	}
 
 	/**

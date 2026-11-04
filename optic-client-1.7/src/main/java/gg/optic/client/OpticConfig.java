@@ -61,6 +61,14 @@ public final class OpticConfig {
 	/** 1 = behind the player, 2 = in front. */
 	public int freeLookPerspective = 1;
 
+	// 3D Skins: skin overlay layers drawn as voxels
+	public boolean skins3d = true;
+	public boolean skins3dHead = true;
+	public boolean skins3dBody = true;
+	public boolean skins3dArms = true;
+	public boolean skins3dLegs = true;
+	public float skins3dDistance = 16.0F;
+
 	// Hitboxes
 	public boolean hitboxes = false;
 	/** Hide the blue look-direction line. */
@@ -155,8 +163,10 @@ public final class OpticConfig {
 	public int pingX = 6;
 	public int pingY = 36;
 
-	// Coordinates
+	// Coordinates (Y only by default; X, Z and direction are opt-in)
+	public boolean coordinatesShowX = false;
 	public boolean coordinatesShowY = true;
+	public boolean coordinatesShowZ = false;
 	public boolean coordinatesShowLabel = true;
 	public boolean coordinatesBrackets = true;
 	public boolean coordinatesTextShadow = true;
@@ -168,7 +178,7 @@ public final class OpticConfig {
 	public int coordinatesX = 6;
 	public int coordinatesY = 51;
 	public boolean coordinatesHorizontal = false;
-	public boolean coordinatesDirection = true;
+	public boolean coordinatesDirection = false;
 	public boolean coordinatesDirectionMarks = true;
 	public boolean coordinatesBiome = false;
 	public boolean coordinatesBackground = false;
@@ -514,6 +524,12 @@ public final class OpticConfig {
 			if (particleMultiplier < 1.0F) particleMultiplier = 1.0F;
 		}
 		hitboxes = read(values, "hitboxes", hitboxes);
+		skins3d = read(values, "skins3d", skins3d);
+		skins3dHead = read(values, "skins3dHead", skins3dHead);
+		skins3dBody = read(values, "skins3dBody", skins3dBody);
+		skins3dArms = read(values, "skins3dArms", skins3dArms);
+		skins3dLegs = read(values, "skins3dLegs", skins3dLegs);
+		skins3dDistance = clampFloat(readFloat(values, "skins3dDistance", skins3dDistance), 4.0F, 64.0F);
 		hitboxHideLook = read(values, "hitboxHideLook", hitboxHideLook);
 		hitboxPlayerColor = readColor(values, "hitboxPlayerColor", hitboxPlayerColor);
 		hitboxMobColor = readColor(values, "hitboxMobColor", hitboxMobColor);
@@ -584,7 +600,9 @@ public final class OpticConfig {
 		pingX = readInt(values, "pingX", pingX);
 		pingY = readInt(values, "pingY", pingY);
 
+		coordinatesShowX = read(values, "coordinatesShowX", coordinatesShowX);
 		coordinatesShowY = read(values, "coordinatesShowY", coordinatesShowY);
+		coordinatesShowZ = read(values, "coordinatesShowZ", coordinatesShowZ);
 		coordinatesShowLabel = read(values, "coordinatesShowLabel", coordinatesShowLabel);
 		coordinatesBrackets = read(values, "coordinatesBrackets", coordinatesBrackets);
 		coordinatesTextShadow = read(values, "coordinatesTextShadow", legacyShadow);
@@ -820,6 +838,12 @@ public final class OpticConfig {
 		values.setProperty("freeLookDistance", Float.toString(freeLookDistance));
 		values.setProperty("particlesConfigured", "true");
 		values.setProperty("hitboxes", Boolean.toString(hitboxes));
+		values.setProperty("skins3d", Boolean.toString(skins3d));
+		values.setProperty("skins3dHead", Boolean.toString(skins3dHead));
+		values.setProperty("skins3dBody", Boolean.toString(skins3dBody));
+		values.setProperty("skins3dArms", Boolean.toString(skins3dArms));
+		values.setProperty("skins3dLegs", Boolean.toString(skins3dLegs));
+		values.setProperty("skins3dDistance", Float.toString(skins3dDistance));
 		values.setProperty("hitboxHideLook", Boolean.toString(hitboxHideLook));
 		values.setProperty("hitboxPlayerColor", toHex(hitboxPlayerColor));
 		values.setProperty("hitboxMobColor", toHex(hitboxMobColor));
@@ -891,7 +915,9 @@ public final class OpticConfig {
 		values.setProperty("pingX", Integer.toString(pingX));
 		values.setProperty("pingY", Integer.toString(pingY));
 
+		values.setProperty("coordinatesShowX", Boolean.toString(coordinatesShowX));
 		values.setProperty("coordinatesShowY", Boolean.toString(coordinatesShowY));
+		values.setProperty("coordinatesShowZ", Boolean.toString(coordinatesShowZ));
 		values.setProperty("coordinatesShowLabel", Boolean.toString(coordinatesShowLabel));
 		values.setProperty("coordinatesBrackets", Boolean.toString(coordinatesBrackets));
 		values.setProperty("coordinatesTextShadow", Boolean.toString(coordinatesTextShadow));
@@ -1071,6 +1097,12 @@ public final class OpticConfig {
 		o.addProperty("freeLookToggle", freeLookToggle);
 		o.addProperty("freeLookDistance", freeLookDistance);
 		o.addProperty("hitboxes", hitboxes);
+		o.addProperty("skins3d", skins3d);
+		o.addProperty("skins3dHead", skins3dHead);
+		o.addProperty("skins3dBody", skins3dBody);
+		o.addProperty("skins3dArms", skins3dArms);
+		o.addProperty("skins3dLegs", skins3dLegs);
+		o.addProperty("skins3dDistance", skins3dDistance);
 		o.addProperty("hitboxHideLook", hitboxHideLook);
 		o.addProperty("hitboxPlayerColor", toHex(hitboxPlayerColor));
 		o.addProperty("hitboxMobColor", toHex(hitboxMobColor));
@@ -1138,7 +1170,9 @@ public final class OpticConfig {
 		o.addProperty("pingX", pingX);
 		o.addProperty("pingY", pingY);
 
+		o.addProperty("coordinatesShowX", coordinatesShowX);
 		o.addProperty("coordinatesShowY", coordinatesShowY);
+		o.addProperty("coordinatesShowZ", coordinatesShowZ);
 		o.addProperty("coordinatesShowLabel", coordinatesShowLabel);
 		o.addProperty("coordinatesBrackets", coordinatesBrackets);
 		o.addProperty("coordinatesTextShadow", coordinatesTextShadow);
@@ -1298,6 +1332,12 @@ public final class OpticConfig {
 		freeLookToggle = getBool(o, "freeLookToggle", freeLookToggle);
 		freeLookDistance = clampFloat(getFloat(o, "freeLookDistance", freeLookDistance), 1.5F, 12.0F);
 		hitboxes = getBool(o, "hitboxes", hitboxes);
+		skins3d = getBool(o, "skins3d", skins3d);
+		skins3dHead = getBool(o, "skins3dHead", skins3dHead);
+		skins3dBody = getBool(o, "skins3dBody", skins3dBody);
+		skins3dArms = getBool(o, "skins3dArms", skins3dArms);
+		skins3dLegs = getBool(o, "skins3dLegs", skins3dLegs);
+		skins3dDistance = clampFloat(getFloat(o, "skins3dDistance", skins3dDistance), 4.0F, 64.0F);
 		hitboxHideLook = getBool(o, "hitboxHideLook", hitboxHideLook);
 		hitboxPlayerColor = getColor(o, "hitboxPlayerColor", hitboxPlayerColor);
 		hitboxMobColor = getColor(o, "hitboxMobColor", hitboxMobColor);
@@ -1367,7 +1407,9 @@ public final class OpticConfig {
 		pingX = getInt(o, "pingX", pingX);
 		pingY = getInt(o, "pingY", pingY);
 
+		coordinatesShowX = getBool(o, "coordinatesShowX", coordinatesShowX);
 		coordinatesShowY = getBool(o, "coordinatesShowY", coordinatesShowY);
+		coordinatesShowZ = getBool(o, "coordinatesShowZ", coordinatesShowZ);
 		coordinatesShowLabel = getBool(o, "coordinatesShowLabel", coordinatesShowLabel);
 		coordinatesBrackets = getBool(o, "coordinatesBrackets", coordinatesBrackets);
 		coordinatesTextShadow = getBool(o, "coordinatesTextShadow", legacyShadow);
@@ -1650,7 +1692,9 @@ public final class OpticConfig {
 				pingY = 36;
 				break;
 			case 14: // Coordinates
+				coordinatesShowX = false;
 				coordinatesShowY = true;
+				coordinatesShowZ = false;
 				coordinatesShowLabel = true;
 				coordinatesBrackets = true;
 				coordinatesTextShadow = true;
@@ -1789,6 +1833,13 @@ public final class OpticConfig {
 				freeLookSmooth = true;
 				freeLookPerspective = 1;
 				break;
+			case 38: // 3D Skins
+				skins3dHead = true;
+				skins3dBody = true;
+				skins3dArms = true;
+				skins3dLegs = true;
+				skins3dDistance = 16.0F;
+				break;
 			case 28: // Hitboxes
 				hitboxHideLook = false;
 				hitboxPlayerColor = 0xFFFFFF;
@@ -1906,6 +1957,8 @@ public final class OpticConfig {
 		pingNametag = read(values, "pingNametag", pingNametag);
 		coordinatesHorizontal = read(values, "coordinatesHorizontal", coordinatesHorizontal);
 		coordinatesDirection = read(values, "coordinatesDirection", coordinatesDirection);
+		// Configs saved before X/Z became toggles: switch to the new Y-only layout once.
+		if (values.getProperty("coordinatesShowX") == null) coordinatesDirection = false;
 		coordinatesDirectionMarks = read(values, "coordinatesDirectionMarks", coordinatesDirectionMarks);
 		coordinatesBiome = read(values, "coordinatesBiome", coordinatesBiome);
 		coordinatesBackground = read(values, "coordinatesBackground", coordinatesBackground);
@@ -2275,6 +2328,7 @@ public final class OpticConfig {
 		pingNametag = getBool(o, "pingNametag", pingNametag);
 		coordinatesHorizontal = getBool(o, "coordinatesHorizontal", coordinatesHorizontal);
 		coordinatesDirection = getBool(o, "coordinatesDirection", coordinatesDirection);
+		if (!o.has("coordinatesShowX")) coordinatesDirection = false;
 		coordinatesDirectionMarks = getBool(o, "coordinatesDirectionMarks", coordinatesDirectionMarks);
 		coordinatesBiome = getBool(o, "coordinatesBiome", coordinatesBiome);
 		coordinatesBackground = getBool(o, "coordinatesBackground", coordinatesBackground);
@@ -2402,7 +2456,7 @@ public final class OpticConfig {
 				break;
 			case 14:
 				coordinatesHorizontal = false;
-				coordinatesDirection = true;
+				coordinatesDirection = false;
 				coordinatesDirectionMarks = true;
 				coordinatesBiome = false;
 				coordinatesBackground = false;

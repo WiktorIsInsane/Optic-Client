@@ -116,21 +116,21 @@ public final class OpticNametags {
 		if (dist > (double) maxDistance * (double) maxDistance) return;
 
 		TextRenderer textRenderer = dispatcher.getTextRenderer();
+		boolean frontView = client.options != null && client.options.perspective == 2;
+		boolean sneaking = entity.isSneaking();
 		float scale = 0.016666668F * 1.6F;
 		GlStateManager.pushMatrix();
-		GlStateManager.translate((float) x, (float) y + entity.height + 0.5F, (float) z);
+		GlStateManager.translate((float) x, (float) y + entity.height + 0.5F - (sneaking ? 0.25F : 0.0F), (float) z);
 		GL11.glNormal3f(0.0F, 1.0F, 0.0F);
+		// In front F5 the dispatcher yaw already has +180, so the tag faces the camera.
+		// Its pitch does not, so the tilt is inverted there; flip it back. (Mirroring with a
+		// negative scale here would reverse the winding and the tag got culled away.)
 		GlStateManager.rotate(-dispatcher.yaw, 0.0F, 1.0F, 0.0F);
-		GlStateManager.rotate(dispatcher.pitch, 1.0F, 0.0F, 0.0F);
+		GlStateManager.rotate(frontView ? -dispatcher.pitch : dispatcher.pitch, 1.0F, 0.0F, 0.0F);
 		GlStateManager.scale(-scale, -scale, scale);
-		// Front F5 adds a 180° view flip, which mirrors the tag. Un-mirror so it
-		// reads the same as when you are looking at the back of the head.
-		if (client.options != null && client.options.perspective == 2) {
-			GlStateManager.scale(-1.0F, 1.0F, 1.0F);
-		}
+		boolean cull = GL11.glIsEnabled(GL11.GL_CULL_FACE);
+		GlStateManager.disableCull();
 		GlStateManager.disableLighting();
-		GlStateManager.depthMask(false);
-		GlStateManager.disableDepthTest();
 		GlStateManager.enableBlend();
 		GlStateManager.blendFuncSeparate(770, 771, 1, 0);
 
@@ -144,6 +144,13 @@ public final class OpticNametags {
 		} else {
 			halfW = textRenderer.getStringWidth(text) / 2;
 		}
+
+		// Like vanilla: the plate and a faint copy of the name show through walls, the solid
+		// name only where the player is actually visible. Sneaking players get no see-through
+		// pass at all, so their tag is hidden behind walls but readable in line of sight.
+		GlStateManager.depthMask(false);
+		if (sneaking) GlStateManager.enableDepthTest();
+		else GlStateManager.disableDepthTest();
 
 		float plate = c.nametagsBackgroundOpacity;
 		if (plate < 0.0F) plate = 0.0F;
@@ -167,27 +174,42 @@ public final class OpticNametags {
 			GlStateManager.enableTexture();
 		}
 
-		if (c.nametagsBadlionFont) {
-			int drawX = -halfW;
-			if (c.nametagsTextShadow) {
-				OpticUiFont.drawSized(client, text, drawX + 1, yOff + 1, 0xFF000000, 8.0F);
-			}
-			OpticUiFont.drawSized(client, text, drawX, yOff, nameArgb, 8.0F);
-		} else {
-			float drawX = -textRenderer.getStringWidth(text) / 2.0F;
-			if (c.nametagsTextShadow) {
-				textRenderer.draw(text, Math.round(drawX), yOff, nameArgb, true);
-			} else {
-				textRenderer.draw(text, (int) drawX, yOff, nameArgb);
-			}
+		if (!sneaking) {
+			// Faint see-through pass (vanilla uses 0x20 alpha).
+			drawName(client, textRenderer, c, text, halfW, yOff, (nameArgb & 0x00FFFFFF) | 0x20000000, false);
+			GlStateManager.enableDepthTest();
 		}
+		GlStateManager.depthMask(true);
+		int solid = sneaking ? (nameArgb & 0x00FFFFFF) | 0x90000000 : nameArgb;
+		drawName(client, textRenderer, c, text, halfW, yOff, solid, c.nametagsTextShadow && !sneaking);
 
 		GlStateManager.enableDepthTest();
 		GlStateManager.depthMask(true);
+		if (cull) GlStateManager.enableCull();
 		GlStateManager.enableLighting();
 		GlStateManager.disableBlend();
 		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 		GlStateManager.popMatrix();
+	}
+
+	private static void drawName(
+		MinecraftClient client,
+		TextRenderer textRenderer,
+		OpticConfig c,
+		String text,
+		int halfW,
+		int yOff,
+		int argb,
+		boolean shadow
+	) {
+		if (c.nametagsBadlionFont) {
+			int drawX = -halfW;
+			if (shadow) OpticUiFont.drawSized(client, text, drawX + 1, yOff + 1, (argb & 0xFF000000), 8.0F);
+			OpticUiFont.drawSized(client, text, drawX, yOff, argb, 8.0F);
+		} else {
+			int drawX = -textRenderer.getStringWidth(text) / 2;
+			textRenderer.draw(text, drawX, yOff, argb, shadow);
+		}
 	}
 
 	private static void drawRoundedBackground(

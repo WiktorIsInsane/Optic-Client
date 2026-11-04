@@ -40,8 +40,13 @@ public final class OpticEnvironment {
 		if (t >= 0.0F) c.timeOfDay = t;
 	}
 
+	/**
+	 * The chosen time applies whenever Time Changer is on. It used to also need the separate
+	 * Freeze Time toggle, which picking a preset never set, so presets fell back to the
+	 * server's time (always day on most lobbies) and Midnight/Sunset never showed.
+	 */
 	public static boolean freezeTimeActive(OpticConfig c) {
-		return c.timeChanger && c.freezeTime;
+		return c.timeChanger;
 	}
 
 	/** Client rain strength override, or -1 for vanilla. */

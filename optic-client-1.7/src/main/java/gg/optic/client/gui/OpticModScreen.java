@@ -61,6 +61,7 @@ public final class OpticModScreen extends Screen {
 	public static final int MODULE_TITLES = 35;
 	public static final int MODULE_HIT_COLOR = 36;
 	public static final int MODULE_POTIONS = 37;
+	public static final int MODULE_SKINS_3D = 38;
 
 	private static final int FPS = MODULE_FPS;
 	private static final int CPS = MODULE_CPS;
@@ -90,6 +91,7 @@ public final class OpticModScreen extends Screen {
 	private static final int TITLES = MODULE_TITLES;
 	private static final int HIT_COLOR = MODULE_HIT_COLOR;
 	private static final int POTIONS = MODULE_POTIONS;
+	private static final int SKINS_3D = MODULE_SKINS_3D;
 
 	// Optic launcher theme: near-black panels + green accent (#5cff8a).
 	private static final int ACCENT = 0xFF5CFF8A;
@@ -244,6 +246,7 @@ public final class OpticModScreen extends Screen {
 		modules.add(new ModuleCard(HURT_CAM, "Hurt Cam", "Damage camera shake", "\uD83D\uDC94"));
 		modules.add(new ModuleCard(HITBOXES, "Hitboxes", "Colored entity boxes and look lines", "\uD83C\uDFAF"));
 		modules.add(new ModuleCard(NAMETAGS, "Nametags", "Opacity, shadow, and toggles", "\uD83C\uDFF7"));
+		modules.add(new ModuleCard(SKINS_3D, "3D Skins", "Skin outer layer in 3D", "\uD83D\uDC64"));
 		modules.add(new ModuleCard(PARTICLES, "Particles", "Client-side hit particles", "\u2728"));
 		modules.add(new ModuleCard(SCOREBOARD, "Scoreboard", "Sidebar scoreboard style", "\uD83D\uDCCB"));
 		modules.add(new ModuleCard(TIME_CHANGER, "Time Changer", "Freeze time and sky type", "\uD83C\uDF19"));
@@ -358,6 +361,7 @@ public final class OpticModScreen extends Screen {
 			case HURT_CAM: return c.hurtCam;
 			case ZOOM: return c.zoom;
 			case HITBOXES: return c.hitboxes;
+			case SKINS_3D: return c.skins3d;
 			case HIT_PREDICT: return c.hitPredict;
 			case FOV: return c.fovMod;
 			case FREE_LOOK: return c.freeLook;
@@ -482,6 +486,7 @@ public final class OpticModScreen extends Screen {
 			case HURT_CAM: c.hurtCam = !c.hurtCam; break;
 			case ZOOM: c.zoom = !c.zoom; break;
 			case HITBOXES: c.hitboxes = !c.hitboxes; break;
+			case SKINS_3D: c.skins3d = !c.skins3d; break;
 			case HIT_PREDICT: c.hitPredict = !c.hitPredict; break;
 			case FOV: c.fovMod = !c.fovMod; break;
 			case FREE_LOOK: c.freeLook = !c.freeLook; break;
@@ -1576,7 +1581,9 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.color("coordinatesTextColor", "Text Color"));
 				options.add(ConfigOption.toggle("coordinatesShowLabel", "Show XYZ Label"));
 				options.add(ConfigOption.toggle("coordinatesBrackets", "Brackets"));
+				options.add(ConfigOption.toggle("coordinatesShowX", "Show X Coordinate"));
 				options.add(ConfigOption.toggle("coordinatesShowY", "Show Y Coordinate"));
+				options.add(ConfigOption.toggle("coordinatesShowZ", "Show Z Coordinate"));
 				options.add(ConfigOption.cycle("coordinatesDecimals", "Decimal Places"));
 				options.add(ConfigOption.toggle("coordinatesHorizontal", "Horizontal Layout"));
 				options.add(ConfigOption.toggle("coordinatesDirection", "Show Direction"));
@@ -1628,6 +1635,7 @@ public final class OpticModScreen extends Screen {
 			case PARTICLES:
 				options.add(ConfigOption.toggle("showCriticalHitParticles", "Show Critical Hit Particles"));
 				options.add(ConfigOption.toggle("alwaysSharpnessParticles", "Always Sharpness Particles"));
+				options.add(ConfigOption.slider("particleMultiplier", "Particle Multiplier", 0.0F, 10.0F));
 				options.add(ConfigOption.toggle("removeVanillaColorFilter", "Remove Vanilla Color Filter"));
 				options.add(ConfigOption.toggle("renderOwnParticles", "Render Own Particles"));
 				options.add(ConfigOption.toggle("blockBreakParticles", "Block Break Particles"));
@@ -1682,8 +1690,6 @@ public final class OpticModScreen extends Screen {
 				break;
 			case TIME_CHANGER:
 				options.add(ConfigOption.header("General"));
-				options.add(ConfigOption.header("Freeze Time"));
-				options.add(ConfigOption.toggle("freezeTime", "Freeze Time"));
 				options.add(ConfigOption.cycle("timePreset", "Time Preset"));
 				options.add(ConfigOption.slider("timeOfDay", "Day", 0.0F, 23999.0F));
 				break;
@@ -1704,6 +1710,15 @@ public final class OpticModScreen extends Screen {
 				break;
 			case HIT_PREDICT:
 				options.add(ConfigOption.header("Visual only. Clicks stay vanilla."));
+				break;
+			case SKINS_3D:
+				options.add(ConfigOption.header("Layers"));
+				options.add(ConfigOption.toggle("skins3dHead", "Hat"));
+				options.add(ConfigOption.toggle("skins3dBody", "Jacket"));
+				options.add(ConfigOption.toggle("skins3dArms", "Sleeves"));
+				options.add(ConfigOption.toggle("skins3dLegs", "Pants"));
+				options.add(ConfigOption.header("General"));
+				options.add(ConfigOption.slider("skins3dDistance", "Render Distance", 4.0F, 64.0F));
 				break;
 			case HITBOXES:
 				options.add(ConfigOption.header("General"));
@@ -1870,7 +1885,9 @@ public final class OpticModScreen extends Screen {
 		if ("toggleSprintTextShadow".equals(key)) return c.toggleSprintTextShadow;
 		if ("toggleSprintBrackets".equals(key)) return c.toggleSprintBrackets;
 		if ("coordinatesShowLabel".equals(key)) return c.coordinatesShowLabel;
+		if ("coordinatesShowX".equals(key)) return c.coordinatesShowX;
 		if ("coordinatesShowY".equals(key)) return c.coordinatesShowY;
+		if ("coordinatesShowZ".equals(key)) return c.coordinatesShowZ;
 		if ("toggleSprintShowHud".equals(key)) return c.toggleSprintShowHud;
 		if ("showCriticalHitParticles".equals(key)) return c.showCriticalHitParticles;
 		if ("alwaysSharpnessParticles".equals(key)) return c.alwaysSharpnessParticles;
@@ -1897,6 +1914,10 @@ public final class OpticModScreen extends Screen {
 		if ("zoomScroll".equals(key)) return c.zoomScroll;
 		if ("freeLookToggle".equals(key)) return c.freeLookToggle;
 		if ("hitboxHideLook".equals(key)) return c.hitboxHideLook;
+		if ("skins3dHead".equals(key)) return c.skins3dHead;
+		if ("skins3dBody".equals(key)) return c.skins3dBody;
+		if ("skins3dArms".equals(key)) return c.skins3dArms;
+		if ("skins3dLegs".equals(key)) return c.skins3dLegs;
 		if ("chatBold".equals(key)) return c.chatBold;
 		if ("chatAntiSpam".equals(key)) return c.chatAntiSpam;
 		if ("chatInfiniteHistory".equals(key)) return c.chatInfiniteHistory;
@@ -1953,7 +1974,9 @@ public final class OpticModScreen extends Screen {
 		else if ("coordinatesTextShadow".equals(key)) c.coordinatesTextShadow = value;
 		else if ("coordinatesShowLabel".equals(key)) c.coordinatesShowLabel = value;
 		else if ("coordinatesBrackets".equals(key)) c.coordinatesBrackets = value;
+		else if ("coordinatesShowX".equals(key)) c.coordinatesShowX = value;
 		else if ("coordinatesShowY".equals(key)) c.coordinatesShowY = value;
+		else if ("coordinatesShowZ".equals(key)) c.coordinatesShowZ = value;
 		else if ("toggleSprintTextShadow".equals(key)) c.toggleSprintTextShadow = value;
 		else if ("toggleSprintShowHud".equals(key)) c.toggleSprintShowHud = value;
 		else if ("toggleSprintBrackets".equals(key)) c.toggleSprintBrackets = value;
@@ -1982,6 +2005,10 @@ public final class OpticModScreen extends Screen {
 		else if ("zoomScroll".equals(key)) c.zoomScroll = value;
 		else if ("freeLookToggle".equals(key)) c.freeLookToggle = value;
 		else if ("hitboxHideLook".equals(key)) c.hitboxHideLook = value;
+		else if ("skins3dHead".equals(key)) c.skins3dHead = value;
+		else if ("skins3dBody".equals(key)) c.skins3dBody = value;
+		else if ("skins3dArms".equals(key)) c.skins3dArms = value;
+		else if ("skins3dLegs".equals(key)) c.skins3dLegs = value;
 		else if ("chatBold".equals(key)) c.chatBold = value;
 		else if ("chatAntiSpam".equals(key)) c.chatAntiSpam = value;
 		else if ("chatInfiniteHistory".equals(key)) c.chatInfiniteHistory = value;
@@ -2177,6 +2204,7 @@ public final class OpticModScreen extends Screen {
 		Float extra = OpticRevampOptions.getFloat(c, key);
 		if (extra != null) return extra.floatValue();
 		if ("fullbrightGamma".equals(key)) return c.fullbrightGamma;
+		if ("skins3dDistance".equals(key)) return c.skins3dDistance;
 		if ("particleMultiplier".equals(key)) return c.particleMultiplier;
 		if ("keystrokesFadeMs".equals(key)) return c.keystrokesFadeMs;
 		if ("blockOverlayFillAlpha".equals(key)) return c.blockOverlayFillAlpha;
@@ -2203,7 +2231,10 @@ public final class OpticModScreen extends Screen {
 			c.save();
 			return;
 		}
-		if ("fullbrightGamma".equals(key)) {
+		if ("skins3dDistance".equals(key)) {
+			c.skins3dDistance = Math.max(4.0F, Math.min(64.0F, value));
+			c.save();
+		} else if ("fullbrightGamma".equals(key)) {
 			c.fullbrightGamma = Math.max(1.0F, Math.min(16.0F, value));
 			if (c.fullbright) client.options.gamma = c.fullbrightGamma;
 			c.save();
@@ -2421,6 +2452,25 @@ public final class OpticModScreen extends Screen {
 			if (openColorKey != null && !clickedPopup && !clickedSwatch) {
 				openColorKey = null;
 				activeColor = null;
+				return;
+			}
+
+			// The popup is drawn over the rows below the swatch. Only its own controls take the
+			// click, otherwise toggles/sliders underneath (e.g. Outline) would flip too.
+			if (clickedPopup) {
+				for (OptionHit hit : optionHits) {
+					if (!inside(mouseX, mouseY, hit.x, hit.y, hit.w, hit.h)) continue;
+					if (hit.kind == HitKind.COLOR_WHEEL) {
+						activeColor = ColorDrag.wheel(hit.key, hit.centerX, hit.centerY, hit.radius, hit.value);
+						updateColorDrag(mouseX, mouseY);
+						return;
+					}
+					if (hit.kind == HitKind.COLOR_VALUE) {
+						activeColor = ColorDrag.value(hit.key, hit.y, hit.h, hit.hue, hit.sat);
+						updateColorDrag(mouseX, mouseY);
+						return;
+					}
+				}
 				return;
 			}
 

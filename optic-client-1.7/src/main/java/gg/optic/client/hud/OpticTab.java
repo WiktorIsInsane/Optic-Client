@@ -21,14 +21,29 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Player-list layout for 1.7.10. Tab entries there are only a name (field_1679) and a
- * ping (field_1680), with no profile, display name, header or footer.
+ * 1.8.9-style player list for 1.7.10. Replaces 1.7's tab, which draws a fixed grid sized to the
+ * server's max player count, with 1.8.9's layout: only the listed players, sorted by team and
+ * name, at most 20 rows per column, with heads and ping bars. Used whether or not the Tab module
+ * is on; the module only adds its own styling options and keybind.
+ *
+ * Tab entries on 1.7 are only a name (field_1679) and a ping (field_1680), with no profile,
+ * display name, header or footer.
  */
 public final class OpticTab {
+	private static final int MAX_ENTRIES = 80;
+	private static OpticConfig vanilla;
 	private static boolean latched;
 	private static boolean wasDown;
 
 	private OpticTab() {
+	}
+
+	/** Module settings when Tab is on, otherwise stock defaults (plain 1.8.9 look). */
+	private static OpticConfig style() {
+		OpticConfig c = OpticClient.get().config();
+		if (c.tab) return c;
+		if (vanilla == null) vanilla = new OpticConfig();
+		return vanilla;
 	}
 
 	public static void tick(MinecraftClient client) {
@@ -49,14 +64,20 @@ public final class OpticTab {
 
 	public static boolean visible(MinecraftClient client) {
 		OpticConfig c = OpticClient.get().config();
-		if (!c.tab || client.currentScreen != null || client.getNetworkHandler() == null) return false;
+		if (client.currentScreen != null || client.getNetworkHandler() == null || client.field_3805 == null) return false;
+		if (!c.tab) {
+			if (client.options == null || client.options.playerListKey == null || !client.options.playerListKey.isPressed()) return false;
+			// Same rule as vanilla: in singleplayer only once someone else has joined.
+			List<?> raw = client.getNetworkHandler().field_7911;
+			return !client.isIntegratedServerRunning() || (raw != null && raw.size() > 1);
+		}
 		if (c.tabToggle) return latched;
 		if (c.tabKeyCode == Keyboard.KEY_NONE) return false;
 		return OpticFreeLook.keyDown(c.tabKeyCode);
 	}
 
 	public static List<class_482> entries(final MinecraftClient client) {
-		OpticConfig c = OpticClient.get().config();
+		OpticConfig c = style();
 		List<?> raw = client.getNetworkHandler().field_7911;
 		List<class_482> list = new ArrayList<class_482>();
 		String self = selfName(client);
@@ -76,7 +97,7 @@ public final class OpticTab {
 				Team tb = team(client, b);
 				String na = ta == null ? "" : ta.getName();
 				String nb = tb == null ? "" : tb.getName();
-				int team = na.compareToIgnoreCase(nb);
+				int team = na.compareTo(nb);
 				if (team != 0) return team;
 				return a.field_1679.compareToIgnoreCase(b.field_1679);
 			}
@@ -89,6 +110,7 @@ public final class OpticTab {
 				}
 			}
 		}
+		if (list.size() > MAX_ENTRIES) list = new ArrayList<class_482>(list.subList(0, MAX_ENTRIES));
 		return list;
 	}
 
@@ -126,13 +148,14 @@ public final class OpticTab {
 		return OpticPing.colorFor(c, ping);
 	}
 
-	public static int bars(int ping) {
-		if (ping < 0) return 0;
-		if (ping < 150) return 5;
-		if (ping < 300) return 4;
-		if (ping < 600) return 3;
-		if (ping < 1000) return 2;
-		return 1;
+	/** 1.8.9 icon row: 0 = full bars ... 4 = one bar, 5 = no connection. */
+	public static int pingIcon(int ping) {
+		if (ping < 0) return 5;
+		if (ping < 150) return 0;
+		if (ping < 300) return 1;
+		if (ping < 600) return 2;
+		if (ping < 1000) return 3;
+		return 4;
 	}
 
 	public static int score(Scoreboard scoreboard, ScoreboardObjective objective, class_482 entry) {
@@ -150,76 +173,82 @@ public final class OpticTab {
 		return AbstractClientPlayerEntity.STEVE_TEXTURE;
 	}
 
+	/** Layout follows 1.8.9's PlayerListHud.render. */
 	public static void render(
 		MinecraftClient client,
 		int screenWidth,
 		Scoreboard scoreboard,
 		ScoreboardObjective objective
 	) {
-		OpticConfig c = OpticClient.get().config();
+		OpticConfig c = style();
 		List<class_482> list = entries(client);
-		// 1.7 has no tab header or footer.
-		String headerText = "";
-		String footerText = "";
-		if (list.isEmpty() && headerText.length() == 0 && footerText.length() == 0) return;
+		if (list.isEmpty()) return;
 
 		int count = list.size();
-		int rows = Math.min(20, Math.max(1, count));
-		int cols = Math.max(1, (count + rows - 1) / rows);
-		boolean numbers = c.tabPingNumbers;
-		boolean showPing = !c.tabHidePing;
-		int head = c.tabHeads ? 10 : 0;
-		int pingW = showPing ? (numbers ? 28 : 14) : 0;
-		int scoreW = objective == null ? 0 : 28;
-		int nameW = 40;
-		for (int i = 0; i < count; i++) {
-			nameW = Math.max(nameW, client.textRenderer.getStringWidth(name(list.get(i))));
+		int rows = count;
+		int cols = 1;
+		while (rows > 20) {
+			cols++;
+			rows = (count + cols - 1) / cols;
 		}
-		int colW = head + nameW + pingW + scoreW + 6;
-		int maxCol = Math.max(60, (screenWidth - 16) / cols);
-		if (colW > maxCol) colW = maxCol;
-		int gridW = colW * cols;
-		int headerH = headerText.length() == 0 ? 0 : 12;
-		int footerH = footerText.length() == 0 ? 0 : 12;
-		int gridH = rows * 9;
-		int boxW = Math.max(gridW, Math.max(client.textRenderer.getStringWidth(headerText), client.textRenderer.getStringWidth(footerText))) + 6;
-		int boxH = headerH + gridH + footerH + 4;
-		int left = screenWidth / 2 - boxW / 2;
-		int top = 8;
 
-		OpticHud.fill(left, top, boxW, boxH, OpticHud.withAlpha(c.tabBackgroundColor, 0xB0));
-		int y = top + 2;
-		if (headerH > 0) {
-			int hx = left + boxW / 2 - client.textRenderer.getStringWidth(headerText) / 2;
-			client.textRenderer.draw(headerText, hx, y, 0xFF000000 | (c.tabHeaderColor & 0xFFFFFF), c.tabNameShadow);
-			y += headerH;
+		boolean heads = c.tabHeads;
+		boolean showPing = !c.tabHidePing;
+		boolean numbers = c.tabPingNumbers;
+		int nameW = 0;
+		int scoreW = 0;
+		for (int i = 0; i < count; i++) {
+			class_482 entry = list.get(i);
+			nameW = Math.max(nameW, client.textRenderer.getStringWidth(name(entry)));
+			if (objective != null) {
+				int value = score(scoreboard, objective, entry);
+				if (value != Integer.MIN_VALUE) {
+					scoreW = Math.max(scoreW, client.textRenderer.getStringWidth(" " + value));
+				}
+			}
 		}
-		int gridLeft = left + (boxW - gridW) / 2;
+		int pingW = showPing ? (numbers ? 24 : 13) : 2;
+		int colW = Math.min(cols * ((heads ? 9 : 0) + nameW + scoreW + pingW), screenWidth - 50) / cols;
+		int left = screenWidth / 2 - (colW * cols + (cols - 1) * 5) / 2;
+		int top = 10;
+		int gridW = colW * cols + (cols - 1) * 5;
+
+		int bg = c.tab ? OpticHud.withAlpha(c.tabBackgroundColor, 0x80) : 0x80000000;
+		DrawableHelper.fill(screenWidth / 2 - gridW / 2 - 1, top - 1, screenWidth / 2 + gridW / 2 + 1, top + rows * 9, bg);
+
 		for (int i = 0; i < count; i++) {
 			int col = i / rows;
 			int row = i % rows;
+			int x = left + col * colW + col * 5;
+			int y = top + row * 9;
+			DrawableHelper.fill(x, y, x + colW, y + 8, 0x20FFFFFF);
+			GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+			GlStateManager.enableAlphaTest();
+			GlStateManager.enableBlend();
+			GlStateManager.blendFuncSeparate(770, 771, 1, 0);
+
 			class_482 entry = list.get(i);
-			int x = gridLeft + col * colW + 2;
-			int rowY = y + row * 9;
-			if (c.tabHeads) drawHead(client, entry, x, rowY);
-			int textX = x + head;
+			int textX = x;
+			if (heads) {
+				drawHead(client, entry, x, y);
+				textX += 9;
+			}
 			String label = name(entry);
 			int color = 0xFF000000 | (nameColor(c, client, entry) & 0xFFFFFF);
-			client.textRenderer.draw(label, textX, rowY, color, c.tabNameShadow);
+			client.textRenderer.draw(label, textX, y, color, c.tabNameShadow);
+
 			if (objective != null) {
 				int value = score(scoreboard, objective, entry);
 				if (value != Integer.MIN_VALUE) {
 					String scoreText = Integer.toString(value);
-					int sx = x + colW - pingW - 4 - client.textRenderer.getStringWidth(scoreText);
-					client.textRenderer.draw(scoreText, sx, rowY, 0xFFFFAA00, c.tabNameShadow);
+					int right = x + colW - pingW;
+					int sx = right - client.textRenderer.getStringWidth(scoreText);
+					if (sx > textX + client.textRenderer.getStringWidth(label)) {
+						client.textRenderer.draw(scoreText, sx, y, 0xFFFFFF55, c.tabNameShadow);
+					}
 				}
 			}
-			if (showPing) drawPing(client, c, entry, x + colW - pingW - 1, rowY);
-		}
-		if (footerH > 0) {
-			int fy = y + gridH + 2;
-			int fx = left + boxW / 2 - client.textRenderer.getStringWidth(footerText) / 2;
-			client.textRenderer.draw(footerText, fx, fy, 0xFF000000 | (c.tabFooterColor & 0xFFFFFF), c.tabNameShadow);
+			if (showPing) drawPing(client, c, entry, x, colW, y);
 		}
 		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 	}
@@ -233,19 +262,19 @@ public final class OpticTab {
 		DrawableHelper.drawTexture(x, y, 40.0F, 8.0F, 8, 8, 64.0F, 32.0F);
 	}
 
-	private static void drawPing(MinecraftClient client, OpticConfig c, class_482 entry, int x, int y) {
+	private static void drawPing(MinecraftClient client, OpticConfig c, class_482 entry, int x, int colW, int y) {
 		int ping = entry.field_1680;
 		String label = pingLabel(c, ping);
 		if (label == null) {
 			client.getTextureManager().bindTexture(DrawableHelper.GUI_ICONS_TEXTURE);
 			GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-			int filled = bars(ping);
-			int index = filled >= 5 ? 0 : filled <= 0 ? 5 : 5 - filled;
-			DrawableHelper.drawTexture(x, y, 0.0F, 176.0F + index * 8.0F, 10, 8, 256.0F, 256.0F);
+			int index = pingIcon(ping);
+			DrawableHelper.drawTexture(x + colW - 11, y, 0.0F, 176.0F + index * 8.0F, 10, 8, 256.0F, 256.0F);
 			return;
 		}
 		if (label.length() == 0) return;
 		int color = 0xFF000000 | (pingColor(c, ping) & 0xFFFFFF);
-		client.textRenderer.draw(label, x, y, color, c.tabNameShadow);
+		int lx = x + colW - 1 - client.textRenderer.getStringWidth(label);
+		client.textRenderer.draw(label, lx, y, color, c.tabNameShadow);
 	}
 }

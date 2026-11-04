@@ -199,13 +199,20 @@ public final class OpticHud {
 		if (c.coordinatesHorizontal) {
 			List<Piece> line = new ArrayList<Piece>();
 			if (c.coordinatesBrackets) line.add(new Piece("[", c.coordinatesColor));
-			addAll(line, xRow);
-			if (c.coordinatesShowY) {
-				line.add(new Piece(", ", c.coordinatesTextColor));
-				addAll(line, yRow);
+			boolean first = true;
+			if (c.coordinatesShowX) {
+				addAll(line, xRow);
+				first = false;
 			}
-			line.add(new Piece(", ", c.coordinatesTextColor));
-			addAll(line, zRow);
+			if (c.coordinatesShowY) {
+				if (!first) line.add(new Piece(", ", c.coordinatesTextColor));
+				addAll(line, yRow);
+				first = false;
+			}
+			if (c.coordinatesShowZ) {
+				if (!first) line.add(new Piece(", ", c.coordinatesTextColor));
+				addAll(line, zRow);
+			}
 			if (c.coordinatesDirection) {
 				line.add(new Piece(" " + facing, c.coordinatesColor));
 			}
@@ -215,9 +222,9 @@ public final class OpticHud {
 			if (c.coordinatesBrackets) line.add(new Piece("]", c.coordinatesColor));
 			rows.add(line);
 		} else {
-			rows.add(xRow);
+			if (c.coordinatesShowX) rows.add(xRow);
 			if (c.coordinatesShowY) rows.add(yRow);
-			rows.add(zRow);
+			if (c.coordinatesShowZ) rows.add(zRow);
 			if (c.coordinatesDirection) {
 				List<Piece> dir = new ArrayList<Piece>();
 				dir.add(new Piece(facing, c.coordinatesColor));
