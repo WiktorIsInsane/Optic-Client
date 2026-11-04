@@ -49,7 +49,11 @@ public final class OpticBlockOverlay {
 			float[] rgba = rgba(c.blockOverlayOutlineColor, c.blockOverlayOutlineAlpha);
 			GL11.glLineWidth(Math.max(1.0F, c.blockOverlayLineWidth));
 			GlStateManager.color(rgba[0], rgba[1], rgba[2], rgba[3]);
+			// 3D Overlay: every edge, including the ones behind the block and other blocks.
+			boolean depth = GL11.glIsEnabled(GL11.GL_DEPTH_TEST);
+			if (c.blockOverlay3d) GlStateManager.disableDepthTest();
 			drawOutline(expanded);
+			if (c.blockOverlay3d && depth) GlStateManager.enableDepthTest();
 		}
 
 		GlStateManager.depthMask(true);

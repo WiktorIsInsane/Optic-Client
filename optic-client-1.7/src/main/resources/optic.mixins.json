@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [],
   "client": [
+    "AchievementNotificationMixin",
     "ButtonWidgetAccessor",
     "ButtonWidgetMixin",
     "ChatHudMixin",

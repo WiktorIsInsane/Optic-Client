@@ -4,7 +4,9 @@ import gg.optic.client.OpticClient;
 import gg.optic.client.OpticConfig;
 import gg.optic.client.render.OpticChatRender;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.hud.ChatHud;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Final;
@@ -78,5 +80,25 @@ public abstract class ChatHudMixin {
 	@Inject(method = "render", at = @At("RETURN"))
 	private void optic$endChatRender(int ticks, CallbackInfo ci) {
 		OpticChatRender.backgroundOpacity = -1.0F;
+	}
+
+	/**
+	 * Chat module's Background Opacity. The value was stored but never applied on 1.7, so the
+	 * background stayed dark even at 0. Message backgrounds are black; the scrollbar is colored
+	 * and stays as is.
+	 */
+	@Redirect(
+		method = "render",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/ChatHud;fill(IIIII)V"),
+		require = 0
+	)
+	private void optic$chatBackground(int x1, int y1, int x2, int y2, int color) {
+		float op = OpticChatRender.backgroundOpacity;
+		if (op >= 0.0F && (color & 0x00FFFFFF) == 0) {
+			if (op <= 0.0F) return;
+			int a = (color >>> 24) & 0xFF;
+			color = Math.min(255, Math.round(a * (op / 100.0F))) << 24;
+		}
+		DrawableHelper.fill(x1, y1, x2, y2, color);
 	}
 }

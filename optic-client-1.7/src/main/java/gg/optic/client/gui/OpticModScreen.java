@@ -177,6 +177,13 @@ public final class OpticModScreen extends Screen {
 	private int modsTrackH;
 	private int modsThumbH;
 	private int modsMaxScroll;
+	private boolean configScrollDrag;
+	private int configTrackX;
+	private int configTrackY;
+	private int configTrackW;
+	private int configTrackH;
+	private int configThumbH;
+	private int configMaxScroll;
 	private ModFilter modFilter = ModFilter.ALL;
 	private int filterAllX;
 	private int filterAllY;
@@ -337,6 +344,10 @@ public final class OpticModScreen extends Screen {
 		if (mainTab == MainTab.PROFILES && profileFieldOpen && profileNameField != null) {
 			profileNameField.tick();
 		}
+		// Raw Input can keep LWJGL from seeing the wheel; scroll from WM_INPUT instead.
+		int raw = OpticRawInput.consumeWheel();
+		if (raw != 0 && !vanillaWheel) scroll(raw);
+		vanillaWheel = false;
 	}
 
 	private boolean enabled(int id) {
@@ -426,6 +437,14 @@ public final class OpticModScreen extends Screen {
 		if ("disableMouseScrollWheel".equals(key)) {
 			c.disableMouseScrollWheel = !c.disableMouseScrollWheel;
 			c.save();
+			return;
+		}
+		if ("disableAchievements".equals(key)) {
+			c.disableAchievements = !c.disableAchievements;
+			c.save();
+			if (c.disableAchievements && client != null && client.notification != null) {
+				client.notification.reset();
+			}
 			return;
 		}
 		if ("itemInfo".equals(key)) {
@@ -534,10 +553,20 @@ public final class OpticModScreen extends Screen {
 				dragModsScroll(mouseY);
 			}
 		}
-		renderBackground();
+		if (configScrollDrag) {
+			if (!Mouse.isButtonDown(0) || selected == null) {
+				configScrollDrag = false;
+			} else {
+				dragConfigScroll(mouseY);
+			}
+		}
+		// In a world: a light blur instead of the dark backdrop, so changes (block overlay,
+		// crosshair, HUD...) are visible live behind the menu.
+		boolean blurred = client.world != null && OpticMenuBlur.applyLight(client);
+		if (!blurred) renderBackground();
 		OpticFrame.begin(client);
 		try {
-			fill(0, 0, width, height, SCRIM);
+			fill(0, 0, width, height, blurred ? 0x18000000 : SCRIM);
 			drawPanel();
 			drawHeader(mouseX, mouseY);
 			if (mainTab == MainTab.SETTINGS) {
@@ -823,10 +852,20 @@ public final class OpticModScreen extends Screen {
 			mouseX,
 			mouseY
 		);
-		drawSettingToggle(
+		rowY = drawSettingToggle(
 			"Item Info",
 			OpticClient.get().config().itemInfo,
 			"itemInfo",
+			contentX,
+			rowY,
+			contentW,
+			mouseX,
+			mouseY
+		);
+		drawSettingToggle(
+			"Disable Achievements",
+			OpticClient.get().config().disableAchievements,
+			"disableAchievements",
 			contentX,
 			rowY,
 			contentW,
@@ -1133,6 +1172,15 @@ public final class OpticModScreen extends Screen {
 		}
 	}
 
+	private void dragConfigScroll(int mouseY) {
+		if (configMaxScroll <= 0 || configTrackH <= configThumbH) return;
+		float span = configTrackH - configThumbH;
+		float t = (mouseY - configTrackY - configThumbH * 0.5F) / span;
+		if (t < 0.0F) t = 0.0F;
+		if (t > 1.0F) t = 1.0F;
+		configScroll = Math.round(t * configMaxScroll);
+	}
+
 	private void dragModsScroll(int mouseY) {
 		if (modsMaxScroll <= 0 || modsTrackH <= modsThumbH) return;
 		float span = modsTrackH - modsThumbH;
@@ -1320,6 +1368,28 @@ public final class OpticModScreen extends Screen {
 			rowY += stride;
 		}
 		GL11.glDisable(GL11.GL_SCISSOR_TEST);
+
+		// Scroll bar for long option lists (drag it, or use the wheel).
+		configMaxScroll = maxScroll;
+		if (maxScroll > 0) {
+			int trackX = Math.min(rowX + rowW + 3, panelX + panelW - 6);
+			int trackY = contentTop;
+			int trackH = visibleH;
+			int thumbH = Math.max(18, trackH * trackH / Math.max(1, totalH));
+			int thumbY = trackY + (int) ((trackH - thumbH) * (configScroll / (float) maxScroll));
+			configTrackX = trackX - 4;
+			configTrackY = trackY;
+			configTrackW = 12;
+			configTrackH = trackH;
+			configThumbH = thumbH;
+			boolean hover = configScrollDrag || inside(mouseX, mouseY, configTrackX, trackY, configTrackW, trackH);
+			fill(trackX, trackY, trackX + 3, trackY + trackH, 0x44FFFFFF);
+			fill(trackX, thumbY, trackX + 3, thumbY + thumbH, hover ? 0xFFFFFFFF : ACCENT);
+		} else {
+			configTrackW = 0;
+			configTrackH = 0;
+		}
+
 		if (options.isEmpty()) {
 			OpticUiFont.drawSized(client, "No extra options for this mod.", rowX + 30, contentTop + 2, MUTED, 10.0F);
 		}
@@ -1641,9 +1711,10 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.toggle("blockBreakParticles", "Block Break Particles"));
 				break;
 			case BLOCK_OVERLAY:
+				options.add(ConfigOption.header("General"));
+				options.add(ConfigOption.toggle("blockOverlay3d", "3D Overlay (see through blocks)"));
 				options.add(ConfigOption.header("Fill"));
 				options.add(ConfigOption.toggle("blockOverlayFill", "Fill"));
-				options.add(ConfigOption.toggle("blockOverlay3d", "3D Overlay"));
 				options.add(ConfigOption.color("blockOverlayFillColor", "Fill Color"));
 				options.add(ConfigOption.slider("blockOverlayFillAlpha", "Fill Opacity", 0.0F, 1.0F));
 				options.add(ConfigOption.header("Outline"));
@@ -2417,6 +2488,12 @@ public final class OpticModScreen extends Screen {
 			client.setScreen(new OpticHudEditorScreen(this));
 			return;
 		}
+		if (selected != null && openColorKey == null && configTrackW > 0
+			&& inside(mouseX, mouseY, configTrackX, configTrackY, configTrackW, configTrackH)) {
+			configScrollDrag = true;
+			dragConfigScroll(mouseY);
+			return;
+		}
 		if (selected == null && modsTrackW > 0 && inside(mouseX, mouseY, modsTrackX, modsTrackY, modsTrackW, modsTrackH)) {
 			modsScrollDrag = true;
 			dragModsScroll(mouseY);
@@ -2598,6 +2675,14 @@ public final class OpticModScreen extends Screen {
 		super.handleMouse();
 		int wheel = Mouse.getEventDWheel();
 		if (wheel == 0) return;
+		vanillaWheel = true;
+		scroll(wheel);
+	}
+
+	/** True once LWJGL delivered a wheel event this tick (so the raw fallback stays idle). */
+	private boolean vanillaWheel;
+
+	private void scroll(int wheel) {
 		if (mainTab == MainTab.PROFILES) {
 			profileScroll += wheel > 0 ? -28 : 28;
 			if (profileScroll < 0) profileScroll = 0;

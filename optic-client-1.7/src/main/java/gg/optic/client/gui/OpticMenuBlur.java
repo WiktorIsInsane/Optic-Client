@@ -16,16 +16,26 @@ public final class OpticMenuBlur {
 	}
 
 	public static void apply(MinecraftClient client) {
-		if (client == null || !GLX.supportsFbo()) return;
+		apply(client, 7, 18);
+	}
+
+	/** A soft blur that keeps the world readable (mod menu over the game). */
+	public static boolean applyLight(MinecraftClient client) {
+		return apply(client, 2, 4);
+	}
+
+	/** Downscales by midDiv then smallDiv and stretches back; larger divisors blur more. */
+	public static boolean apply(MinecraftClient client, int midDiv, int smallDiv) {
+		if (client == null || !GLX.supportsFbo()) return false;
 		Framebuffer main = client.getFramebuffer();
-		if (main == null) return;
+		if (main == null) return false;
 
 		int pw = Math.max(1, client.width);
 		int ph = Math.max(1, client.height);
-		int mw = Math.max(32, pw / 7);
-		int mh = Math.max(32, ph / 7);
-		int sw = Math.max(20, pw / 18);
-		int sh = Math.max(20, ph / 18);
+		int mw = Math.max(32, pw / midDiv);
+		int mh = Math.max(32, ph / midDiv);
+		int sw = Math.max(20, pw / smallDiv);
+		int sh = Math.max(20, ph / smallDiv);
 
 		mid = prepare(mid, mw, mh);
 		small = prepare(small, sw, sh);
@@ -43,6 +53,7 @@ public final class OpticMenuBlur {
 		main.bind(true);
 		small.draw(pw, ph);
 		restoreGui(client);
+		return true;
 	}
 
 	private static Framebuffer prepare(Framebuffer buffer, int width, int height) {

@@ -53,6 +53,7 @@ public abstract class InGameHudMixin extends DrawableHelper {
 
 	@Inject(method = "render(FZII)V", at = @At("TAIL"))
 	private void optic$render(float tickDelta, boolean screenOpen, int mouseX, int mouseY, CallbackInfo ci) {
+		optic$endHotbarTransform(); // never leak the status-bar transform past the HUD
 		if (client.options.debugEnabled || client.options.hudHidden) return;
 		// Hide the live HUD while the mod menu is open; the HUD editor still needs it.
 		if (OpticGui.isModMenuOpen()) return;
@@ -126,6 +127,68 @@ public abstract class InGameHudMixin extends DrawableHelper {
 	private void optic$vanillaHotbarItem(InGameHud self, int slot, int x, int y, float tickDelta) {
 		if (OpticClient.get().config().hotbar) return;
 		this.renderActionBar(slot, x, y, tickDelta);
+	}
+
+	@Unique private boolean optic$statusMoved;
+
+	/**
+	 * Hotbar module: hearts, armor, food, air and mount health (method_5587), plus the jump bar,
+	 * XP bar and level, are drawn relative to where vanilla puts the hotbar. Draw them with the
+	 * same move / scale / rotation as Optic's hotbar so they stay attached to it.
+	 */
+	@Inject(method = "render(FZII)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;method_5587(II)V"), require = 0)
+	private void optic$statusBarsBegin(float tickDelta, boolean screenOpen, int mouseX, int mouseY, CallbackInfo ci) {
+		optic$beginHotbarTransform();
+	}
+
+	@Inject(method = "render(FZII)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;method_5587(II)V", shift = At.Shift.AFTER), require = 0)
+	private void optic$statusBarsEnd(float tickDelta, boolean screenOpen, int mouseX, int mouseY, CallbackInfo ci) {
+		optic$endHotbarTransform();
+	}
+
+	@Inject(method = "render(FZII)V", at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;push(Ljava/lang/String;)V", args = "ldc=jumpBar", shift = At.Shift.AFTER), require = 0)
+	private void optic$jumpBarBegin(float tickDelta, boolean screenOpen, int mouseX, int mouseY, CallbackInfo ci) {
+		optic$beginHotbarTransform();
+	}
+
+	@Inject(method = "render(FZII)V", at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;push(Ljava/lang/String;)V", args = "ldc=expBar", shift = At.Shift.AFTER), require = 0)
+	private void optic$expBarBegin(float tickDelta, boolean screenOpen, int mouseX, int mouseY, CallbackInfo ci) {
+		optic$beginHotbarTransform();
+	}
+
+	@Inject(method = "render(FZII)V", at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;push(Ljava/lang/String;)V", args = "ldc=expLevel", shift = At.Shift.AFTER), require = 0)
+	private void optic$expLevelBegin(float tickDelta, boolean screenOpen, int mouseX, int mouseY, CallbackInfo ci) {
+		optic$beginHotbarTransform();
+	}
+
+	/** Each of those sections ends with a profiler pop; close the transform there. */
+	@Inject(method = "render(FZII)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiler/Profiler;pop()V"), require = 0)
+	private void optic$sectionEnd(float tickDelta, boolean screenOpen, int mouseX, int mouseY, CallbackInfo ci) {
+		optic$endHotbarTransform();
+	}
+
+	@Unique
+	private void optic$beginHotbarTransform() {
+		if (optic$statusMoved) return;
+		OpticConfig c = OpticClient.get().config();
+		if (!c.hotbar) return;
+		Window window = new Window(client, client.width, client.height);
+		float scale = Math.max(0.5F, Math.min(3.0F, c.hotbarScale));
+		int rot = OpticConfig.normalizeHotbarRotation(c.hotbarRotation);
+		GlStateManager.pushMatrix();
+		GlStateManager.translate(OpticHudLayout.hotbarX(c, window), OpticHudLayout.hotbarY(c, window), 0.0F);
+		GlStateManager.scale(scale, scale, 1.0F);
+		optic$applyHotbarRotation(rot);
+		// Vanilla's hotbar origin becomes Optic's hotbar origin.
+		GlStateManager.translate(-(window.getWidth() / 2 - 91), -(window.getHeight() - 22), 0.0F);
+		optic$statusMoved = true;
+	}
+
+	@Unique
+	private void optic$endHotbarTransform() {
+		if (!optic$statusMoved) return;
+		GlStateManager.popMatrix();
+		optic$statusMoved = false;
 	}
 
 	/** Hotbar module: moved, scaled and rotated bar with upright items, as on 1.8.9. */

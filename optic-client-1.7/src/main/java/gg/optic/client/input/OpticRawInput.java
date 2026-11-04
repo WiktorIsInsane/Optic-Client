@@ -38,6 +38,12 @@ public final class OpticRawInput {
 	private static volatile boolean hooked;
 	private static final AtomicInteger DX = new AtomicInteger();
 	private static final AtomicInteger DY = new AtomicInteger();
+	private static final int RI_MOUSE_WHEEL = 0x0400;
+	/**
+	 * Wheel delta seen through WM_INPUT. Registering the window for raw mouse input can stop
+	 * LWJGL from getting WM_MOUSEWHEEL, so callers use this when no LWJGL wheel event came in.
+	 */
+	private static final AtomicInteger WHEEL = new AtomicInteger();
 
 	private static WinDef.HWND hwnd;
 	private static long hookedHwnd;
@@ -142,6 +148,12 @@ public final class OpticRawInput {
 		}
 	}
 
+	/** Raw wheel delta since the last call (120 per notch), 0 when raw input is off. */
+	public static int consumeWheel() {
+		int wheel = WHEEL.getAndSet(0);
+		return isActive() ? wheel : 0;
+	}
+
 	public static int consumeDx() {
 		return DX.getAndSet(0);
 	}
@@ -238,6 +250,11 @@ public final class OpticRawInput {
 			if (type != RIM_TYPEMOUSE) return;
 
 			// RAWMOUSE after header (MSVC): usFlags@0, union@4, ulRawButtons@8, lLastX@12, lLastY@16
+			// union = usButtonFlags@4, usButtonData@6
+			int buttonFlags = buf.getShort(headerSize + 4) & 0xFFFF;
+			if ((buttonFlags & RI_MOUSE_WHEEL) != 0) {
+				WHEEL.addAndGet(buf.getShort(headerSize + 6));
+			}
 			int flags = buf.getShort(headerSize) & 0xFFFF;
 			if ((flags & MOUSE_MOVE_ABSOLUTE) != 0) return;
 

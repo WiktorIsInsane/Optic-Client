@@ -425,6 +425,8 @@ public final class OpticConfig {
 	public boolean minimalBobbing = false;
 	public boolean borderlessFullscreen = false;
 	public boolean disableMouseScrollWheel = false;
+	/** Hide the "Achievement get!" popup (General settings). */
+	public boolean disableAchievements = false;
 	/** Show held-item name ("Diamond Sword") when switching slots. */
 	public boolean itemInfo = true;
 
@@ -715,6 +717,7 @@ public final class OpticConfig {
 		minimalBobbing = read(values, "minimalBobbing", minimalBobbing);
 		borderlessFullscreen = read(values, "borderlessFullscreen", borderlessFullscreen);
 		disableMouseScrollWheel = read(values, "disableMouseScrollWheel", disableMouseScrollWheel);
+		disableAchievements = read(values, "disableAchievements", disableAchievements);
 		itemInfo = read(values, "itemInfo", itemInfo);
 		fpsOptimizer = read(values, "fpsOptimizer", fpsOptimizer);
 		opticSnap = read(values, "opticSnap", opticSnap);
@@ -1030,6 +1033,7 @@ public final class OpticConfig {
 		values.setProperty("minimalBobbing", Boolean.toString(minimalBobbing));
 		values.setProperty("borderlessFullscreen", Boolean.toString(borderlessFullscreen));
 		values.setProperty("disableMouseScrollWheel", Boolean.toString(disableMouseScrollWheel));
+		values.setProperty("disableAchievements", Boolean.toString(disableAchievements));
 		values.setProperty("itemInfo", Boolean.toString(itemInfo));
 		values.setProperty("fpsOptimizer", Boolean.toString(fpsOptimizer));
 		values.setProperty("opticSnap", Boolean.toString(opticSnap));
@@ -1274,6 +1278,7 @@ public final class OpticConfig {
 		o.addProperty("minimalBobbing", minimalBobbing);
 		o.addProperty("borderlessFullscreen", borderlessFullscreen);
 		o.addProperty("disableMouseScrollWheel", disableMouseScrollWheel);
+		o.addProperty("disableAchievements", disableAchievements);
 		o.addProperty("itemInfo", itemInfo);
 		o.addProperty("fpsOptimizer", fpsOptimizer);
 		o.addProperty("opticSnap", opticSnap);
@@ -1515,6 +1520,7 @@ public final class OpticConfig {
 		minimalBobbing = false;
 		borderlessFullscreen = false;
 		disableMouseScrollWheel = false;
+		disableAchievements = false;
 		itemInfo = true;
 		fpsOptimizer = false;
 		opticSnap = false;
@@ -1538,6 +1544,7 @@ public final class OpticConfig {
 		minimalBobbing = getBool(o, "minimalBobbing", minimalBobbing);
 		borderlessFullscreen = getBool(o, "borderlessFullscreen", borderlessFullscreen);
 		disableMouseScrollWheel = getBool(o, "disableMouseScrollWheel", disableMouseScrollWheel);
+		disableAchievements = getBool(o, "disableAchievements", disableAchievements);
 		itemInfo = getBool(o, "itemInfo", itemInfo);
 		fpsOptimizer = getBool(o, "fpsOptimizer", fpsOptimizer);
 		opticSnap = getBool(o, "opticSnap", opticSnap);

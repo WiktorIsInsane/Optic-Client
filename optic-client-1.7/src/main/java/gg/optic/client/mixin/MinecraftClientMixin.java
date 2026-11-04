@@ -70,13 +70,47 @@ public abstract class MinecraftClientMixin {
 		OpticRawInput.onDisplayChanged();
 	}
 
+	/**
+	 * 1.7 leaves fullscreen whenever the window loses focus (alt-tab), so tabbing out dropped
+	 * you to windowed mode. 1.8 removed this; do the same and stay fullscreen.
+	 */
+	@Redirect(
+		method = "runGameLoop()V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/MinecraftClient;toggleFullscreen()V"),
+		require = 0
+	)
+	private void optic$keepFullscreenOnTabOut(MinecraftClient client) {
+	}
+
 	/** Zoom scroll and Disable Hotbar Scroll read the wheel before the hotbar does. */
 	@Redirect(method = "tick()V", at = @At(value = "INVOKE", target = "Lorg/lwjgl/input/Mouse;getEventDWheel()I", remap = false))
 	private int optic$scrollWheel() {
 		int wheel = Mouse.getEventDWheel();
+		if (wheel != 0) optic$vanillaWheel = true;
+		return optic$filterWheel(wheel);
+	}
+
+	@Unique private boolean optic$vanillaWheel;
+
+	@Unique
+	private int optic$filterWheel(int wheel) {
 		if (OpticZoom.handleScroll(wheel)) return 0;
 		if (OpticClient.get().config().disableMouseScrollWheel && currentScreen == null) return 0;
 		return wheel;
+	}
+
+	/**
+	 * With Raw Input on, LWJGL may never see the wheel. If this tick had no LWJGL wheel event
+	 * but raw input reported one, scroll the hotbar from that instead.
+	 */
+	@Unique
+	private void optic$rawWheelFallback(MinecraftClient client) {
+		int raw = OpticRawInput.consumeWheel();
+		boolean vanilla = optic$vanillaWheel;
+		optic$vanillaWheel = false;
+		if (raw == 0 || vanilla || currentScreen != null || client.field_3805 == null) return;
+		int wheel = optic$filterWheel(raw);
+		if (wheel != 0) client.field_3805.inventory.scrollInHotbar(wheel);
 	}
 
 	/** GUI Scale module: per-screen scale for inventories and menus. */
@@ -103,10 +137,11 @@ public abstract class MinecraftClientMixin {
 		optic$rightShiftDown = rightShift;
 		MinecraftClient client = (MinecraftClient) (Object) this;
 		OpticRawInput.tickClientThread();
+		if (!(currentScreen instanceof OpticModScreen)) optic$rawWheelFallback(client);
 		boolean itemInfo = OpticClient.get().config().itemInfo;
 		if (options.heldItemTooltips != itemInfo) options.heldItemTooltips = itemInfo;
 		if (OpticClient.get().config().toggleSprint && options.forwardKey.isPressed()) {
-			if (client.field_3805 != null && !client.field_3805.isSneaking()) {
+			if (client.field_3805 != null && optic$canSprint(client.field_3805)) {
 				client.field_3805.setSprinting(true);
 			}
 		}
@@ -115,6 +150,19 @@ public abstract class MinecraftClientMixin {
 		OpticTab.tick(client);
 		// The tick's look, position and actions are written by now. Push them out immediately.
 		OpticNet.flush(client);
+	}
+
+	/**
+	 * Same rules vanilla uses to start and keep a sprint. Without the collision check, Toggle
+	 * Sprint switched sprint back on every tick after running into a wall, so you kept full
+	 * sprint speed against the block and shot off when sliding past it.
+	 */
+	@Unique
+	private static boolean optic$canSprint(net.minecraft.entity.player.ControllablePlayerEntity player) {
+		if (player.isSneaking() || player.horizontalCollision || player.isUsingItem()) return false;
+		if (player.input != null && player.input.movementForward < 0.8F) return false;
+		if (player.hasStatusEffect(net.minecraft.entity.effect.StatusEffect.BLINDNESS)) return false;
+		return player.getHungerManager().getFoodLevel() > 6 || player.abilities.allowFlying;
 	}
 
 	/**
