@@ -239,6 +239,81 @@ function optifineJar(runtime: string, mcVersion: string): string {
   return name ? path.join(dir, name) : ''
 }
 
+/** GraalVM EE for Java 8 in the Optic runtimes folder, if the user installed it. */
+function graal8Java(runtime: string): string {
+  const home = path.join(runtime, '..', '..', 'runtimes', 'graalvm-ee-java8', 'bin')
+  const javaw = path.join(home, 'javaw.exe')
+  const java = path.join(home, 'java.exe')
+  if (process.platform === 'win32' && fs.existsSync(javaw)) return javaw
+  return fs.existsSync(java) ? java : ''
+}
+
+/**
+ * 1.7.10 on GraalVM EE 8 (9800X3D: 8 cores). Every flag here was checked to start cleanly
+ * on GraalVM EE 21.3.15; unknown -Dgraal options make it refuse to start.
+ * - G1 with a 10 ms pause target, a large young gen and quick tenuring: Minecraft's
+ *   garbage dies young, so collections stay short and rare.
+ * - Fixed GC thread counts, no biased locking and no guaranteed safepoint: fewer and
+ *   steadier all-thread pauses.
+ * - Graal Enterprise compiler loaded at startup (EagerJVMCI) instead of mid-fight.
+ */
+const GRAAL8_ARGS = [
+  '-XX:+UnlockExperimentalVMOptions',
+  '-XX:+UnlockDiagnosticVMOptions',
+  '-XX:+AlwaysActAsServerClassMachine',
+  '-XX:+AlwaysPreTouch',
+  '-XX:+DisableExplicitGC',
+  '-XX:+PerfDisableSharedMem',
+  '-XX:-UseBiasedLocking',
+  '-XX:GuaranteedSafepointInterval=0',
+  '-XX:+UseG1GC',
+  '-XX:MaxGCPauseMillis=10',
+  '-XX:G1HeapRegionSize=16M',
+  '-XX:G1NewSizePercent=30',
+  '-XX:G1MaxNewSizePercent=40',
+  '-XX:G1ReservePercent=20',
+  '-XX:SurvivorRatio=32',
+  '-XX:MaxTenuringThreshold=1',
+  '-XX:G1MixedGCCountTarget=4',
+  '-XX:InitiatingHeapOccupancyPercent=15',
+  '-XX:G1RSetUpdatingPauseTimePercent=5',
+  '-XX:G1SATBBufferEnqueueingThresholdPercent=30',
+  '-XX:G1ConcMarkStepDurationMillis=5.0',
+  '-XX:G1ConcRefinementServiceIntervalMillis=150',
+  '-XX:G1ConcRSHotCardLimit=16',
+  '-XX:GCTimeRatio=99',
+  '-XX:+ParallelRefProcEnabled',
+  '-XX:-UseDynamicNumberOfGCThreads',
+  '-XX:ParallelGCThreads=6',
+  '-XX:ConcGCThreads=2',
+  '-XX:AllocatePrefetchStyle=3',
+  '-XX:+EnableJVMCI',
+  '-XX:+UseJVMCICompiler',
+  '-XX:+EagerJVMCI',
+  '-XX:CICompilerCount=4',
+  '-XX:ReservedCodeCacheSize=350M',
+  '-XX:NmethodSweepActivity=1',
+  '-XX:-DontCompileHugeMethods',
+  '-Dgraal.CompilerConfiguration=enterprise',
+  '-Dgraal.TuneInlinerExploration=1',
+  '-Dgraal.UsePriorityInlining=true',
+  '-Dgraal.Vectorization=true',
+  '-Dgraal.VectorizeSIMD=true',
+  '-Dgraal.VectorizeHashes=true',
+  '-Dgraal.OptDuplication=true',
+  '-Dgraal.LoopInversion=true',
+  '-Dgraal.DetectInvertedLoopsAsCounted=true',
+  '-Dgraal.EnterprisePartialUnroll=true',
+  '-Dgraal.StripMineNonCountedLoops=true',
+  '-Dgraal.SpeculativeGuardMovement=true',
+  '-Dgraal.InfeasiblePathCorrelation=true',
+  '-Djava.net.preferIPv4Stack=true',
+  '-Dio.netty.leakDetectionLevel=disabled'
+]
+
+/** Fallback for plain Temurin 8: Parallel GC pauses showed up as hitches, so use G1. */
+const TEMURIN8_ARGS = ['-XX:+UseG1GC', '-XX:MaxGCPauseMillis=5', '-XX:+ParallelRefProcEnabled', '-XX:+DisableExplicitGC']
+
 function forgeJava(runtime: string): string {
   const home = path.join(runtime, '..', '..', 'runtimes', 'temurin-8', 'bin')
   const javaw = path.join(home, 'javaw.exe')
@@ -393,10 +468,23 @@ async function buildPlan(prepare: boolean): Promise<Plan> {
     const loader = opticLibs.length > 0 ? opticLibs : optifine ? launchwrapperJars(runtime) : []
     // Mixin 0.8 needs Guava 17 calls that 1.7.10's Guava 15 lacks; Forge 1.7.10 swaps it the same way.
     const guava17 = path.join(runtime, 'libs', 'vanilla', 'libraries', 'com', 'google', 'guava', 'guava', '17.0', 'guava-17.0.jar')
-    const gameLibs =
-      opticLibs.length > 0 && fs.existsSync(guava17)
-        ? version.libraries.map((file) => (/guava-15\.0\.jar$/.test(file) ? guava17 : file))
-        : version.libraries
+    // 1.7.10 ships LWJGL 2.9.1, which hangs when switching to fullscreen on current Windows
+    // and has rougher input timing. Use the 2.9.4 that 1.8.9 ships (same API) when present.
+    const lwjglRoot = path.join(runtime, 'libs', 'vanilla', 'libraries', 'org', 'lwjgl', 'lwjgl')
+    const lwjgl294 = path.join(lwjglRoot, 'lwjgl', '2.9.4-nightly-20150209', 'lwjgl-2.9.4-nightly-20150209.jar')
+    const lwjglUtil294 = path.join(lwjglRoot, 'lwjgl_util', '2.9.4-nightly-20150209', 'lwjgl_util-2.9.4-nightly-20150209.jar')
+    const natives294 = path.join(runtime, 'libs', 'forge-natives')
+    const newLwjgl =
+      fs.existsSync(lwjgl294) &&
+      fs.existsSync(lwjglUtil294) &&
+      fs.existsSync(path.join(natives294, process.platform === 'win32' ? 'lwjgl64.dll' : 'liblwjgl64.so'))
+    const nativesDir = newLwjgl ? natives294 : version.nativesDir
+    const gameLibs = version.libraries.map((file) => {
+      if (opticLibs.length > 0 && fs.existsSync(guava17) && /guava-15\.0\.jar$/.test(file)) return guava17
+      if (newLwjgl && /lwjgl-2\.9\.1\.jar$/.test(file)) return lwjgl294
+      if (newLwjgl && /lwjgl_util-2\.9\.1\.jar$/.test(file)) return lwjglUtil294
+      return file
+    })
     const cp = [...loader, ...(optifine ? [optifine] : []), ...gameLibs, version.jar]
     const tweakers = [
       ...(optifine ? ['--tweakClass', 'optifine.OptiFineTweaker'] : []),
@@ -418,12 +506,18 @@ async function buildPlan(prepare: boolean): Promise<Plan> {
       .filter(Boolean)
       .map((arg) => arg.replace(/\$\{(\w+)\}/g, (_m, key: string) => values[key] ?? ''))
     // 1.7.10 and its launchwrapper are Java 8 era; newer Java breaks the class loader.
-    const javaBin = forgeJava(runtime)
+    // GraalVM EE 8 is preferred when installed, then the bundled Temurin 8.
+    const graal = graal8Java(runtime)
+    const javaBin = graal || forgeJava(runtime)
+    // 1.7 never needs more than 4 GB; a smaller heap also keeps collections short.
+    const heap17 = Math.min(heapMb, 4096)
     const args = [
-      ...mem,
+      `-Xms${heap17}M`,
+      `-Xmx${heap17}M`,
+      ...(graal ? GRAAL8_ARGS : TEMURIN8_ARGS),
       '-Dlog4j2.formatMsgNoLookups=true',
-      `-Djava.library.path=${version.nativesDir}`,
-      `-Dorg.lwjgl.librarypath=${version.nativesDir}`,
+      `-Djava.library.path=${nativesDir}`,
+      `-Dorg.lwjgl.librarypath=${nativesDir}`,
       '-cp',
       cp.join(path.delimiter),
       wrapped ? 'net.minecraft.launchwrapper.Launch' : version.mainClass,

@@ -733,7 +733,6 @@ public final class OpticModScreen extends Screen {
 		int catY = panelY + 40;
 		drawSettingsCategory("General", SettingsCategory.GENERAL, panelX + 6, catY, sidebarW - 12, 22, mouseX, mouseY);
 		catY += 26;
-		drawSettingsCategory("Performance", SettingsCategory.PERFORMANCE, panelX + 6, catY, sidebarW - 12, 22, mouseX, mouseY);
 
 		drawEditGuiButton(mouseX, mouseY);
 		drawSettingsList(mouseX, mouseY);
@@ -750,7 +749,6 @@ public final class OpticModScreen extends Screen {
 		settingHits.clear();
 		int catY = panelY + 40;
 		settingHits.add(new SettingHit("cat:GENERAL", panelX + 6, catY, sidebarW - 12, 22));
-		settingHits.add(new SettingHit("cat:PERFORMANCE", panelX + 6, catY + 26, sidebarW - 12, 22));
 
 		int contentX = panelX + sidebarW + 16;
 		int contentY = panelY + 58;
@@ -778,16 +776,6 @@ public final class OpticModScreen extends Screen {
 			"Raw Mouse Input",
 			OpticClient.get().config().rawMouseInput,
 			"rawMouseInput",
-			contentX,
-			rowY,
-			contentW,
-			mouseX,
-			mouseY
-		);
-		rowY = drawSettingToggle(
-			"Mouse Delay Fix",
-			OpticClient.get().config().mouseDelayFix,
-			"mouseDelayFix",
 			contentX,
 			rowY,
 			contentW,
@@ -1640,7 +1628,6 @@ public final class OpticModScreen extends Screen {
 			case PARTICLES:
 				options.add(ConfigOption.toggle("showCriticalHitParticles", "Show Critical Hit Particles"));
 				options.add(ConfigOption.toggle("alwaysSharpnessParticles", "Always Sharpness Particles"));
-				options.add(ConfigOption.slider("particleMultiplier", "Particle Multiplier", 0.0F, 10.0F));
 				options.add(ConfigOption.toggle("removeVanillaColorFilter", "Remove Vanilla Color Filter"));
 				options.add(ConfigOption.toggle("renderOwnParticles", "Render Own Particles"));
 				options.add(ConfigOption.toggle("blockBreakParticles", "Block Break Particles"));
@@ -1695,7 +1682,6 @@ public final class OpticModScreen extends Screen {
 				break;
 			case TIME_CHANGER:
 				options.add(ConfigOption.header("General"));
-				options.add(ConfigOption.cycle("skyType", "Overworld Sky Type"));
 				options.add(ConfigOption.header("Freeze Time"));
 				options.add(ConfigOption.toggle("freezeTime", "Freeze Time"));
 				options.add(ConfigOption.cycle("timePreset", "Time Preset"));
@@ -1749,7 +1735,6 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.color("crosshairOutlineColor", "Outline Color"));
 				options.add(ConfigOption.header("Behavior"));
 				options.add(ConfigOption.toggle("crosshairShowInF5", "Show In Third Person"));
-				options.add(ConfigOption.toggle("crosshairSpectator", "Show In Spectator"));
 				options.add(ConfigOption.toggle("crosshairDynamicAttack", "Spread On Attack"));
 				options.add(ConfigOption.slider("crosshairAttackSpread", "Attack Spread", 0.0F, 12.0F));
 				options.add(ConfigOption.toggle("crosshairDynamicBow", "Spread While Drawing"));
@@ -1772,8 +1757,6 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.key("tabKeyCode", "Keybind"));
 				options.add(ConfigOption.toggle("tabToggle", "Toggle Key"));
 				options.add(ConfigOption.toggle("tabHeads", "Player Heads"));
-				options.add(ConfigOption.toggle("tabDisableHeader", "Hide Header"));
-				options.add(ConfigOption.toggle("tabDisableFooter", "Hide Footer"));
 				options.add(ConfigOption.toggle("tabHideNpc", "Hide 0 Ping Entries"));
 				options.add(ConfigOption.toggle("tabMoveSelfTop", "Move Self To Top"));
 				options.add(ConfigOption.toggle("tabNameShadow", "Name Shadow"));
@@ -1787,8 +1770,6 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.color("tabPingColor", "Ping Color"));
 				options.add(ConfigOption.header("Colors"));
 				options.add(ConfigOption.color("tabBackgroundColor", "Background"));
-				options.add(ConfigOption.color("tabHeaderColor", "Header"));
-				options.add(ConfigOption.color("tabFooterColor", "Footer"));
 				break;
 			case TITLES:
 				options.add(ConfigOption.header("Overlay"));
@@ -1805,7 +1786,6 @@ public final class OpticModScreen extends Screen {
 			case HIT_COLOR:
 				options.add(ConfigOption.color("hitColorRgb", "Hit Color"));
 				options.add(ConfigOption.slider("hitColorAlpha", "Strength", 0.05F, 1.0F));
-				options.add(ConfigOption.toggle("hitColorArmor", "Color Armor"));
 				break;
 			case POTIONS:
 				options.add(ConfigOption.toggle("potionsSymbols", "Effect Icons"));
