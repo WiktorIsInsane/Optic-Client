@@ -191,65 +191,47 @@ select {
   box-shadow: none;
 }
 
-.version-pick {
+/* Play + version arrow as one button, like CheatBreaker. */
+.play-split {
+  display: flex;
+  width: fit-content;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.18) inset,
+    0 14px 40px rgba(47, 214, 106, 0.45);
+}
+
+.play-split .play-split-main {
+  border-radius: 10px 0 0 10px;
+  box-shadow: none;
+}
+
+.play-split-arrow {
   display: flex;
   height: 64px;
   align-items: center;
-  gap: 0.4rem;
-  border-radius: 10px;
-  padding: 0 0.9rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  transition: background 0.15s ease;
+  gap: 0.35rem;
+  border-radius: 0 10px 10px 0;
+  border-left: 1px solid rgba(7, 17, 10, 0.25);
+  padding: 0 0.85rem;
+  background: #43e073;
+  color: #07110a;
+  font-weight: 800;
+  transition: filter 0.15s ease;
 }
 
-.version-pick:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.14);
+.play-split-arrow:hover:not(:disabled) {
+  filter: brightness(1.08);
 }
 
-.version-pick:disabled {
-  opacity: 0.5;
+.play-split-arrow:disabled {
+  filter: grayscale(0.35);
+  opacity: 0.75;
 }
 
-.version-menu {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  right: 0;
-  z-index: 20;
-  display: flex;
-  min-width: 220px;
-  flex-direction: column;
-  gap: 2px;
-  border-radius: 10px;
-  padding: 4px;
-  background: rgba(14, 16, 18, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
-}
-
-.version-menu-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  border-radius: 7px;
-  padding: 8px 10px;
-  color: #fff;
-  font-size: 13px;
-  text-align: left;
-}
-
-.version-menu-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.version-menu-item.is-active {
-  background: rgba(92, 255, 138, 0.14);
-  color: #5cff8a;
+.play-split-version {
+  font-size: 14px;
+  letter-spacing: 0.04em;
 }
 
 .launch-cta {

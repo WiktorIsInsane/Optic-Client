@@ -1,0 +1,33 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "gg.optic.client.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [],
+  "client": [
+    "ButtonWidgetAccessor",
+    "ButtonWidgetMixin",
+    "ChatHudMixin",
+    "ConnectScreenMixin",
+    "DisconnectedScreenMixin",
+    "GameMenuScreenMixin",
+    "HandledScreenMixin",
+    "InGameHudMixin",
+    "InventoryScreenMixin",
+    "LanguageButtonMixin",
+    "ListWidgetMixin",
+    "MinecraftClientMixin",
+    "MultiplayerScreenMixin",
+    "OpticConnectionAccess",
+    "OpticGameRendererAccess",
+    "OpticListAccess",
+    "OpticPanoramaAccess",
+    "OpticScreenAccess",
+    "ScreenBackgroundMixin",
+    "SelectWorldScreenMixin",
+    "TitleScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

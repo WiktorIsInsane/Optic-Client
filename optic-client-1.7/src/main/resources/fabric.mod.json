@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "optic",
+  "version": "${version}",
+  "name": "Optic",
+  "description": "Optic 1.0.0 — a fast, focused Minecraft 1.7.10 PvP client.",
+  "authors": [
+    "Wiktor"
+  ],
+  "contact": {
+    "homepage": "https://github.com/WiktorDvD/Atlas-Client",
+    "sources": "https://github.com/WiktorDvD/Atlas-Client"
+  },
+  "license": "CC0-1.0",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "gg.optic.client.OpticClient"
+    ]
+  },
+  "mixins": [
+    "optic.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.3",
+    "minecraft": "1.7.10"
+  }
+}

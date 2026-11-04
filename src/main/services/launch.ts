@@ -367,9 +367,41 @@ async function buildPlan(prepare: boolean): Promise<Plan> {
         `OptiFine 1.7.10 not found. Put OptiFine_1.7.10_HD_U_E7.jar in ${path.join(runtime, 'libs', 'optifine')} to launch with it.`
       )
     }
-    const cp = optifine
-      ? [...launchwrapperJars(runtime), optifine, ...version.libraries, version.jar]
-      : [...version.libraries, version.jar]
+    // Optic 1.7.10 loads the same way as 1.8.9: launchwrapper + Mixin + OpticTweaker.
+    const optic = path.join(runtime, 'libs', 'optic-notch-1.7.10.jar')
+    const asm9 = path.join(runtime, 'libs', 'asm9')
+    const opticLibs = fs.existsSync(optic)
+      ? [
+          // ASM 9 first: Mixin needs it, and launchwrapper's bundled ASM 5 would shadow it.
+          path.join(asm9, 'asm-9.9.jar'),
+          path.join(asm9, 'asm-commons-9.9.jar'),
+          path.join(asm9, 'asm-tree-9.9.jar'),
+          path.join(asm9, 'asm-analysis-9.9.jar'),
+          path.join(asm9, 'asm-util-9.9.jar'),
+          launchwrapperJars(runtime)[0],
+          path.join(runtime, 'libs', 'mixin-0.8.2.jar'),
+          path.join(runtime, 'libs', 'guava-mixin-shim.jar'),
+          path.join(runtime, 'libs', 'jna-5.14.0.jar'),
+          path.join(runtime, 'libs', 'jna-platform-5.14.0.jar'),
+          optic
+        ]
+      : []
+    for (const file of opticLibs) {
+      if (!fs.existsSync(file)) throw new Error(`Missing ${path.basename(file)} in the Optic runtime.`)
+    }
+    const wrapped = opticLibs.length > 0 || Boolean(optifine)
+    const loader = opticLibs.length > 0 ? opticLibs : optifine ? launchwrapperJars(runtime) : []
+    // Mixin 0.8 needs Guava 17 calls that 1.7.10's Guava 15 lacks; Forge 1.7.10 swaps it the same way.
+    const guava17 = path.join(runtime, 'libs', 'vanilla', 'libraries', 'com', 'google', 'guava', 'guava', '17.0', 'guava-17.0.jar')
+    const gameLibs =
+      opticLibs.length > 0 && fs.existsSync(guava17)
+        ? version.libraries.map((file) => (/guava-15\.0\.jar$/.test(file) ? guava17 : file))
+        : version.libraries
+    const cp = [...loader, ...(optifine ? [optifine] : []), ...gameLibs, version.jar]
+    const tweakers = [
+      ...(optifine ? ['--tweakClass', 'optifine.OptiFineTweaker'] : []),
+      ...(opticLibs.length > 0 ? ['--tweakClass', 'gg.optic.forge.OpticTweaker'] : [])
+    ]
     const values: Record<string, string> = {
       auth_player_name: username,
       version_name: version.id,
@@ -394,9 +426,9 @@ async function buildPlan(prepare: boolean): Promise<Plan> {
       `-Dorg.lwjgl.librarypath=${version.nativesDir}`,
       '-cp',
       cp.join(path.delimiter),
-      optifine ? 'net.minecraft.launchwrapper.Launch' : version.mainClass,
+      wrapped ? 'net.minecraft.launchwrapper.Launch' : version.mainClass,
       ...mcArgs,
-      ...(optifine ? ['--tweakClass', 'optifine.OptiFineTweaker'] : []),
+      ...tweakers,
       '--width',
       String(settings.width),
       '--height',
@@ -420,7 +452,10 @@ async function buildPlan(prepare: boolean): Promise<Plan> {
       asset: 0,
       runtime,
       dataDir,
-      cwd: gameDir17,
+      // Optic reads optic/settings.properties from the working folder. Start in the 1.8.9
+      // game folder so both versions share one Optic config; Minecraft's own files still
+      // go to game-1.7.10 through --gameDir.
+      cwd: gameDir,
       nativeClient: true
     }
   }
