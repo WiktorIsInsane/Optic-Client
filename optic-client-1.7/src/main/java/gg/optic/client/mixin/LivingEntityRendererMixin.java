@@ -1,0 +1,56 @@
+package gg.optic.client.mixin;
+
+import gg.optic.client.OpticClient;
+import gg.optic.client.OpticConfig;
+import gg.optic.client.render.OpticHitColor;
+import gg.optic.client.render.OpticNametags;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.entity.LivingEntityRenderer;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import org.lwjgl.opengl.GL11;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+/**
+ * Hit Color on 1.7.10. 1.7 draws the hurt overlay as a second model pass with
+ * glColor4f(brightness, 0, 0, 0.4); swap that colour for the custom one.
+ * Matched by value so it still finds the calls if OptiFine reorders the method.
+ */
+@Mixin(LivingEntityRenderer.class)
+public abstract class LivingEntityRendererMixin {
+	@Redirect(
+		method = "render(Lnet/minecraft/entity/LivingEntity;DDDFF)V",
+		at = @At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL11;glColor4f(FFFF)V", remap = false)
+	)
+	private void optic$hitColor(float red, float green, float blue, float alpha) {
+		boolean hurtTint = green == 0.0F && blue == 0.0F && Math.abs(alpha - 0.4F) < 0.001F;
+		if (hurtTint && OpticHitColor.enabled()) {
+			// red carries the lighting brightness for this pass; keep it on the custom colour.
+			GL11.glColor4f(OpticHitColor.red() * red, OpticHitColor.green() * red, OpticHitColor.blue() * red, OpticHitColor.alpha());
+			return;
+		}
+		GL11.glColor4f(red, green, blue, alpha);
+	}
+
+	/** Nametags module visibility. method_5781 is 1.7's hasLabel; 1.7 has no team nametag rules. */
+	@Inject(method = "method_5781", at = @At("HEAD"), cancellable = true)
+	private void optic$nametagVisibility(LivingEntity entity, CallbackInfoReturnable<Boolean> cir) {
+		OpticConfig c = OpticClient.get().config();
+		if (!c.nametags) return;
+		MinecraftClient client = MinecraftClient.getInstance();
+		if (client.field_3805 == null) return;
+		if (OpticNametags.allHidden() || (client.options.hudHidden && c.nametagsHideInF1)) {
+			cir.setReturnValue(false);
+			return;
+		}
+		if (entity == client.field_3805) {
+			cir.setReturnValue(c.nametagsShowInF5 && client.options.perspective != 0 && entity.rider == null);
+			return;
+		}
+		if (entity instanceof PlayerEntity && OpticNametags.playersHidden()) cir.setReturnValue(false);
+	}
+}

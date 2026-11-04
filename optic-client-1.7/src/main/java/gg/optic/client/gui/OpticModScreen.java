@@ -235,6 +235,20 @@ public final class OpticModScreen extends Screen {
 
 	public OpticModScreen(int openModuleId) {
 		restorePlace = openModuleId < 0;
+		modules.add(new ModuleCard(BLOCK_OVERLAY, "Block Overlay", "Fill and outline on lookat block", "\uD83D\uDCE6"));
+		modules.add(new ModuleCard(FOV, "FOV", "Field of view from 30 to 150", "\uD83D\uDC41"));
+		modules.add(new ModuleCard(FREE_LOOK, "Free Look", "Look around without turning your player", "\u21BA"));
+		modules.add(new ModuleCard(GUI_SCALE, "GUI Scale", "Crosshair, menus, and inventories", "\uD83D\uDD0D"));
+		modules.add(new ModuleCard(HIT_COLOR, "Hit Color", "Custom damage tint", "\uD83D\uDCA5"));
+		modules.add(new ModuleCard(HOTBAR, "Hotbar", "Move and resize the hotbar", "\uD83C\uDFAE"));
+		modules.add(new ModuleCard(HURT_CAM, "Hurt Cam", "Damage camera shake", "\uD83D\uDC94"));
+		modules.add(new ModuleCard(HITBOXES, "Hitboxes", "Colored entity boxes and look lines", "\uD83C\uDFAF"));
+		modules.add(new ModuleCard(NAMETAGS, "Nametags", "Opacity, shadow, and toggles", "\uD83C\uDFF7"));
+		modules.add(new ModuleCard(PARTICLES, "Particles", "Client-side hit particles", "\u2728"));
+		modules.add(new ModuleCard(SCOREBOARD, "Scoreboard", "Sidebar scoreboard style", "\uD83D\uDCCB"));
+		modules.add(new ModuleCard(TIME_CHANGER, "Time Changer", "Freeze time and sky type", "\uD83C\uDF19"));
+		modules.add(new ModuleCard(WEATHER_CHANGER, "Weather Changer", "Client-side weather override", "\uD83C\uDF27"));
+		modules.add(new ModuleCard(ZOOM, "Zoom", "Badlion-style hold zoom (C)", "\uD83D\uDD0D"));
 		modules.add(new ModuleCard(CHAT, "Chat", "Spam filter, history, background", "\uD83D\uDCAC"));
 		modules.add(new ModuleCard(COORDINATES, "Coordinates", "Position, facing, and biome", "\uD83D\uDCCD"));
 		modules.add(new ModuleCard(CPS, "CPS", "Left and right click speed", "\uD83D\uDDB1"));

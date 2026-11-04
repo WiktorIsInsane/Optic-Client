@@ -1,5 +1,8 @@
 package gg.optic.client.mixin;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.mojang.blaze3d.platform.GlStateManager;
 import gg.optic.client.OpticClient;
 import gg.optic.client.OpticConfig;
@@ -12,9 +15,19 @@ import gg.optic.client.hud.OpticKeystrokes;
 import gg.optic.client.hud.OpticPotions;
 import gg.optic.client.hud.OpticTab;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.hud.InGameHud;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.render.DiffuseLighting;
 import net.minecraft.client.util.Window;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.scoreboard.Scoreboard;
+import net.minecraft.scoreboard.ScoreboardObjective;
+import net.minecraft.scoreboard.ScoreboardPlayerScore;
+import net.minecraft.scoreboard.Team;
+import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -24,10 +37,19 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.Collection;
+import java.util.List;
+
 /** Draws Optic's HUD modules on top of the 1.7.10 in-game HUD. */
 @Mixin(InGameHud.class)
-public abstract class InGameHudMixin {
+public abstract class InGameHudMixin extends DrawableHelper {
+	@Unique private static final Identifier OPTIC_WIDGETS = new Identifier("textures/gui/widgets.png");
+
 	@Shadow @Final private MinecraftClient client;
+
+	/** 1.7 yarn calls the hotbar slot renderer renderActionBar(slot, x, y, tickDelta). */
+	@Shadow
+	protected abstract void renderActionBar(int slot, int x, int y, float tickDelta);
 
 	@Inject(method = "render(FZII)V", at = @At("TAIL"))
 	private void optic$render(float tickDelta, boolean screenOpen, int mouseX, int mouseY, CallbackInfo ci) {
@@ -36,18 +58,19 @@ public abstract class InGameHudMixin {
 		if (OpticGui.isModMenuOpen()) return;
 		OpticConfig config = OpticClient.get().config();
 		boolean freezeInput = OpticGui.isOpticScreenOpen();
+		Window window = new Window(client, client.width, client.height);
 		// 1.7 leaves its last HUD draw's state behind (no GlStateManager to reset it).
 		GlStateManager.enableTexture();
 		GlStateManager.enableBlend();
 		GlStateManager.blendFuncSeparate(770, 771, 1, 0);
 		GlStateManager.enableAlphaTest();
 		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+		if (config.hotbar) optic$drawHotbar(config, window, tickDelta);
 		if (config.fps) OpticHud.drawFps(client, config);
 		if (config.cps) OpticHud.drawCps(client, config);
 		if (config.ping) OpticHud.drawPing(client, config);
 		if (config.coordinates) OpticHud.drawCoordinates(client, config);
 		OpticPotions.render(client);
-		Window window = new Window(client, client.width, client.height);
 		OpticCrosshair.render(client, window.getWidth() / 2, window.getHeight() / 2);
 		if (config.toggleSprint && config.toggleSprintShowHud) {
 			optic$text(
@@ -77,15 +100,161 @@ public abstract class InGameHudMixin {
 		return binding.isPressed();
 	}
 
-	/** The vanilla crosshair is the 16x16 icon at u=0, v=0; skip it when Optic draws its own. */
+	/**
+	 * 1.7 draws the crosshair (16x16 at 0,0) and the hotbar (182x22 bar, 24x22 selection)
+	 * inline in render. Skip them when Optic's crosshair or Hotbar module draws its own.
+	 */
 	@Redirect(
 		method = "render(FZII)V",
 		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;drawTexture(IIIIII)V")
 	)
-	private void optic$vanillaCrosshair(InGameHud self, int x, int y, int u, int v, int width, int height) {
+	private void optic$vanillaWidgets(InGameHud self, int x, int y, int u, int v, int width, int height) {
+		OpticConfig c = OpticClient.get().config();
 		boolean crosshair = u == 0 && v == 0 && width == 16 && height == 16;
-		if (crosshair && OpticCrosshair.hidesVanilla(OpticClient.get().config())) return;
+		if (crosshair && OpticCrosshair.hidesVanilla(c)) return;
+		boolean hotbar = u == 0 && ((v == 0 && width == 182 && height == 22) || (v == 22 && width == 24 && height == 22));
+		if (hotbar && c.hotbar) return;
 		self.drawTexture(x, y, u, v, width, height);
+	}
+
+	@Redirect(
+		method = "render(FZII)V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;renderActionBar(IIIF)V")
+	)
+	private void optic$vanillaHotbarItem(InGameHud self, int slot, int x, int y, float tickDelta) {
+		if (OpticClient.get().config().hotbar) return;
+		this.renderActionBar(slot, x, y, tickDelta);
+	}
+
+	/** Hotbar module: moved, scaled and rotated bar with upright items, as on 1.8.9. */
+	@Unique
+	private void optic$drawHotbar(OpticConfig c, Window window, float tickDelta) {
+		if (!(client.field_6279 instanceof PlayerEntity)) return;
+		PlayerEntity player = (PlayerEntity) client.field_6279;
+		float scale = Math.max(0.5F, Math.min(3.0F, c.hotbarScale));
+		int rot = OpticConfig.normalizeHotbarRotation(c.hotbarRotation);
+		int baseX = OpticHudLayout.hotbarX(c, window);
+		int baseY = OpticHudLayout.hotbarY(c, window);
+
+		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+		client.getTextureManager().bindTexture(OPTIC_WIDGETS);
+		GlStateManager.pushMatrix();
+		GlStateManager.translate(baseX, baseY, 0.0F);
+		GlStateManager.scale(scale, scale, 1.0F);
+		optic$applyHotbarRotation(rot);
+		float z = this.zOffset;
+		this.zOffset = -90.0F;
+		this.drawTexture(0, 0, 0, 0, 182, 22);
+		this.drawTexture(-1 + player.inventory.selectedSlot * 20, -1, 0, 22, 24, 22);
+		this.zOffset = z;
+		GlStateManager.popMatrix();
+
+		GlStateManager.enableRescaleNormal();
+		GlStateManager.enableBlend();
+		GlStateManager.blendFuncSeparate(770, 771, 1, 0);
+		DiffuseLighting.enable();
+		for (int slot = 0; slot < 9; slot++) {
+			float[] p = OpticHudLayout.hotbarLocalToBox(3 + slot * 20 + 8, 3 + 8, rot);
+			int ix = Math.round(baseX + (p[0] - 8.0F) * scale);
+			int iy = Math.round(baseY + (p[1] - 8.0F) * scale);
+			GlStateManager.pushMatrix();
+			GlStateManager.translate(ix, iy, 0.0F);
+			GlStateManager.scale(scale, scale, 1.0F);
+			this.renderActionBar(slot, 0, 0, tickDelta);
+			GlStateManager.popMatrix();
+		}
+		DiffuseLighting.disable();
+		GlStateManager.disableRescaleNormal();
+		GlStateManager.disableBlend();
+		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+	}
+
+	@Unique
+	private static void optic$applyHotbarRotation(int rot) {
+		switch (rot) {
+			case 90:
+				GlStateManager.translate(OpticHudLayout.HOTBAR_H, 0.0F, 0.0F);
+				GlStateManager.rotate(90.0F, 0.0F, 0.0F, 1.0F);
+				break;
+			case 180:
+				GlStateManager.translate(OpticHudLayout.HOTBAR_W, OpticHudLayout.HOTBAR_H, 0.0F);
+				GlStateManager.rotate(180.0F, 0.0F, 0.0F, 1.0F);
+				break;
+			case 270:
+				GlStateManager.translate(0.0F, OpticHudLayout.HOTBAR_W, 0.0F);
+				GlStateManager.rotate(270.0F, 0.0F, 0.0F, 1.0F);
+				break;
+			default:
+				break;
+		}
+	}
+
+	/** Scoreboard module. method_4943 is 1.7's sidebar renderer (objective, height, width, font). */
+	@Inject(method = "method_4943", at = @At("HEAD"), cancellable = true)
+	private void optic$scoreboard(ScoreboardObjective objective, int screenHeight, int screenWidth, TextRenderer fr, CallbackInfo ci) {
+		OpticConfig c = OpticClient.get().config();
+		if (!c.scoreboard) return;
+		ci.cancel();
+
+		Scoreboard scoreboard = objective.getScoreboard();
+		@SuppressWarnings("unchecked")
+		Collection<ScoreboardPlayerScore> all = (Collection<ScoreboardPlayerScore>) scoreboard.getAllPlayerScores(objective);
+		List<ScoreboardPlayerScore> list = Lists.newArrayList(Iterables.filter(all, new Predicate<ScoreboardPlayerScore>() {
+			@Override
+			public boolean apply(ScoreboardPlayerScore score) {
+				return score.getPlayerName() != null && !score.getPlayerName().startsWith("#");
+			}
+		}));
+		Collection<ScoreboardPlayerScore> collection = list.size() > 15 ? Lists.newArrayList(Iterables.skip(list, list.size() - 15)) : list;
+
+		boolean showNumbers = c.scoreboardShowNumbers;
+		boolean shadow = c.scoreboardTextShadow;
+		float opacity = Math.max(0.0F, Math.min(100.0F, c.scoreboardBackgroundOpacity)) / 100.0F;
+
+		int width = fr.getStringWidth(objective.getDisplayName());
+		for (ScoreboardPlayerScore score : collection) {
+			String name = Team.decorateName(scoreboard.getPlayerTeam(score.getPlayerName()), score.getPlayerName());
+			int rowW = fr.getStringWidth(name);
+			if (showNumbers && !c.scoreboardRemoveNumberWidth) rowW = fr.getStringWidth(name + ": " + Formatting.RED + score.getScore());
+			width = Math.max(width, rowW);
+		}
+
+		int listH = collection.size() * fr.fontHeight;
+		int left;
+		int right;
+		int baseY;
+		if (c.scoreboardX >= 0 && c.scoreboardY >= 0) {
+			left = c.scoreboardX + 2;
+			baseY = c.scoreboardY + (collection.size() + 1) * fr.fontHeight + 1;
+			right = left + width + 2;
+		} else {
+			baseY = screenHeight / 2 + listH / 3;
+			left = screenWidth - width - 3;
+			right = screenWidth - 3 + 2;
+		}
+		int index = 0;
+		for (ScoreboardPlayerScore score : collection) {
+			index++;
+			String name = Team.decorateName(scoreboard.getPlayerTeam(score.getPlayerName()), score.getPlayerName());
+			String number = Formatting.RED + "" + score.getScore();
+			int y = baseY - index * fr.fontHeight;
+			optic$fillScoreboardBg(left - 2, y, right, y + fr.fontHeight, 0x50000000, opacity);
+			fr.draw(name, left, y, 0xFFFFFFFF, shadow);
+			if (showNumbers) fr.draw(number, right - fr.getStringWidth(number), y, 0xFFFFFFFF, shadow);
+			if (index == collection.size()) {
+				String title = objective.getDisplayName();
+				optic$fillScoreboardBg(left - 2, y - fr.fontHeight - 1, right, y - 1, 0x60000000, opacity);
+				optic$fillScoreboardBg(left - 2, y - 1, right, y, 0x50000000, opacity);
+				fr.draw(title, left + width / 2 - fr.getStringWidth(title) / 2, y - fr.fontHeight, 0xFFFFFFFF, shadow);
+			}
+		}
+	}
+
+	@Unique
+	private static void optic$fillScoreboardBg(int x1, int y1, int x2, int y2, int argb, float opacity) {
+		if (opacity <= 0.0F) return;
+		int a = Math.min(255, Math.round(((argb >>> 24) & 0xFF) * opacity));
+		fill(x1, y1, x2, y2, (a << 24) | (argb & 0xFFFFFF));
 	}
 
 	@Unique

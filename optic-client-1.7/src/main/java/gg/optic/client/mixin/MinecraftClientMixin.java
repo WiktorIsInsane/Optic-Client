@@ -6,6 +6,7 @@ import gg.optic.client.OpticZoom;
 import gg.optic.client.display.OpticBorderless;
 import gg.optic.client.gui.OpticHudEditorScreen;
 import gg.optic.client.gui.OpticModScreen;
+import gg.optic.client.hud.OpticGuiScale;
 import gg.optic.client.hud.OpticHud;
 import gg.optic.client.hud.OpticTab;
 import gg.optic.client.input.OpticRawInput;
@@ -48,6 +49,12 @@ public abstract class MinecraftClientMixin {
 		}
 		if (OpticClient.get().config().rawMouseInput) OpticRawInput.setEnabled(true);
 		if (OpticClient.get().config().borderlessFullscreen) OpticBorderless.apply(true);
+	}
+
+	/** GUI Scale module: per-screen scale for inventories and menus. */
+	@Inject(method = "setScreen(Lnet/minecraft/client/gui/screen/Screen;)V", at = @At("HEAD"))
+	private void optic$guiScale(Screen screen, CallbackInfo ci) {
+		OpticGuiScale.beforeScreen((MinecraftClient) (Object) this, screen);
 	}
 
 	@Inject(method = "stop()V", at = @At("HEAD"))
