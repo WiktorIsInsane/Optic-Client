@@ -182,6 +182,17 @@ public abstract class MinecraftClientMixin implements gg.optic.client.account.Se
 		OpticGuiScale.beforeScreen((MinecraftClient) (Object) this, screen);
 	}
 
+	/**
+	 * Vanilla caps every menu outside a world at 30 FPS. The Cosmetics screen animates a
+	 * player model, so it runs at the player's normal frame limit instead.
+	 */
+	@Inject(method = "getMaxFramerate()I", at = @At("HEAD"), cancellable = true)
+	private void optic$cosmeticsFps(org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Integer> cir) {
+		if (((MinecraftClient) (Object) this).currentScreen instanceof gg.optic.client.gui.OpticCosmeticsScreen) {
+			cir.setReturnValue(options.maxFramerate);
+		}
+	}
+
 	@Inject(method = "stop()V", at = @At("HEAD"))
 	private void optic$saveOnExit(CallbackInfo ci) {
 		OpticClient.get().config().save();

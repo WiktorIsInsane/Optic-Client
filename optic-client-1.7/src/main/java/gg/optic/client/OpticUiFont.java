@@ -590,6 +590,20 @@ public final class OpticUiFont {
 				}
 				cog.subtract(new java.awt.geom.Area(new java.awt.geom.Ellipse2D.Float(s * 0.36F, s * 0.36F, s * 0.28F, s * 0.28F)));
 				g.fill(cog);
+			} else if ("back".equals(kind)) {
+				// Left arrow, symmetric around the cell centre so it sits dead centre in a button.
+				g.draw(new java.awt.geom.Line2D.Float(s * 0.24F, s * 0.5F, s * 0.76F, s * 0.5F));
+				java.awt.geom.Path2D.Float head = new java.awt.geom.Path2D.Float();
+				head.moveTo(s * 0.46F, s * 0.28F);
+				head.lineTo(s * 0.24F, s * 0.5F);
+				head.lineTo(s * 0.46F, s * 0.72F);
+				g.draw(head);
+			} else if ("chevron-down".equals(kind)) {
+				java.awt.geom.Path2D.Float v = new java.awt.geom.Path2D.Float();
+				v.moveTo(s * 0.26F, s * 0.38F);
+				v.lineTo(s * 0.5F, s * 0.62F);
+				v.lineTo(s * 0.74F, s * 0.38F);
+				g.draw(v);
 			}
 			g.dispose();
 			return iconLabel(client, image, draw, name, false);

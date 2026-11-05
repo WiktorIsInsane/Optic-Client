@@ -612,8 +612,106 @@ public final class OpticModScreen extends Screen {
 		} finally {
 			// Panel border last, on top of header and sidebars, so the edge is one clean line.
 			outlineExact(panelX, panelY, panelW, panelH, RADIUS, BORDER);
+			// Open dropdown list sits above everything, including the panel edge.
+			drawDropdownList(mouseX, mouseY);
 			OpticFrame.end();
 		}
+	}
+
+	// ---- Dropdowns (options with a short fixed list of values, e.g. Weather) ----
+
+	private static final int DROP_ROW_H = 16;
+	/** Key of the open dropdown, or null. */
+	private String openDropdown;
+	/** Where the open dropdown's box was drawn this frame: {x, y, w, h}; null if offscreen. */
+	private int[] dropdownAnchor;
+
+	/** Option keys shown as a dropdown instead of click-to-cycle. */
+	private static boolean isDropdown(String key) {
+		return "weatherMode".equals(key);
+	}
+
+	private static String[] dropdownValues(String key) {
+		if ("weatherMode".equals(key)) return new String[] { "Clear", "Rain", "Snow", "Storm" };
+		return new String[0];
+	}
+
+	private static int dropdownIndex(String key) {
+		OpticConfig c = OpticClient.get().config();
+		if ("weatherMode".equals(key)) return c.weatherMode;
+		return 0;
+	}
+
+	private static void setDropdown(String key, int index) {
+		OpticConfig c = OpticClient.get().config();
+		if ("weatherMode".equals(key)) c.weatherMode = Math.max(0, Math.min(3, index));
+		c.save();
+	}
+
+	/** The closed box: current value and a chevron, right-aligned in the row. */
+	private void drawDropdownBox(ConfigOption option, int x, int y, int w, int h, int mouseX, int mouseY) {
+		String[] values = dropdownValues(option.key);
+		int index = dropdownIndex(option.key);
+		String value = index >= 0 && index < values.length ? values[index] : "?";
+		int boxW = 0;
+		for (String v : values) boxW = Math.max(boxW, OpticUiFont.widthSized(client, v, 0xFFFFFFFF, 10.0F));
+		boxW += 26;
+		int boxH = DROP_ROW_H;
+		int boxX = x + w - boxW;
+		int boxY = y + (h - boxH) / 2;
+		boolean open = option.key.equals(openDropdown);
+		boolean hover = inside(mouseX, mouseY, boxX, boxY, boxW, boxH);
+		fillExact(boxX, boxY, boxW, boxH, RADIUS_SM, hover || open ? CARD_HOVER : TAB_IDLE);
+		outlineExact(boxX, boxY, boxW, boxH, RADIUS_SM, open ? OpticTheme.BORDER_ON : BORDER);
+		int th = OpticUiFont.heightSized(client, value, 0xFFFFFFFF, 10.0F);
+		OpticUiFont.drawSized(client, value, boxX + 7, boxY + (boxH - th) / 2, 0xFFFFFFFF, 10.0F);
+		OpticUiFont.drawLineIconCentered(client, "chevron-down", boxX + boxW - 9, boxY + boxH / 2, 9.0F, open ? ACCENT : 0xFFB4B4BE);
+		if (open) dropdownAnchor = new int[] { boxX, boxY, boxW, boxH };
+		optionHits.add(OptionHit.cycle(option.key, boxX, boxY, boxW, boxH));
+	}
+
+	private void drawDropdownList(int mouseX, int mouseY) {
+		if (openDropdown == null || dropdownAnchor == null) return;
+		String[] values = dropdownValues(openDropdown);
+		int index = dropdownIndex(openDropdown);
+		int x = dropdownAnchor[0];
+		int w = dropdownAnchor[2];
+		int listH = values.length * DROP_ROW_H + 4;
+		int y = dropdownAnchor[1] + dropdownAnchor[3] + 2;
+		// Open upward when there is no room below.
+		if (y + listH > panelY + panelH - 4) y = dropdownAnchor[1] - listH - 2;
+		fillExact(x + 1, y + 2, w, listH, RADIUS_SM, OpticTheme.SHADOW);
+		fillExact(x, y, w, listH, RADIUS_SM, 0xF6121318);
+		outlineExact(x, y, w, listH, RADIUS_SM, BORDER);
+		for (int i = 0; i < values.length; i++) {
+			int ry = y + 2 + i * DROP_ROW_H;
+			boolean hover = inside(mouseX, mouseY, x, ry, w, DROP_ROW_H);
+			if (hover) fillExact(x + 2, ry, w - 4, DROP_ROW_H, RADIUS_SM, ACCENT_SOFT);
+			int color = i == index ? ACCENT : (hover ? 0xFFFFFFFF : 0xFFC9CED8);
+			int th = OpticUiFont.heightSized(client, values[i], color, 10.0F);
+			OpticUiFont.drawSized(client, values[i], x + 7, ry + (DROP_ROW_H - th) / 2, color, 10.0F);
+		}
+	}
+
+	/** @return true when the click was used by an open dropdown (pick a value or close it). */
+	private boolean clickDropdown(int mouseX, int mouseY) {
+		if (openDropdown == null) return false;
+		String key = openDropdown;
+		int[] a = dropdownAnchor;
+		openDropdown = null;
+		dropdownAnchor = null;
+		if (a == null) return true;
+		String[] values = dropdownValues(key);
+		int listH = values.length * DROP_ROW_H + 4;
+		int y = a[1] + a[3] + 2;
+		if (y + listH > panelY + panelH - 4) y = a[1] - listH - 2;
+		for (int i = 0; i < values.length; i++) {
+			if (inside(mouseX, mouseY, a[0], y + 2 + i * DROP_ROW_H, a[2], DROP_ROW_H)) {
+				setDropdown(key, i);
+				return true;
+			}
+		}
+		return true;
 	}
 
 	private void drawProfilesView(int mouseX, int mouseY) {
@@ -953,7 +1051,7 @@ public final class OpticModScreen extends Screen {
 			int toggleH = 14;
 			int toggleX = x + w - toggleW;
 			int toggleY = y + (rowH - toggleH) / 2;
-			drawToggle(toggleX, toggleY, toggleW, toggleH, on);
+			drawToggle("s:" + key, toggleX, toggleY, toggleW, toggleH, on);
 			settingHits.add(new SettingHit(key, toggleX - 8, y, toggleW + 16, rowH));
 		}
 		return y + rowH + 4;
@@ -980,7 +1078,7 @@ public final class OpticModScreen extends Screen {
 		int toggleH = 16;
 		int toggleX = x + w - toggleW;
 		int toggleY = y + (rowH - toggleH) / 2;
-		drawToggle(toggleX, toggleY, toggleW, toggleH, on);
+		drawToggle("s:" + key, toggleX, toggleY, toggleW, toggleH, on);
 		int hitTop = Math.max(y, settingsClipTop);
 		int hitBottom = Math.min(y + rowH, settingsClipBottom);
 		if (hitBottom > hitTop) settingHits.add(new SettingHit(key, toggleX - 8, hitTop, toggleW + 16, hitBottom - hitTop));
@@ -1288,7 +1386,7 @@ public final class OpticModScreen extends Screen {
 		int toggleH = 14;
 		int toggleX = x + (w - toggleW) / 2;
 		int toggleY = y + h - toggleH - 8;
-		drawToggle(toggleX, toggleY, toggleW, toggleH, on);
+		drawToggle("m:" + module.id, toggleX, toggleY, toggleW, toggleH, on);
 
 		int starSize = 8;
 		int starHitX = x + w - starSize - 5;
@@ -1297,11 +1395,41 @@ public final class OpticModScreen extends Screen {
 		return new CardBounds(module.id, x, y, w, h, toggleX, toggleY, toggleW, toggleH, starHitX - 2, starHitY - 2, starSize + 4, starSize + 4);
 	}
 
-	private void drawToggle(int x, int y, int w, int h, boolean on) {
-		fillRound(x, y, w, h, h / 2, on ? TOGGLE_ON : TOGGLE_OFF);
+	/** 0 = off, 1 = on, per toggle; eased toward the real state each frame. */
+	private static final java.util.Map<String, Float> TOGGLE_ANIM = new java.util.HashMap<String, Float>();
+	private static long toggleAnimFrame;
+	private static float toggleAnimStep;
+
+	/**
+	 * Pill switch with a knob that slides and a colour that fades when it flips. Uses the exact
+	 * (supersampled) rounded shapes so the pill and knob edges stay smooth at any GUI scale.
+	 * The knob is drawn in GUI pixels with a fractional offset via the matrix, so it glides
+	 * instead of stepping a whole pixel at a time.
+	 */
+	private void drawToggle(String key, int x, int y, int w, int h, boolean on) {
+		long now = System.nanoTime();
+		if (now != toggleAnimFrame) {
+			float dt = toggleAnimFrame == 0L ? 0.0F : Math.min(0.1F, (now - toggleAnimFrame) / 1.0E9F);
+			toggleAnimFrame = now;
+			toggleAnimStep = 1.0F - (float) Math.exp(-dt * 16.0F);
+		}
+		Float stored = TOGGLE_ANIM.get(key);
+		float p = stored == null ? (on ? 1.0F : 0.0F) : stored.floatValue();
+		float target = on ? 1.0F : 0.0F;
+		p += (target - p) * toggleAnimStep;
+		if (Math.abs(target - p) < 0.002F) p = target;
+		TOGGLE_ANIM.put(key, p);
+		float eased = p * p * (3.0F - 2.0F * p);
+
+		fillExact(x, y, w, h, h / 2, OpticTheme.lerp(TOGGLE_OFF, TOGGLE_ON, eased));
 		int knob = h - 4;
-		int knobX = on ? x + w - knob - 2 : x + 2;
-		fillRound(knobX, y + 2, knob, knob, knob / 2, 0xFFF2F4F7);
+		float travel = w - knob - 4;
+		float knobX = x + 2 + travel * eased;
+		int base = (int) Math.floor(knobX);
+		com.mojang.blaze3d.platform.GlStateManager.pushMatrix();
+		com.mojang.blaze3d.platform.GlStateManager.translate(knobX - base, 0.0F, 0.0F);
+		fillExact(base, y + 2, knob, knob, knob / 2, 0xFFF2F4F7);
+		com.mojang.blaze3d.platform.GlStateManager.popMatrix();
 	}
 
 	private void clipGui(int x, int y, int w, int h) {
@@ -1321,14 +1449,14 @@ public final class OpticModScreen extends Screen {
 		boolean backHover = inside(mouseX, mouseY, backX, backY, backW, backH);
 		fillRound(backX, backY, backW, backH, RADIUS_SM, backHover ? ACCENT_SOFT : TAB_IDLE);
 		outlineRound(backX, backY, backW, backH, RADIUS_SM, backHover ? ACCENT : BORDER);
-		OpticUiFont.drawCenteredSized(client, "\u2190", backX + backW / 2, backY + 3, 0xFFFFFFFF, 10.0F);
+		OpticUiFont.drawLineIconCentered(client, "back", backX + backW / 2, backY + backH / 2, 12.0F, 0xFFFFFFFF);
 
 		boolean on = enabled(selected.id);
 		int toggleW = 34;
 		int toggleH = 14;
 		int toggleX = areaX + areaW - toggleW;
 		int toggleY = areaY + 2;
-		drawToggle(toggleX, toggleY, toggleW, toggleH, on);
+		drawToggle("m:" + selected.id, toggleX, toggleY, toggleW, toggleH, on);
 		optionHits.add(OptionHit.toggle(selected.id, toggleX - 4, toggleY - 3, toggleW + 8, toggleH + 6));
 
 		int textX = backX + backW + 8;
@@ -1429,8 +1557,8 @@ public final class OpticModScreen extends Screen {
 		return 22;
 	}
 
-	private void drawBlcToggle(int x, int y, boolean on) {
-		drawToggle(x, y, 28, 16, on);
+	private void drawBlcToggle(String key, int x, int y, boolean on) {
+		drawToggle("o:" + key, x, y, 28, 16, on);
 	}
 
 	private void drawOptionRow(
@@ -1454,7 +1582,7 @@ public final class OpticModScreen extends Screen {
 			boolean value = getBool(option.key);
 			int toggleX = x;
 			int toggleY = y + 2;
-			drawBlcToggle(toggleX, toggleY, value);
+			drawBlcToggle(option.key, toggleX, toggleY, value);
 			OpticUiFont.drawSized(client, option.label, toggleX + 34, y + 4, 0xFFFFFFFF, 11.0F);
 			optionHits.add(OptionHit.bool(option.key, x, y, w, h));
 		} else if (option.type == OptionType.KEY) {
@@ -1466,6 +1594,9 @@ public final class OpticModScreen extends Screen {
 			int valueColor = bindingKey != null && bindingKey.equals(option.key) ? ACCENT : 0xFFB4B4BE;
 			OpticUiFont.drawSized(client, value, x + w - valueW, y + 4, valueColor, 11.0F);
 			optionHits.add(OptionHit.key(option.key, x, y, w, h));
+		} else if (option.type == OptionType.CYCLE && isDropdown(option.key)) {
+			OpticUiFont.drawSized(client, option.label, x, y + 4, 0xFFFFFFFF, 11.0F);
+			drawDropdownBox(option, x, y, w, h, mouseX, mouseY);
 		} else if (option.type == OptionType.CYCLE) {
 			String value = getCycleLabel(option.key);
 			OpticUiFont.drawSized(client, option.label, x, y + 4, 0xFFFFFFFF, 11.0F);
@@ -2583,6 +2714,7 @@ public final class OpticModScreen extends Screen {
 			}
 			return;
 		}
+		if (clickDropdown(mouseX, mouseY)) return;
 		if (button != 0) return;
 		if (inside(mouseX, mouseY, closeX - 3, closeY - 3, 22, 22)) {
 			client.setScreen(null);
@@ -2778,7 +2910,12 @@ public final class OpticModScreen extends Screen {
 					return;
 				}
 				if (hit.kind == HitKind.CYCLE) {
-					cycle(hit.key);
+					if (isDropdown(hit.key)) {
+						openDropdown = hit.key;
+						dropdownAnchor = new int[] { hit.x, hit.y, hit.w, hit.h };
+					} else {
+						cycle(hit.key);
+					}
 					return;
 				}
 				if (hit.kind == HitKind.SLIDER) {
@@ -2889,6 +3026,8 @@ public final class OpticModScreen extends Screen {
 	private boolean vanillaWheel;
 
 	private void scroll(int wheel) {
+		openDropdown = null;
+		dropdownAnchor = null;
 		if (mainTab == MainTab.PROFILES) {
 			profileScroll += wheel > 0 ? -28 : 28;
 			if (profileScroll < 0) profileScroll = 0;

@@ -1,6 +1,7 @@
 package gg.optic.client.mixin;
 
 import gg.optic.client.OpticUiDraw;
+import gg.optic.client.gui.OpticCosmeticsScreen;
 import gg.optic.client.gui.OpticMenuChrome;
 import gg.optic.client.gui.OpticModScreen;
 import net.minecraft.client.font.TextRenderer;
@@ -39,6 +40,7 @@ public abstract class GameMenuScreenMixin extends Screen {
 			this.client.setScreen(new MultiplayerScreen((Screen) (Object) this));
 			ci.cancel();
 		} else if (button.id == 6) {
+			this.client.setScreen(new OpticCosmeticsScreen((Screen) (Object) this));
 			ci.cancel();
 		} else if (button.id == 7) {
 			this.client.setScreen(new OpticModScreen());

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { ServerEntry, SkinEntry } from '@shared/types'
+import type { CosmeticCategory, CosmeticsState, ServerEntry, SkinEntry } from '@shared/types'
 import { useApp } from '../stores/appStore'
 
 export function InstancesPage() {
@@ -160,14 +160,69 @@ export function ServersPage() {
   )
 }
 
-type CosmeticTab = 'icons' | 'skins' | 'cloaks' | 'bandanas'
+type CosmeticTab = CosmeticCategory | 'skins'
 
 const COSMETIC_TABS: { id: CosmeticTab; label: string }[] = [
   { id: 'icons', label: 'Icons' },
   { id: 'skins', label: 'Skins' },
-  { id: 'cloaks', label: 'Cloaks' },
-  { id: 'bandanas', label: 'Bandanas' }
+  { id: 'capes', label: 'Capes' },
+  { id: 'wings', label: 'Wings' },
+  { id: 'bandannas', label: 'Bandannas' }
 ]
+
+/** Icons / Capes / Wings / Bandannas. Same shared file as the in-game Cosmetics menu. */
+function CosmeticGrid({ category }: { category: CosmeticCategory }) {
+  const [state, setState] = useState<CosmeticsState | null>(null)
+  const toast = useApp((s) => s.toast)
+
+  useEffect(() => {
+    let alive = true
+    const load = () =>
+      window.lunar
+        .getCosmetics()
+        .then((next) => alive && setState(next))
+        .catch(() => undefined)
+    void load()
+    // The game can equip too; poll so its changes show up here.
+    const timer = window.setInterval(load, 1500)
+    return () => {
+      alive = false
+      window.clearInterval(timer)
+    }
+  }, [])
+
+  const items = state?.catalog[category] ?? []
+  const on = state?.equipped[category] ?? ''
+  const equip = (id: string) =>
+    void window.lunar
+      .equipCosmetic(category, id)
+      .then(setState)
+      .catch((e: unknown) => toast(e instanceof Error ? e.message : 'Could not equip'))
+
+  return (
+    <div className="min-h-0 flex-1 overflow-auto px-6 pb-6">
+      <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+        {[{ id: '', name: 'None' }, ...items].map((item) => (
+          <li key={item.id || 'none'}>
+            <button
+              type="button"
+              className={`flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-left text-sm ${
+                item.id === on ? 'bg-white/10 ring-1 ring-[var(--accent-play)]/50' : 'bg-white/5 hover:bg-white/10'
+              }`}
+              onClick={() => equip(item.id)}
+            >
+              <span className="truncate">{item.name}</span>
+              {item.id === on ? <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--accent-play)' }} /> : null}
+            </button>
+          </li>
+        ))}
+        {state && items.length === 0 ? (
+          <li className="px-1 pt-2 text-sm text-[var(--muted)] sm:col-span-2">Nothing here yet.</li>
+        ) : null}
+      </ul>
+    </div>
+  )
+}
 
 export function SkinsPage() {
   const [cosmetic, setCosmetic] = useState<CosmeticTab>('icons')
@@ -311,7 +366,7 @@ export function SkinsPage() {
       </ul>
       </div>
       ) : (
-        <div className="min-h-0 flex-1" />
+        <CosmeticGrid category={cosmetic} />
       )}
     </section>
   )

@@ -1,7 +1,8 @@
 import { app, dialog, ipcMain, shell } from 'electron'
 import fs from 'node:fs'
 import { IpcChannel } from '../shared/ipc'
-import type { AppSnapshot, LaunchSettings, LaunchState } from '../shared/types'
+import type { AppSnapshot, CosmeticCategory, LaunchSettings, LaunchState } from '../shared/types'
+import { equipCosmetic, getCosmetics } from './services/cosmetics'
 import { emit } from './bus'
 import {
   activeAccount,
@@ -183,6 +184,8 @@ export function registerIpc(): void {
   ipcMain.handle('skins:addPng', () => wrap(() => addSkinByPng()))
   ipcMain.handle('skins:remove', (_e, id: string) => wrap(() => removeSkin(id)))
   ipcMain.handle('skins:select', (_e, id: string) => wrap(() => selectSkin(id)))
+  ipcMain.handle('cosmetics:get', () => wrap(() => getCosmetics()))
+  ipcMain.handle('cosmetics:equip', (_e, category: CosmeticCategory, id: string) => wrap(() => equipCosmetic(category, id)))
   ipcMain.handle('updater:check', () => wrap(() => checkLauncherUpdate(true)))
   ipcMain.handle('updater:install', () => wrap(() => installLauncherUpdate()))
   ipcMain.handle('updater:open', () => wrap(() => openUpdateDownload()))

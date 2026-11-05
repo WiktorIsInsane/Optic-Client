@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_8",
   "mixins": [],
   "client": [
+    "AbstractClientPlayerEntityMixin",
     "AchievementNotificationMixin",
     "BossBarMixin",
     "ButtonWidgetAccessor",
@@ -43,6 +44,7 @@
     "OpticPanoramaAccess",
     "OpticScreenAccess",
     "ParticleManagerMixin",
+    "PlayerEntityRendererMixin",
     "PlayerSkinTextureMixin",
     "PvpTweaksMixin",
     "PvpTweaksMixin$HudOverlays",

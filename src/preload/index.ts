@@ -4,6 +4,8 @@ import type {
   AppSnapshot,
   ClientStatus,
   CommandPreview,
+  CosmeticCategory,
+  CosmeticsState,
   ConsoleLine,
   Instance,
   JavaRuntime,
@@ -66,6 +68,8 @@ export interface LunarApi {
   addSkinByPng: () => Promise<SkinEntry[]>
   removeSkin: (id: string) => Promise<SkinEntry[]>
   selectSkin: (id: string) => Promise<SkinEntry[]>
+  getCosmetics: () => Promise<CosmeticsState>
+  equipCosmetic: (category: CosmeticCategory, id: string) => Promise<CosmeticsState>
   checkUpdate: () => Promise<UpdaterState>
   installUpdate: () => Promise<UpdaterState>
   openUpdateDownload: () => Promise<void>
@@ -119,6 +123,8 @@ const api: LunarApi = {
   addSkinByPng: () => call('skins:addPng'),
   removeSkin: (id) => call('skins:remove', id),
   selectSkin: (id) => call('skins:select', id),
+  getCosmetics: () => call('cosmetics:get'),
+  equipCosmetic: (category, id) => call('cosmetics:equip', category, id),
   checkUpdate: () => call('updater:check'),
   installUpdate: () => call('updater:install'),
   openUpdateDownload: () => call('updater:open'),

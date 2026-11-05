@@ -134,6 +134,19 @@ export interface SkinInfo {
   remoteUrl: string
 }
 
+export type CosmeticCategory = 'icons' | 'capes' | 'wings' | 'bandannas'
+
+export interface CosmeticItem {
+  id: string
+  name: string
+}
+
+export interface CosmeticsState {
+  catalog: Record<CosmeticCategory, CosmeticItem[]>
+  /** Equipped item id per category, '' for none. Shared with the game. */
+  equipped: Record<CosmeticCategory, string>
+}
+
 export type SkinSource = 'ign' | 'png'
 
 export interface SkinEntry {

@@ -272,7 +272,6 @@ public final class OpticMenuChrome {
 	}
 	private static final String COSMETICS = "COSMETICS";
 	private static final float COSMETICS_SIZE = 8.0F;
-	private static long cosmeticsNoteUntil;
 
 	/** Hit box of the Cosmetics button: top-right, level with the account chip. {x, y, w, h} */
 	public static int[] cosmeticsBounds(MinecraftClient client, int screenW) {
@@ -287,19 +286,13 @@ public final class OpticMenuChrome {
 		int color = hot ? ACCENT : OpticTheme.TEXT;
 		int th = OpticUiFont.heightSharp(client, COSMETICS, color, COSMETICS_SIZE);
 		OpticUiFont.drawSharp(client, COSMETICS, b[0] + 4, b[1] + (b[3] - th) / 2, color, COSMETICS_SIZE);
-		if (cosmeticsNoteUntil > System.currentTimeMillis()) {
-			String note = "Coming soon";
-			int nw = OpticUiFont.widthSharp(client, note, ACCENT, COSMETICS_SIZE);
-			OpticUiFont.drawSharp(client, note, b[0] + b[2] - 4 - nw, b[1] + b[3] + 4, ACCENT, COSMETICS_SIZE);
-		}
 	}
 
 	/** @return true if the click hit the Cosmetics button */
 	public static boolean clickCosmetics(MinecraftClient client, int screenW, int mouseX, int mouseY) {
 		int[] b = cosmeticsBounds(client, screenW);
 		if (!inside(mouseX, mouseY, b[0], b[1], b[2], b[3])) return false;
-		// No cosmetics yet, so the button just says so for a moment.
-		cosmeticsNoteUntil = System.currentTimeMillis() + 2000L;
+		client.setScreen(new OpticCosmeticsScreen(client.currentScreen));
 		return true;
 	}
 	public static void drawTopBar(MinecraftClient client, Layout layout, int mouseX, int mouseY) {

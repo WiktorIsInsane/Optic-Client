@@ -31,11 +31,23 @@ public final class AccountHeads {
 
 	/** Uses the uuid when there is one, the username otherwise (offline accounts with a real name). */
 	public static Identifier get(MinecraftClient client, String uuid, String name) {
+		return load(client, uuid, name, false);
+	}
+
+	/** The whole skin as a 64x32 texture (1.7 player model layout), or null while it downloads. */
+	public static Identifier skin(MinecraftClient client, String uuid, String name) {
+		// By username first: offline accounts carry a made-up uuid that has no skin.
+		if (name != null && !name.isEmpty()) return load(client, null, name, true);
+		return load(client, uuid, null, true);
+	}
+
+	private static Identifier load(final MinecraftClient client, String uuid, String name, final boolean whole) {
 		String id = uuid != null && !uuid.isEmpty() ? uuid.replace("-", "").toLowerCase() : null;
 		if (id == null && name != null && !name.isEmpty()) id = name;
 		if (id == null) return null;
 		final String fallbackName = name;
-		final String key = id;
+		final String key = (whole ? "skin_" : "") + id;
+		final String who = id;
 		Identifier cached = CACHE.get(key);
 		if (cached != null) return cached;
 		if (!LOADING.contains(key)) {
@@ -44,9 +56,9 @@ public final class AccountHeads {
 				@Override
 				public void run() {
 					try {
-						BufferedImage skin = download(key);
-						if (skin == null && fallbackName != null && !fallbackName.equalsIgnoreCase(key)) skin = download(fallbackName);
-						BufferedImage image = skin == null ? null : face(skin);
+						BufferedImage skin = download(who);
+						if (skin == null && fallbackName != null && !fallbackName.equalsIgnoreCase(who)) skin = download(fallbackName);
+						BufferedImage image = skin == null ? null : (whole ? legacy(skin) : face(skin));
 						if (image == null) {
 							System.err.println("[Optic] No skin found for " + key);
 							return;
@@ -83,6 +95,17 @@ public final class AccountHeads {
 	 * Face (8,8) with the hat layer (40,8) on top, scaled up 16x with nearest-neighbour so each
 	 * skin pixel stays a crisp square: 128x128, the size callers draw from.
 	 */
+	/** Top half of a 64x64 (or HD) skin at 64x32: the only part 1.7's player model reads. */
+	private static BufferedImage legacy(BufferedImage skin) {
+		if (skin.getWidth() < 64 || skin.getHeight() < 32) return null;
+		int scale = skin.getWidth() / 64;
+		BufferedImage out = new BufferedImage(64, 32, BufferedImage.TYPE_INT_ARGB);
+		for (int y = 0; y < 32; y++) {
+			for (int x = 0; x < 64; x++) out.setRGB(x, y, skin.getRGB(x * scale, y * scale));
+		}
+		return out;
+	}
+
 	private static BufferedImage face(BufferedImage skin) {
 		if (skin.getWidth() < 64 || skin.getHeight() < 32) return null;
 		int scale = skin.getWidth() / 64;
