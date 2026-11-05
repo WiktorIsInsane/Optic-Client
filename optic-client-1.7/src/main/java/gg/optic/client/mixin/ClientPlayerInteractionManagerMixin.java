@@ -4,7 +4,6 @@ import gg.optic.client.OpticClient;
 import gg.optic.client.OpticConfig;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
-import net.minecraft.client.particle.DamageParticle;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
@@ -33,6 +32,6 @@ public class ClientPlayerInteractionManagerMixin {
 		// Vanilla already shows these when the weapon has sharpness (or smite/bane on the right mob).
 		float modifier = target instanceof LivingEntity ? EnchantmentHelper.method_6387(player, (LivingEntity) target) : 0.0F;
 		if (modifier > 0.0F) return;
-		this.client.particleManager.addParticle(new DamageParticle(this.client.world, target, "magicCrit"));
+		gg.optic.client.render.OpticHitParticles.burst(target, "magicCrit");
 	}
 }

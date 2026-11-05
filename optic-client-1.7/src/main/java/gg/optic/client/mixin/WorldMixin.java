@@ -23,6 +23,21 @@ public abstract class WorldMixin {
 		cir.setReturnValue(this.dimension.getSkyAngle(OpticEnvironment.frozenTimeOfDay(c), tickDelta));
 	}
 
+	@Shadow public boolean isClient;
+
+	/**
+	 * Everything else that reads the time (OptiFine custom skies fading their day/night layers,
+	 * moon phase...) asks the world for it directly, so a custom night sky stayed on its day
+	 * layer and only the lighting changed. Client world only; the server's time is untouched.
+	 */
+	@Inject(method = "getTimeOfDay()J", at = @At("HEAD"), cancellable = true, require = 0)
+	private void optic$clientTime(CallbackInfoReturnable<Long> cir) {
+		if (!this.isClient) return;
+		OpticConfig c = OpticClient.get().config();
+		if (!OpticEnvironment.freezeTimeActive(c)) return;
+		cir.setReturnValue(OpticEnvironment.frozenTimeOfDay(c));
+	}
+
 	@Inject(method = "getRainGradient", at = @At("HEAD"), cancellable = true)
 	private void optic$rain(float offset, CallbackInfoReturnable<Float> cir) {
 		float override = OpticEnvironment.rainOverride(OpticClient.get().config());

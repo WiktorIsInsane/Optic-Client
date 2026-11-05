@@ -177,6 +177,16 @@ public final class OpticModScreen extends Screen {
 	private int modsTrackH;
 	private int modsThumbH;
 	private int modsMaxScroll;
+	private boolean settingsScrollDrag;
+	private int settingsTrackX;
+	private int settingsTrackY;
+	private int settingsTrackW;
+	private int settingsTrackH;
+	private int settingsThumbH;
+	private int settingsMaxScroll;
+	/** Rows outside this band are scrolled out of view: drawn clipped, and not clickable. */
+	private int settingsClipTop = Integer.MIN_VALUE;
+	private int settingsClipBottom = Integer.MAX_VALUE;
 	private boolean configScrollDrag;
 	private int configTrackX;
 	private int configTrackY;
@@ -553,6 +563,13 @@ public final class OpticModScreen extends Screen {
 				dragModsScroll(mouseY);
 			}
 		}
+		if (settingsScrollDrag) {
+			if (!Mouse.isButtonDown(0) || mainTab != MainTab.SETTINGS) {
+				settingsScrollDrag = false;
+			} else {
+				dragSettingsScroll(mouseY);
+			}
+		}
 		if (configScrollDrag) {
 			if (!Mouse.isButtonDown(0) || selected == null) {
 				configScrollDrag = false;
@@ -801,100 +818,67 @@ public final class OpticModScreen extends Screen {
 			return;
 		}
 
-		int rowY = contentY;
+		// General page scrolls inside [contentY, contentBottom] with a scroll bar on the right.
+		OpticConfig gc = OpticClient.get().config();
+		int listTop = contentY;
+		int listBottom = contentBottom;
+		int listW = contentW - 8;
+		settingsClipTop = listTop;
+		settingsClipBottom = listBottom;
+		clipGui(contentX - 4, listTop, contentW + 8, Math.max(1, listBottom - listTop));
+		int rowY = listTop - settingsScroll;
 		if (settingsSearchText().isEmpty()) {
 			OpticUiFont.drawSized(client, "Movement", contentX, rowY, MUTED, 8.5F);
 			rowY += 16;
 		}
-		rowY = drawSettingToggle(
-			"Raw Mouse Input",
-			OpticClient.get().config().rawMouseInput,
-			"rawMouseInput",
-			contentX,
-			rowY,
-			contentW,
-			mouseX,
-			mouseY
-		);
-		rowY = drawSettingToggle(
-			"Minimal Bobbing",
-			OpticClient.get().config().minimalBobbing,
-			"minimalBobbing",
-			contentX,
-			rowY,
-			contentW,
-			mouseX,
-			mouseY
-		);
-		rowY = drawSettingToggle(
-			"Disable Hotbar Scroll",
-			OpticClient.get().config().disableMouseScrollWheel,
-			"disableMouseScrollWheel",
-			contentX,
-			rowY,
-			contentW,
-			mouseX,
-			mouseY
-		);
-
+		rowY = drawSettingToggle("Raw Mouse Input", gc.rawMouseInput, "rawMouseInput", contentX, rowY, listW, mouseX, mouseY);
+		rowY = drawSettingToggle("Minimal Bobbing", gc.minimalBobbing, "minimalBobbing", contentX, rowY, listW, mouseX, mouseY);
+		rowY = drawSettingToggle("Disable Hotbar Scroll", gc.disableMouseScrollWheel, "disableMouseScrollWheel", contentX, rowY, listW, mouseX, mouseY);
 		if (settingsSearchText().isEmpty()) {
 			rowY += 10;
 			OpticUiFont.drawSized(client, "General", contentX, rowY, MUTED, 8.5F);
 			rowY += 16;
 		}
-		rowY = drawSettingToggle(
-			"Borderless Fullscreen",
-			OpticClient.get().config().borderlessFullscreen,
-			"borderlessFullscreen",
-			contentX,
-			rowY,
-			contentW,
-			mouseX,
-			mouseY
-		);
-		rowY = drawSettingToggle(
-			"Item Info",
-			OpticClient.get().config().itemInfo,
-			"itemInfo",
-			contentX,
-			rowY,
-			contentW,
-			mouseX,
-			mouseY
-		);
-		drawSettingToggle(
-			"Disable Achievements",
-			OpticClient.get().config().disableAchievements,
-			"disableAchievements",
-			contentX,
-			rowY,
-			contentW,
-			mouseX,
-			mouseY
-		);
+		rowY = drawSettingToggle("Borderless Fullscreen", gc.borderlessFullscreen, "borderlessFullscreen", contentX, rowY, listW, mouseX, mouseY);
+		rowY = drawSettingToggle("Item Info", gc.itemInfo, "itemInfo", contentX, rowY, listW, mouseX, mouseY);
+		rowY = drawSettingToggle("Disable Achievements", gc.disableAchievements, "disableAchievements", contentX, rowY, listW, mouseX, mouseY);
+		GL11.glDisable(GL11.GL_SCISSOR_TEST);
+		settingsClipTop = Integer.MIN_VALUE;
+		settingsClipBottom = Integer.MAX_VALUE;
+
+		int totalH = rowY + settingsScroll - listTop;
+		int visibleH = Math.max(1, listBottom - listTop);
+		settingsMaxScroll = Math.max(0, totalH - visibleH);
+		settingsScroll = Math.max(0, Math.min(settingsScroll, settingsMaxScroll));
+		if (settingsMaxScroll > 0) {
+			int trackX = contentX + contentW + 2;
+			int thumbH = Math.max(18, visibleH * visibleH / Math.max(1, totalH));
+			int thumbY = listTop + (int) ((visibleH - thumbH) * (settingsScroll / (float) settingsMaxScroll));
+			settingsTrackX = trackX - 4;
+			settingsTrackY = listTop;
+			settingsTrackW = 12;
+			settingsTrackH = visibleH;
+			settingsThumbH = thumbH;
+			boolean hover = settingsScrollDrag || inside(mouseX, mouseY, settingsTrackX, listTop, settingsTrackW, visibleH);
+			fill(trackX, listTop, trackX + 3, listTop + visibleH, 0x44FFFFFF);
+			fill(trackX, thumbY, trackX + 3, thumbY + thumbH, hover ? 0xFFFFFFFF : ACCENT);
+		} else {
+			settingsTrackW = 0;
+			settingsTrackH = 0;
+		}
 
 		if (!OpticRawInput.isSupported()) {
-			OpticUiFont.drawSized(
-				client,
-				"Raw mouse input is Windows-only.",
-				contentX,
-				panelY + panelH - 36,
-				0xFFAA6666,
-				8.0F
-			);
-		} else if (OpticClient.get().config().rawMouseInput) {
-			String status = OpticRawInput.isActive()
-				? "WM_INPUT active (no Windows acceleration)"
-				: "Enabling raw input…";
-			OpticUiFont.drawSized(
-				client,
-				status,
-				contentX,
-				panelY + panelH - 36,
-				OpticRawInput.isActive() ? ACCENT : 0xFFFFCC66,
-				8.0F
-			);
+			OpticUiFont.drawSized(client, "Raw mouse input is Windows-only.", contentX, panelY + panelH - 36, 0xFFAA6666, 8.0F);
 		}
+	}
+
+	private void dragSettingsScroll(int mouseY) {
+		if (settingsMaxScroll <= 0 || settingsTrackH <= settingsThumbH) return;
+		float span = settingsTrackH - settingsThumbH;
+		float t = (mouseY - settingsTrackY - settingsThumbH * 0.5F) / span;
+		if (t < 0.0F) t = 0.0F;
+		if (t > 1.0F) t = 1.0F;
+		settingsScroll = Math.round(t * settingsMaxScroll);
 	}
 
 	private void drawPerformanceSettings(int contentX, int contentY, int contentW, int contentBottom, int mouseX, int mouseY) {
@@ -966,7 +950,8 @@ public final class OpticModScreen extends Screen {
 	) {
 		int rowH = 28;
 		if (!settingMatches(label)) return y;
-		boolean hover = inside(mouseX, mouseY, x, y, w, rowH);
+		if (y + rowH <= settingsClipTop || y >= settingsClipBottom) return y + rowH + 6;
+		boolean hover = inside(mouseX, mouseY, x, y, w, rowH) && mouseY >= settingsClipTop && mouseY < settingsClipBottom;
 		if (hover) fill(x - 4, y, x + w + 4, y + rowH, 0x181A1E22);
 		OpticUiFont.drawSized(client, label, x, y + 8, 0xFFFFFFFF, 11.0F);
 
@@ -975,7 +960,9 @@ public final class OpticModScreen extends Screen {
 		int toggleX = x + w - toggleW;
 		int toggleY = y + (rowH - toggleH) / 2;
 		drawToggle(toggleX, toggleY, toggleW, toggleH, on);
-		settingHits.add(new SettingHit(key, toggleX - 8, y, toggleW + 16, rowH));
+		int hitTop = Math.max(y, settingsClipTop);
+		int hitBottom = Math.min(y + rowH, settingsClipBottom);
+		if (hitBottom > hitTop) settingHits.add(new SettingHit(key, toggleX - 8, hitTop, toggleW + 16, hitBottom - hitTop));
 		return y + rowH + 6;
 	}
 
@@ -1758,6 +1745,11 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.header("General"));
 				options.add(ConfigOption.slider("hotbarScale", "Scale", 0.5F, 3.0F));
 				options.add(ConfigOption.cycle("hotbarRotation", "Rotation"));
+				options.add(ConfigOption.header("Show"));
+				options.add(ConfigOption.toggle("hotbarShowSlots", "Hotbar Slots"));
+				options.add(ConfigOption.toggle("hotbarShowHearts", "Hearts & Armor"));
+				options.add(ConfigOption.toggle("hotbarShowHunger", "Hunger & Air"));
+				options.add(ConfigOption.toggle("hotbarShowXp", "XP Bar & Level"));
 				break;
 			case TIME_CHANGER:
 				options.add(ConfigOption.header("General"));
@@ -1985,6 +1977,10 @@ public final class OpticModScreen extends Screen {
 		if ("zoomScroll".equals(key)) return c.zoomScroll;
 		if ("freeLookToggle".equals(key)) return c.freeLookToggle;
 		if ("hitboxHideLook".equals(key)) return c.hitboxHideLook;
+		if ("hotbarShowSlots".equals(key)) return c.hotbarShowSlots;
+		if ("hotbarShowHearts".equals(key)) return c.hotbarShowHearts;
+		if ("hotbarShowHunger".equals(key)) return c.hotbarShowHunger;
+		if ("hotbarShowXp".equals(key)) return c.hotbarShowXp;
 		if ("skins3dHead".equals(key)) return c.skins3dHead;
 		if ("skins3dBody".equals(key)) return c.skins3dBody;
 		if ("skins3dArms".equals(key)) return c.skins3dArms;
@@ -2076,6 +2072,10 @@ public final class OpticModScreen extends Screen {
 		else if ("zoomScroll".equals(key)) c.zoomScroll = value;
 		else if ("freeLookToggle".equals(key)) c.freeLookToggle = value;
 		else if ("hitboxHideLook".equals(key)) c.hitboxHideLook = value;
+		else if ("hotbarShowSlots".equals(key)) c.hotbarShowSlots = value;
+		else if ("hotbarShowHearts".equals(key)) c.hotbarShowHearts = value;
+		else if ("hotbarShowHunger".equals(key)) c.hotbarShowHunger = value;
+		else if ("hotbarShowXp".equals(key)) c.hotbarShowXp = value;
 		else if ("skins3dHead".equals(key)) c.skins3dHead = value;
 		else if ("skins3dBody".equals(key)) c.skins3dBody = value;
 		else if ("skins3dArms".equals(key)) c.skins3dArms = value;
@@ -2453,6 +2453,12 @@ public final class OpticModScreen extends Screen {
 				client.setScreen(new OpticHudEditorScreen(this));
 				return;
 			}
+			if (settingsCategory == SettingsCategory.GENERAL && settingsTrackW > 0
+				&& inside(mouseX, mouseY, settingsTrackX, settingsTrackY, settingsTrackW, settingsTrackH)) {
+				settingsScrollDrag = true;
+				dragSettingsScroll(mouseY);
+				return;
+			}
 			for (SettingHit hit : settingHits) {
 				if (!inside(mouseX, mouseY, hit.x, hit.y, hit.w, hit.h)) continue;
 				toggleSetting(hit.key);
@@ -2688,7 +2694,7 @@ public final class OpticModScreen extends Screen {
 			if (profileScroll < 0) profileScroll = 0;
 			return;
 		}
-		if (mainTab == MainTab.SETTINGS && settingsCategory == SettingsCategory.PERFORMANCE) {
+		if (mainTab == MainTab.SETTINGS) {
 			settingsScroll += wheel > 0 ? -28 : 28;
 			if (settingsScroll < 0) settingsScroll = 0;
 			return;

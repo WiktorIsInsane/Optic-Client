@@ -9,6 +9,7 @@
     "ButtonWidgetAccessor",
     "ButtonWidgetMixin",
     "ChatHudMixin",
+    "ChatScreenMixin",
     "ClientConnectionMixin",
     "ClientPlayNetworkHandlerMixin",
     "ClientPlayerEntityMixin",

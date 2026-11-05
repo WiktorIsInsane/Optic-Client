@@ -167,7 +167,7 @@ public final class OpticConfig {
 	public boolean coordinatesShowX = false;
 	public boolean coordinatesShowY = true;
 	public boolean coordinatesShowZ = false;
-	public boolean coordinatesShowLabel = true;
+	public boolean coordinatesShowLabel = false; // stored as coordinatesAxisLabels: off by default, the old key is ignored
 	public boolean coordinatesBrackets = true;
 	public boolean coordinatesTextShadow = true;
 	public boolean coordinatesOpticFont = false;
@@ -390,6 +390,11 @@ public final class OpticConfig {
 	public float hotbarScale = 1.0F;
 	/** 0 / 90 / 180 / 270 — bar rotates; items stay upright. */
 	public int hotbarRotation = 0;
+	/** Hotbar module parts: the bar itself, hearts + armor, hunger + air, XP bar + level. */
+	public boolean hotbarShowSlots = true;
+	public boolean hotbarShowHearts = true;
+	public boolean hotbarShowHunger = true;
+	public boolean hotbarShowXp = true;
 	/** Top-left of hotbar; -1 = vanilla center-bottom. */
 	public int hotbarX = -1;
 	public int hotbarY = -1;
@@ -605,7 +610,7 @@ public final class OpticConfig {
 		coordinatesShowX = read(values, "coordinatesShowX", coordinatesShowX);
 		coordinatesShowY = read(values, "coordinatesShowY", coordinatesShowY);
 		coordinatesShowZ = read(values, "coordinatesShowZ", coordinatesShowZ);
-		coordinatesShowLabel = read(values, "coordinatesShowLabel", coordinatesShowLabel);
+		coordinatesShowLabel = read(values, "coordinatesAxisLabels", coordinatesShowLabel);
 		coordinatesBrackets = read(values, "coordinatesBrackets", coordinatesBrackets);
 		coordinatesTextShadow = read(values, "coordinatesTextShadow", legacyShadow);
 		coordinatesOpticFont = read(values, "coordinatesOpticFont", coordinatesOpticFont);
@@ -696,6 +701,10 @@ public final class OpticConfig {
 
 		hotbarScale = clampFloat(readFloat(values, "hotbarScale", hotbarScale), 0.5F, 3.0F);
 		hotbarRotation = normalizeHotbarRotation(readInt(values, "hotbarRotation", hotbarRotation));
+		hotbarShowSlots = read(values, "hotbarShowSlots", hotbarShowSlots);
+		hotbarShowHearts = read(values, "hotbarShowHearts", hotbarShowHearts);
+		hotbarShowHunger = read(values, "hotbarShowHunger", hotbarShowHunger);
+		hotbarShowXp = read(values, "hotbarShowXp", hotbarShowXp);
 		hotbarX = readInt(values, "hotbarX", hotbarX);
 		hotbarY = readInt(values, "hotbarY", hotbarY);
 
@@ -921,7 +930,7 @@ public final class OpticConfig {
 		values.setProperty("coordinatesShowX", Boolean.toString(coordinatesShowX));
 		values.setProperty("coordinatesShowY", Boolean.toString(coordinatesShowY));
 		values.setProperty("coordinatesShowZ", Boolean.toString(coordinatesShowZ));
-		values.setProperty("coordinatesShowLabel", Boolean.toString(coordinatesShowLabel));
+		values.setProperty("coordinatesAxisLabels", Boolean.toString(coordinatesShowLabel));
 		values.setProperty("coordinatesBrackets", Boolean.toString(coordinatesBrackets));
 		values.setProperty("coordinatesTextShadow", Boolean.toString(coordinatesTextShadow));
 		values.setProperty("coordinatesOpticFont", Boolean.toString(coordinatesOpticFont));
@@ -1012,6 +1021,10 @@ public final class OpticConfig {
 
 		values.setProperty("hotbarScale", Float.toString(hotbarScale));
 		values.setProperty("hotbarRotation", Integer.toString(hotbarRotation));
+		values.setProperty("hotbarShowSlots", Boolean.toString(hotbarShowSlots));
+		values.setProperty("hotbarShowHearts", Boolean.toString(hotbarShowHearts));
+		values.setProperty("hotbarShowHunger", Boolean.toString(hotbarShowHunger));
+		values.setProperty("hotbarShowXp", Boolean.toString(hotbarShowXp));
 		values.setProperty("hotbarX", Integer.toString(hotbarX));
 		values.setProperty("hotbarY", Integer.toString(hotbarY));
 
@@ -1177,7 +1190,7 @@ public final class OpticConfig {
 		o.addProperty("coordinatesShowX", coordinatesShowX);
 		o.addProperty("coordinatesShowY", coordinatesShowY);
 		o.addProperty("coordinatesShowZ", coordinatesShowZ);
-		o.addProperty("coordinatesShowLabel", coordinatesShowLabel);
+		o.addProperty("coordinatesAxisLabels", coordinatesShowLabel);
 		o.addProperty("coordinatesBrackets", coordinatesBrackets);
 		o.addProperty("coordinatesTextShadow", coordinatesTextShadow);
 		o.addProperty("coordinatesOpticFont", coordinatesOpticFont);
@@ -1261,6 +1274,10 @@ public final class OpticConfig {
 		o.addProperty("scoreboardY", scoreboardY);
 		o.addProperty("hotbarScale", hotbarScale);
 		o.addProperty("hotbarRotation", hotbarRotation);
+		o.addProperty("hotbarShowSlots", hotbarShowSlots);
+		o.addProperty("hotbarShowHearts", hotbarShowHearts);
+		o.addProperty("hotbarShowHunger", hotbarShowHunger);
+		o.addProperty("hotbarShowXp", hotbarShowXp);
 		o.addProperty("hotbarX", hotbarX);
 		o.addProperty("hotbarY", hotbarY);
 		o.addProperty("skyType", skyType);
@@ -1415,7 +1432,7 @@ public final class OpticConfig {
 		coordinatesShowX = getBool(o, "coordinatesShowX", coordinatesShowX);
 		coordinatesShowY = getBool(o, "coordinatesShowY", coordinatesShowY);
 		coordinatesShowZ = getBool(o, "coordinatesShowZ", coordinatesShowZ);
-		coordinatesShowLabel = getBool(o, "coordinatesShowLabel", coordinatesShowLabel);
+		coordinatesShowLabel = getBool(o, "coordinatesAxisLabels", coordinatesShowLabel);
 		coordinatesBrackets = getBool(o, "coordinatesBrackets", coordinatesBrackets);
 		coordinatesTextShadow = getBool(o, "coordinatesTextShadow", legacyShadow);
 		coordinatesOpticFont = getBool(o, "coordinatesOpticFont", coordinatesOpticFont);
@@ -1502,6 +1519,10 @@ public final class OpticConfig {
 		scoreboardY = getInt(o, "scoreboardY", scoreboardY);
 		hotbarScale = clampFloat(getFloat(o, "hotbarScale", hotbarScale), 0.5F, 3.0F);
 		hotbarRotation = normalizeHotbarRotation(getInt(o, "hotbarRotation", hotbarRotation));
+		hotbarShowSlots = getBool(o, "hotbarShowSlots", hotbarShowSlots);
+		hotbarShowHearts = getBool(o, "hotbarShowHearts", hotbarShowHearts);
+		hotbarShowHunger = getBool(o, "hotbarShowHunger", hotbarShowHunger);
+		hotbarShowXp = getBool(o, "hotbarShowXp", hotbarShowXp);
 		hotbarX = getInt(o, "hotbarX", hotbarX);
 		hotbarY = getInt(o, "hotbarY", hotbarY);
 		skyType = Math.max(0, Math.min(2, getInt(o, "skyType", skyType)));
@@ -1702,7 +1723,7 @@ public final class OpticConfig {
 				coordinatesShowX = false;
 				coordinatesShowY = true;
 				coordinatesShowZ = false;
-				coordinatesShowLabel = true;
+				coordinatesShowLabel = false;
 				coordinatesBrackets = true;
 				coordinatesTextShadow = true;
 				coordinatesOpticFont = false;
@@ -1806,6 +1827,10 @@ public final class OpticConfig {
 			case 23: // Hotbar
 				hotbarScale = 1.0F;
 				hotbarRotation = 0;
+				hotbarShowSlots = true;
+				hotbarShowHearts = true;
+				hotbarShowHunger = true;
+				hotbarShowXp = true;
 				hotbarX = -1;
 				hotbarY = -1;
 				break;

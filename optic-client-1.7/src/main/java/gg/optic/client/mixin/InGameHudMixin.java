@@ -117,6 +117,9 @@ public abstract class InGameHudMixin extends DrawableHelper {
 		if (crosshair && OpticCrosshair.hidesVanilla(c)) return;
 		boolean hotbar = u == 0 && ((v == 0 && width == 182 && height == 22) || (v == 22 && width == 24 && height == 22));
 		if (hotbar && c.hotbar) return;
+		// XP bar (v 64/69) and horse jump bar (v 84/89), 182 wide: the Hotbar module's XP toggle.
+		boolean xpBar = u == 0 && width == 182 && (v == 64 || v == 69 || v == 84 || v == 89);
+		if (xpBar && c.hotbar && !c.hotbarShowXp) return;
 		self.drawTexture(x, y, u, v, width, height);
 	}
 
@@ -175,17 +178,91 @@ public abstract class InGameHudMixin extends DrawableHelper {
 		Window window = new Window(client, client.width, client.height);
 		float scale = Math.max(0.5F, Math.min(3.0F, c.hotbarScale));
 		int rot = OpticConfig.normalizeHotbarRotation(c.hotbarRotation);
+		int baseX = OpticHudLayout.hotbarX(c, window);
+		int baseY = OpticHudLayout.hotbarY(c, window);
 		GlStateManager.pushMatrix();
-		GlStateManager.translate(OpticHudLayout.hotbarX(c, window), OpticHudLayout.hotbarY(c, window), 0.0F);
+		GlStateManager.translate(baseX, baseY, 0.0F);
 		GlStateManager.scale(scale, scale, 1.0F);
 		optic$applyHotbarRotation(rot);
+		// Hearts/food/XP normally sit above the bar. If that side would run off screen (bar moved
+		// to the top, or rotated against an edge), put them on the other side of the bar.
+		if (optic$overflow(STATUS_ABOVE_TOP, baseX, baseY, scale, rot, window)
+			> optic$overflow(STATUS_ABOVE_TOP + STATUS_FLIP, baseX, baseY, scale, rot, window)) {
+			GlStateManager.translate(0.0F, STATUS_FLIP, 0.0F);
+		}
 		// Vanilla's hotbar origin becomes Optic's hotbar origin.
 		GlStateManager.translate(-(window.getWidth() / 2 - 91), -(window.getHeight() - 22), 0.0F);
 		optic$statusMoved = true;
 	}
 
+	/** Status icons span hotbar-local y -27..-1 (two heart rows to the XP bar). */
+	@Unique private static final int STATUS_ABOVE_TOP = -27;
+	@Unique private static final int STATUS_H = 27;
+	/** Moves that block to just under the bar: -27 + 40 = 13, below the 22px bar. */
+	@Unique private static final int STATUS_FLIP = 40;
+
+	/** How far (in screen pixels) the status block starting at local y would stick out of the screen. */
+	@Unique
+	private static float optic$overflow(int localTop, int baseX, int baseY, float scale, int rot, Window window) {
+		float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE, maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+		float[][] corners = {
+			{0, localTop}, {OpticHudLayout.HOTBAR_W, localTop},
+			{0, localTop + STATUS_H}, {OpticHudLayout.HOTBAR_W, localTop + STATUS_H}
+		};
+		for (float[] p : corners) {
+			float[] box = OpticHudLayout.hotbarLocalToBox(p[0], p[1], rot);
+			float sx = baseX + box[0] * scale;
+			float sy = baseY + box[1] * scale;
+			minX = Math.min(minX, sx);
+			maxX = Math.max(maxX, sx);
+			minY = Math.min(minY, sy);
+			maxY = Math.max(maxY, sy);
+		}
+		float out = 0.0F;
+		out += Math.max(0.0F, -minX) + Math.max(0.0F, maxX - window.getWidth());
+		out += Math.max(0.0F, -minY) + Math.max(0.0F, maxY - window.getHeight());
+		return out;
+	}
+
+	/** Hotbar module part toggles for hearts + armor (+ mount) and hunger + air. */
+	@Redirect(
+		method = "method_5587(II)V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;drawTexture(IIIIII)V"),
+		require = 0
+	)
+	private void optic$statusIcon(InGameHud self, int x, int y, int u, int v, int width, int height) {
+		OpticConfig c = OpticClient.get().config();
+		if (c.hotbar) {
+			boolean hunger = v == 27 || v == 18; // food, air
+			boolean hearts = v == 0 || v == 45 || v == 9; // hearts (hardcore), armor, mount
+			if (hunger && !c.hotbarShowHunger) return;
+			if (hearts && !c.hotbarShowHearts) return;
+		}
+		self.drawTexture(x, y, u, v, width, height);
+	}
+
+	@Unique private boolean optic$hideLevel;
+
+	/** XP level number: hidden with the XP toggle. Only active inside the expLevel section. */
+	@Redirect(
+		method = "render(FZII)V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/font/TextRenderer;draw(Ljava/lang/String;III)I"),
+		require = 0
+	)
+	private int optic$levelText(TextRenderer renderer, String text, int x, int y, int color) {
+		if (optic$hideLevel) return 0;
+		return renderer.draw(text, x, y, color);
+	}
+
+	@Inject(method = "render(FZII)V", at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;push(Ljava/lang/String;)V", args = "ldc=expLevel"), require = 0)
+	private void optic$levelBegin(float tickDelta, boolean screenOpen, int mouseX, int mouseY, CallbackInfo ci) {
+		OpticConfig c = OpticClient.get().config();
+		optic$hideLevel = c.hotbar && !c.hotbarShowXp;
+	}
+
 	@Unique
 	private void optic$endHotbarTransform() {
+		optic$hideLevel = false;
 		if (!optic$statusMoved) return;
 		GlStateManager.popMatrix();
 		optic$statusMoved = false;
@@ -195,6 +272,7 @@ public abstract class InGameHudMixin extends DrawableHelper {
 	@Unique
 	private void optic$drawHotbar(OpticConfig c, Window window, float tickDelta) {
 		if (!(client.field_6279 instanceof PlayerEntity)) return;
+		if (!c.hotbarShowSlots) return;
 		PlayerEntity player = (PlayerEntity) client.field_6279;
 		float scale = Math.max(0.5F, Math.min(3.0F, c.hotbarScale));
 		int rot = OpticConfig.normalizeHotbarRotation(c.hotbarRotation);

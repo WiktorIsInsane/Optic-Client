@@ -34,37 +34,76 @@ public final class OpticHitParticles {
 		return c.particles && isHitParticle(name);
 	}
 
+	/** About what vanilla's 3-tick hit emitter spawns (16 tries a tick, ~half kept). */
+	private static final int BURST = 24;
+
+	/**
+	 * A whole hit burst at once: BURST particles times the multiplier, spread over the target
+	 * the way vanilla's emitter does. Used for your own hits so the count follows the slider
+	 * (vanilla's emitter only ticks a few times and was easy to lose).
+	 */
+	public static void burst(Entity target, String name) {
+		MinecraftClient client = MinecraftClient.getInstance();
+		if (target == null || client == null || client.world == null) return;
+		OpticConfig c = OpticClient.get().config();
+		float m = Math.max(0.0F, Math.min(10.0F, c.particleMultiplier));
+		int count = Math.round(BURST * m);
+		if (!inRange(client, target.x, target.y, target.z)) return;
+		double midY = target.boundingBox.minY + target.height / 2.0F;
+		for (int i = 0; i < count; i++) {
+			double vx;
+			double vy;
+			double vz;
+			do {
+				vx = RANDOM.nextFloat() * 2.0F - 1.0F;
+				vy = RANDOM.nextFloat() * 2.0F - 1.0F;
+				vz = RANDOM.nextFloat() * 2.0F - 1.0F;
+			} while (vx * vx + vy * vy + vz * vz > 1.0);
+			double x = target.x + vx * target.width / 4.0;
+			double y = midY + vy * target.height / 4.0;
+			double z = target.z + vz * target.width / 4.0;
+			spawnOne(client, c, client.world, name, x, y, z, vx, vy + 0.2, vz);
+		}
+	}
+
 	/** Spawns one vanilla-looking crit/magicCrit particle times the multiplier. */
 	public static void spawn(World world, String name, double x, double y, double z, double vx, double vy, double vz) {
 		MinecraftClient client = MinecraftClient.getInstance();
 		if (client == null || client.particleManager == null || world == null) return;
-		Entity camera = client.field_6279;
-		if (camera != null) {
-			double dx = camera.x - x;
-			double dy = camera.y - y;
-			double dz = camera.z - z;
-			if (dx * dx + dy * dy + dz * dz > 32.0 * 32.0) return;
-		}
+		if (!inRange(client, x, y, z)) return;
 		OpticConfig c = OpticClient.get().config();
 		int copies = copies(c.particleMultiplier);
-		boolean magic = "magicCrit".equals(name);
 		for (int i = 0; i < copies; i++) {
 			double jx = i == 0 ? 0.0 : (RANDOM.nextDouble() - 0.5) * 0.15;
 			double jy = i == 0 ? 0.0 : (RANDOM.nextDouble() - 0.5) * 0.15;
 			double jz = i == 0 ? 0.0 : (RANDOM.nextDouble() - 0.5) * 0.15;
-			Particle particle = new LargeFireSmokeParticle(world, x + jx, y + jy, z + jz, vx, vy, vz);
-			if (magic) {
-				if (c.removeVanillaColorFilter) {
-					particle.setColor(1.0F, 1.0F, 1.0F);
-				} else {
-					particle.setColor(particle.getRed() * 0.3F, particle.getGreen() * 0.8F, particle.getBlue());
-				}
-				particle.method_5133();
-			} else if (c.removeVanillaColorFilter) {
-				particle.setColor(1.0F, 1.0F, 1.0F);
-			}
-			client.particleManager.addParticle(particle);
+			spawnOne(client, c, world, name, x + jx, y + jy, z + jz, vx, vy, vz);
 		}
+	}
+
+	private static boolean inRange(MinecraftClient client, double x, double y, double z) {
+		Entity camera = client.field_6279;
+		if (camera == null) return true;
+		double dx = camera.x - x;
+		double dy = camera.y - y;
+		double dz = camera.z - z;
+		return dx * dx + dy * dy + dz * dz <= 32.0 * 32.0;
+	}
+
+	private static void spawnOne(MinecraftClient client, OpticConfig c, World world, String name, double x, double y, double z, double vx, double vy, double vz) {
+		if (client.particleManager == null) return;
+		Particle particle = new LargeFireSmokeParticle(world, x, y, z, vx, vy, vz);
+		if ("magicCrit".equals(name)) {
+			if (c.removeVanillaColorFilter) {
+				particle.setColor(1.0F, 1.0F, 1.0F);
+			} else {
+				particle.setColor(particle.getRed() * 0.3F, particle.getGreen() * 0.8F, particle.getBlue());
+			}
+			particle.method_5133();
+		} else if (c.removeVanillaColorFilter) {
+			particle.setColor(1.0F, 1.0F, 1.0F);
+		}
+		client.particleManager.addParticle(particle);
 	}
 
 	/** 1.5 -> one copy plus a 50% chance of a second. 0 hides them. */
