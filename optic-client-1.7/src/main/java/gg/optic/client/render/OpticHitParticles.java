@@ -3,7 +3,6 @@ package gg.optic.client.render;
 import gg.optic.client.OpticClient;
 import gg.optic.client.OpticConfig;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.particle.LargeFireSmokeParticle;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.entity.Entity;
 import net.minecraft.world.World;
@@ -90,20 +89,24 @@ public final class OpticHitParticles {
 		return dx * dx + dy * dy + dz * dz <= 32.0 * 32.0;
 	}
 
-	private static void spawnOne(MinecraftClient client, OpticConfig c, World world, String name, double x, double y, double z, double vx, double vy, double vz) {
-		if (client.particleManager == null) return;
-		Particle particle = new LargeFireSmokeParticle(world, x, y, z, vx, vy, vz);
-		if ("magicCrit".equals(name)) {
-			if (c.removeVanillaColorFilter) {
-				particle.setColor(1.0F, 1.0F, 1.0F);
-			} else {
-				particle.setColor(particle.getRed() * 0.3F, particle.getGreen() * 0.8F, particle.getBlue());
-			}
-			particle.method_5133();
-		} else if (c.removeVanillaColorFilter) {
-			particle.setColor(1.0F, 1.0F, 1.0F);
+	/**
+	 * Spawns through vanilla's own WorldRenderer.spawnParticleInternal (the same path OptiFine
+	 * hooks), with the particle setting treated as "All" for this one call so Decreased or
+	 * Minimal can't drop hit particles. Building the particle by hand skipped that path and most
+	 * of them never showed in game.
+	 */
+	private static boolean spawnOne(MinecraftClient client, OpticConfig c, World world, String name, double x, double y, double z, double vx, double vy, double vz) {
+		if (client.worldRenderer == null || client.options == null) return false;
+		int saved = client.options.particle;
+		Particle particle;
+		client.options.particle = 0;
+		try {
+			particle = client.worldRenderer.spawnParticleInternal(name, x, y, z, vx, vy, vz);
+		} finally {
+			client.options.particle = saved;
 		}
-		client.particleManager.addParticle(particle);
+		if (particle != null && c.removeVanillaColorFilter) particle.setColor(1.0F, 1.0F, 1.0F);
+		return particle != null;
 	}
 
 	/** 1.5 -> one copy plus a 50% chance of a second. 0 hides them. */

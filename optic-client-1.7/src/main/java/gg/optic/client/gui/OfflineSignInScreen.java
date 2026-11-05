@@ -86,7 +86,7 @@ public final class OfflineSignInScreen extends Screen {
 		int panelX = width / 2 - panelW / 2;
 		int panelY = height / 2 - 52;
 		OpticUiDraw.fillExact(client, panelX, panelY, panelW, panelH, 10, 0xF0101014);
-		OpticUiDraw.outlineExact(client, panelX, panelY, panelW, panelH, 10, 0x555CFF8A);
+		OpticUiDraw.outlineExact(client, panelX, panelY, panelW, panelH, 10, OpticTheme.BORDER_ON);
 		String title = "Offline account";
 		OpticUiFont.drawSharp(client, title, width / 2 - OpticUiFont.widthSharp(client, title, 0xFF5CFF8A, 11.0F) / 2, panelY + 10, 0xFF5CFF8A, 11.0F);
 		String hint = "3-16 letters, numbers, underscore";

@@ -139,8 +139,8 @@ public final class OpticModScreen extends Screen {
 	private int colorPopupW;
 	private int colorPopupH;
 	private static final int HEADER_LOGO = 28;
-	private static final int COLOR_POPUP_W = 210;
-	private static final int COLOR_POPUP_H = 160;
+	private static final int COLOR_POPUP_W = 228;
+	private static final int COLOR_POPUP_H = 150;
 	private static final int TOGGLE_ON = 0xFF5CFF8A;
 	private static final int TOGGLE_OFF = 0xFF2A2A32;
 
@@ -705,7 +705,7 @@ public final class OpticModScreen extends Screen {
 		int ix = x + (w - iconBox) / 2;
 		int iy = y + 32;
 		fillExact(ix, iy, iconBox, iconBox, RADIUS_SM, 0xFF15181C);
-		outlineExact(ix, iy, iconBox, iconBox, RADIUS_SM, 0x885CFF8A);
+		outlineExact(ix, iy, iconBox, iconBox, RADIUS_SM, OpticTheme.BORDER_ON);
 		Identifier logo = OpticTextures.logo(client);
 		if (logo != null) {
 		OpticSmooth.bindMip(client, logo);
@@ -777,15 +777,20 @@ public final class OpticModScreen extends Screen {
 		OpticUiFont.drawCenteredSized(client, "EDIT HUD", editX + editW / 2, editY + 6, hover ? OpticTheme.ON_ACCENT : OpticTheme.TEXT, 8.5F);
 	}
 
+	/** Settings tab: same sidebar as the Mods tab, below the header, so nothing above moves. */
 	private void drawSettingsShell(int mouseX, int mouseY) {
-		fill(panelX, panelY, panelX + sidebarW, panelY + panelH, SIDEBAR);
-		fill(panelX + sidebarW, panelY + 48, panelX + panelW, panelY + panelH, 0x00000000);
+		int bodyTop = panelY + 48;
+		fillRound(panelX, bodyTop, sidebarW, panelY + panelH - bodyTop, RADIUS, SIDEBAR);
+		fill(panelX + RADIUS, bodyTop, panelX + sidebarW, panelY + panelH, SIDEBAR);
+		fill(panelX, bodyTop, panelX + sidebarW, panelY + panelH - RADIUS, SIDEBAR);
+		fill(panelX + sidebarW - 1, bodyTop, panelX + sidebarW, panelY + panelH - RADIUS, BORDER_SOFT);
 
-		OpticUiFont.drawSized(client, "OVERVIEW", panelX + 12, panelY + 16, OpticTheme.FAINT, 7.5F);
-		int catY = panelY + 40;
-		drawSettingsCategory("General", SettingsCategory.GENERAL, panelX + 6, catY, sidebarW - 12, 22, mouseX, mouseY);
-		catY += 26;
+		OpticUiFont.drawSized(client, "SETTINGS", panelX + 12, bodyTop + 12, OpticTheme.FAINT, 7.5F);
+		drawSettingsCategory("General", SettingsCategory.GENERAL, panelX + 8, settingsCatY(), sidebarW - 16, filterRowH, mouseX, mouseY);
 
+		editX = panelX + 8;
+		editY = panelY + panelH - 34;
+		editW = sidebarW - 16;
 		drawEditGuiButton(mouseX, mouseY);
 		drawSettingsList(mouseX, mouseY);
 	}
@@ -795,17 +800,20 @@ public final class OpticModScreen extends Screen {
 		boolean hover = inside(mouseX, mouseY, x, y, w, h);
 		if (active) {
 			fillRound(x, y, w, h, RADIUS_SM, ACCENT_SOFT);
-			OpticTheme.accentEdge(x, y, h, true);
 		} else if (hover) {
 			fillRound(x, y, w, h, RADIUS_SM, OpticTheme.CARD_HOVER);
 		}
 		OpticUiFont.drawSized(client, label, x + 10, y + 6, active || hover ? OpticTheme.TEXT : MUTED, 10.0F);
 	}
 
+	/** Same spot as the first filter row on the Mods tab. */
+	private int settingsCatY() {
+		return panelY + 48 + 30;
+	}
+
 	private void drawSettingsList(int mouseX, int mouseY) {
 		settingHits.clear();
-		int catY = panelY + 40;
-		settingHits.add(new SettingHit("cat:GENERAL", panelX + 6, catY, sidebarW - 12, 22));
+		settingHits.add(new SettingHit("cat:GENERAL", panelX + 8, settingsCatY(), sidebarW - 16, filterRowH));
 
 		int contentX = panelX + sidebarW + 16;
 		int contentY = panelY + 58;
@@ -832,19 +840,11 @@ public final class OpticModScreen extends Screen {
 		settingsClipTop = listTop;
 		settingsClipBottom = listBottom;
 		clipGui(contentX - 4, listTop, contentW + 8, Math.max(1, listBottom - listTop));
+		// One continuous list: the page title already says "General".
 		int rowY = listTop - settingsScroll;
-		if (settingsSearchText().isEmpty()) {
-			OpticUiFont.drawSized(client, "MOVEMENT", contentX, rowY, OpticTheme.FAINT, 7.5F);
-			rowY += 16;
-		}
 		rowY = drawSettingToggle("Raw Mouse Input", gc.rawMouseInput, "rawMouseInput", contentX, rowY, listW, mouseX, mouseY);
 		rowY = drawSettingToggle("Minimal Bobbing", gc.minimalBobbing, "minimalBobbing", contentX, rowY, listW, mouseX, mouseY);
 		rowY = drawSettingToggle("Disable Hotbar Scroll", gc.disableMouseScrollWheel, "disableMouseScrollWheel", contentX, rowY, listW, mouseX, mouseY);
-		if (settingsSearchText().isEmpty()) {
-			rowY += 10;
-			OpticUiFont.drawSized(client, "GENERAL", contentX, rowY, OpticTheme.FAINT, 7.5F);
-			rowY += 16;
-		}
 		rowY = drawSettingToggle("Borderless Fullscreen", gc.borderlessFullscreen, "borderlessFullscreen", contentX, rowY, listW, mouseX, mouseY);
 		rowY = drawSettingToggle("Disable Achievements", gc.disableAchievements, "disableAchievements", contentX, rowY, listW, mouseX, mouseY);
 		GL11.glDisable(GL11.GL_SCISSOR_TEST);
@@ -982,12 +982,12 @@ public final class OpticModScreen extends Screen {
 		int headerBottom = panelY + 48;
 		fillRound(panelX, panelY, panelW, headerBottom - panelY, RADIUS, TOPBAR);
 		fill(panelX, headerBottom - RADIUS, panelX + panelW, headerBottom, TOPBAR);
-		fill(panelX + RADIUS, panelY + 1, panelX + panelW - RADIUS, panelY + 2, OpticTheme.HIGHLIGHT);
 		// Accent rule under the header, fading green -> teal -> out (CheatBreaker-style).
 		fill(panelX, headerBottom - 1, panelX + panelW, headerBottom, BORDER_SOFT);
 		OpticTheme.accentLine(panelX, headerBottom - 1, panelW, 1);
 
-		int brandX = mainTab == MainTab.SETTINGS ? panelX + sidebarW + 12 : panelX + 12;
+		// Same header on every tab: logo and tabs never move when switching.
+		int brandX = panelX + 12;
 		drawHeaderLogo(brandX);
 		OpticUiFont.drawSized(client, "OPTIC", brandX + 32, panelY + 12, OpticTheme.TEXT, 13.0F);
 		OpticUiFont.drawSized(client, "CLIENT · 1.7.10", brandX + 32, panelY + 27, ACCENT, 7.5F);
@@ -1027,7 +1027,7 @@ public final class OpticModScreen extends Screen {
 		// Active: soft accent glass with an accent underline. Idle: quiet, brightens on hover.
 		if (active) {
 			fillExact(x, y, w, h, RADIUS_SM, ACCENT_SOFT);
-			outlineExact(x, y, w, h, RADIUS_SM, 0x805CFF8A);
+			outlineExact(x, y, w, h, RADIUS_SM, OpticTheme.BORDER_ON);
 			fill(x + 8, y + h - 2, x + w - 8, y + h - 1, ACCENT);
 		} else if (hover) {
 			fillExact(x, y, w, h, RADIUS_SM, OpticTheme.CARD_HOVER);
@@ -1223,10 +1223,9 @@ public final class OpticModScreen extends Screen {
 	private void drawFilterRow(String label, ModFilter filter, int x, int y, int w, int h, int mouseX, int mouseY) {
 		boolean active = modFilter == filter;
 		boolean hover = inside(mouseX, mouseY, x, y, w, h);
-		// Active row: soft accent fill + accent edge (CheatBreaker-style). Hover: faint lift.
+		// Active row: soft accent fill. Hover: faint lift.
 		if (active) {
 			fillRound(x, y, w, h, RADIUS_SM, ACCENT_SOFT);
-			OpticTheme.accentEdge(x, y, h, true);
 		} else if (hover) {
 			fillRound(x, y, w, h, RADIUS_SM, OpticTheme.CARD_HOVER);
 		}
@@ -1245,12 +1244,9 @@ public final class OpticModScreen extends Screen {
 	private CardBounds drawCard(ModuleCard module, int x, int y, int w, int h, boolean hover) {
 		boolean on = enabled(module.id);
 		boolean fav = OpticClient.get().config().isFavoriteModule(module.id);
-		// Glass card; enabled mods get a green tint, a soft glow and an accent edge.
-		if (on) fillExact(x - 1, y - 1, w + 2, h + 2, RADIUS + 1, OpticTheme.ACCENT_GLOW);
+		// Glass card; enabled mods get a green tint and a green outline.
 		fillExact(x, y, w, h, RADIUS, hover ? CARD_HOVER : (on ? CARD_ON : CARD));
-		fill(x + RADIUS, y + 1, x + w - RADIUS, y + 2, OpticTheme.HIGHLIGHT);
-		outlineExact(x, y, w, h, RADIUS, hover ? ACCENT : (on ? 0x445CFF8A : BORDER_SOFT));
-		if (on) OpticTheme.accentEdge(x, y + 4, h - 8, hover);
+		outlineExact(x, y, w, h, RADIUS, hover ? ACCENT : (on ? OpticTheme.BORDER_ON : BORDER_SOFT));
 
 		float titleSize = w < 80 ? 8.5F : 9.5F;
 		int titleLimit = Math.max(8, w - 10);
@@ -1497,87 +1493,188 @@ public final class OpticModScreen extends Screen {
 		}
 	}
 
+	// Badlion-style color picker: saturation/brightness square, hue strip, old/new preview,
+	// typed hex code, RGB readout and quick swatches. Gradients are drawn per-vertex on the GPU,
+	// so they are smooth at any GUI scale.
+	private static final int PICK_PAD = 10;
+	private static final int PICK_SV = 108;
+	private static final int PICK_HUE_W = 12;
+	private static final int PICK_SWATCH = 13;
+	private static final int[] PICK_PRESETS = {
+		0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000, 0xFF5555, 0xFFAA00, 0xFFFF55,
+		0x5CFF8A, 0x00AA00, 0x55FFFF, 0x55AAFF, 0x3355FF, 0xAA55FF, 0xFF55FF
+	};
+
+	/** Picker state for the open swatch; keeps the hue when the color is gray/black. */
+	private String pickKey;
+	private float pickHue;
+	private float pickSat;
+	private float pickVal;
+	private int pickOriginal;
+	private boolean hexEditing;
+	private String hexBuffer = "";
+
+	private void syncPicker(String key, int color) {
+		color &= 0xFFFFFF;
+		if (!key.equals(pickKey)) {
+			pickKey = key;
+			pickOriginal = color;
+			hexEditing = false;
+			float[] hsv = OpticTextures.rgbToHsv(color);
+			pickHue = hsv[0];
+			pickSat = hsv[1];
+			pickVal = hsv[2];
+			return;
+		}
+		if ((OpticTextures.hsvToRgb(pickHue, pickSat, pickVal) & 0xFFFFFF) == color) return;
+		float[] hsv = OpticTextures.rgbToHsv(color);
+		if (hsv[1] > 0.01F && hsv[2] > 0.01F) pickHue = hsv[0];
+		if (hsv[2] > 0.01F) pickSat = hsv[1];
+		pickVal = hsv[2];
+	}
+
+	private void applyPicker() {
+		if (pickKey != null) setColor(pickKey, OpticTextures.hsvToRgb(pickHue, pickSat, pickVal) & 0xFFFFFF);
+	}
+
 	private void drawColorPopup(String key, int selectedColor) {
-		float[] hsv = OpticTextures.rgbToHsv(selectedColor);
+		syncPicker(key, selectedColor);
 		int px = colorPopupX;
 		int py = colorPopupY;
 		int pw = colorPopupW;
 		int ph = colorPopupH;
-		fillRound(px + 2, py + 3, pw, ph, RADIUS, 0x88000000);
-		fillRound(px, py, pw, ph, RADIUS, 0xF0121218);
-		outlineRound(px, py, pw, ph, RADIUS, ACCENT);
+		OpticTheme.shadow(client, px, py, pw, ph, RADIUS);
+		fillRound(px, py, pw, ph, RADIUS, 0xF4101115);
+		outlineRound(px, py, pw, ph, RADIUS, OpticTheme.BORDER);
 
-		int wheelSize = OpticTextures.COLOR_WHEEL_DRAW;
-		int wheelX = px + 12;
-		int wheelY = py + (ph - wheelSize) / 2;
-		int centerX = wheelX + wheelSize / 2;
-		int centerY = wheelY + wheelSize / 2;
-		int radius = wheelSize / 2 - 2;
+		// Saturation (left -> right) / brightness (top -> bottom) square for the current hue.
+		int svX = px + PICK_PAD;
+		int svY = py + PICK_PAD;
+		int hueRgb = OpticTextures.hsvToRgb(pickHue, 1.0F, 1.0F);
+		gradientRect(svX, svY, PICK_SV, PICK_SV, 0xFFFFFFFF, 0xFF000000 | hueRgb, 0xFF000000 | hueRgb, 0xFFFFFFFF);
+		gradientRect(svX, svY, PICK_SV, PICK_SV, 0x00000000, 0x00000000, 0xFF000000, 0xFF000000);
+		outline(svX - 1, svY - 1, PICK_SV + 2, PICK_SV + 2, OpticTheme.BORDER);
+		int mx = svX + Math.round(pickSat * (PICK_SV - 1));
+		int my = svY + Math.round((1.0F - pickVal) * (PICK_SV - 1));
+		ring(mx, my, 4, pickVal > 0.55F && pickSat < 0.45F ? 0xFF000000 : 0xFFFFFFFF);
 
-		Identifier wheel = OpticTextures.colorWheel(client);
-		if (wheel != null) {
-			float brightness = Math.max(0.15F, hsv[2]);
-			GL11.glColor4f(brightness, brightness, brightness, 1.0F);
-			GL11.glEnable(GL11.GL_BLEND);
-			GL11.glEnable(GL11.GL_TEXTURE_2D);
-			GL11.glDisable(GL11.GL_ALPHA_TEST);
-			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-			client.getTextureManager().bindTexture(wheel);
-			GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
-			GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
-			// Same 8-arg draw path as the logo: UV 0..1 over the bound texture.
-			DrawableHelper.drawTexture(
-				wheelX,
-				wheelY,
-				0.0F,
-				0.0F,
-				wheelSize,
-				wheelSize,
-				(float) wheelSize,
-				(float) wheelSize
-			);
-			GL11.glEnable(GL11.GL_ALPHA_TEST);
-			GL11.glDisable(GL11.GL_BLEND);
-			GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+		// Hue strip, top to bottom through the rainbow.
+		int hueX = svX + PICK_SV + 8;
+		for (int i = 0; i < 6; i++) {
+			int a = OpticTextures.hsvToRgb(i / 6.0F, 1.0F, 1.0F);
+			int b = OpticTextures.hsvToRgb((i + 1) / 6.0F, 1.0F, 1.0F);
+			int y1 = svY + PICK_SV * i / 6;
+			int y2 = svY + PICK_SV * (i + 1) / 6;
+			gradientRect(hueX, y1, PICK_HUE_W, y2 - y1, 0xFF000000 | a, 0xFF000000 | a, 0xFF000000 | b, 0xFF000000 | b);
+		}
+		outline(hueX - 1, svY - 1, PICK_HUE_W + 2, PICK_SV + 2, OpticTheme.BORDER);
+		int hy = svY + Math.round(pickHue * (PICK_SV - 1));
+		fill(hueX - 2, hy - 2, hueX + PICK_HUE_W + 2, hy + 2, 0xFF000000);
+		fill(hueX - 1, hy - 1, hueX + PICK_HUE_W + 1, hy + 1, 0xFFFFFFFF);
+
+		// Right column: old | new preview, hex code (click to type), RGB values.
+		int colX = hueX + PICK_HUE_W + 10;
+		int colW = px + pw - PICK_PAD - colX;
+		int current = selectedColor & 0xFFFFFF;
+		fill(colX, svY, colX + colW / 2, svY + 24, 0xFF000000 | pickOriginal);
+		fill(colX + colW / 2, svY, colX + colW, svY + 24, 0xFF000000 | current);
+		outline(colX - 1, svY - 1, colW + 2, 26, OpticTheme.BORDER);
+		OpticUiFont.drawSized(client, "OLD", colX + 2, svY + 27, OpticTheme.FAINT, 6.5F);
+		int newW = OpticUiFont.widthSized(client, "NEW", OpticTheme.FAINT, 6.5F);
+		OpticUiFont.drawSized(client, "NEW", colX + colW - newW - 2, svY + 27, OpticTheme.FAINT, 6.5F);
+
+		int hexY = svY + 40;
+		fillRound(colX, hexY, colW, 16, RADIUS_SM, 0xFF0B0C0F);
+		outlineRound(colX, hexY, colW, 16, RADIUS_SM, hexEditing ? ACCENT : OpticTheme.BORDER);
+		String hex = hexEditing
+			? "#" + hexBuffer + ((System.currentTimeMillis() / 500L) % 2L == 0L ? "_" : "")
+			: String.format("#%06X", current);
+		OpticUiFont.drawSized(client, hex, colX + 5, hexY + 4, hexEditing ? OpticTheme.TEXT : MUTED, 8.0F);
+
+		int rgbY = hexY + 24;
+		String[] names = { "R", "G", "B" };
+		int[] parts = { (current >> 16) & 0xFF, (current >> 8) & 0xFF, current & 0xFF };
+		for (int i = 0; i < 3; i++) {
+			int ry = rgbY + i * 11;
+			OpticUiFont.drawSized(client, names[i], colX + 1, ry, OpticTheme.FAINT, 7.5F);
+			String v = Integer.toString(parts[i]);
+			int vw = OpticUiFont.widthSized(client, v, OpticTheme.TEXT, 7.5F);
+			OpticUiFont.drawSized(client, v, colX + colW - vw - 1, ry, OpticTheme.TEXT, 7.5F);
 		}
 
-		double markerAngle = hsv[0] * Math.PI * 2.0 - Math.PI;
-		int markerX = centerX + (int) Math.round(Math.cos(markerAngle) * hsv[1] * radius);
-		int markerY = centerY + (int) Math.round(Math.sin(markerAngle) * hsv[1] * radius);
-		fill(markerX - 4, markerY - 4, markerX + 4, markerY + 4, 0xFF000000);
-		fill(markerX - 3, markerY - 3, markerX + 3, markerY + 3, 0xFFFFFFFF);
-
-		int barX = wheelX + wheelSize + 14;
-		int barY = wheelY;
-		int barW = 14;
-		int barH = wheelSize;
-		for (int i = 0; i < barH; i++) {
-			float value = 1.0F - (i / (float) Math.max(1, barH - 1));
-			int rgb = OpticTextures.hsvToRgb(hsv[0], Math.max(0.15F, hsv[1]), value);
-			fill(barX, barY + i, barX + barW, barY + i + 1, OpticConfig.withAlpha(rgb, 0xFF));
+		// Quick swatches along the bottom.
+		int swY = svY + PICK_SV + 8;
+		int gap = 2;
+		for (int i = 0; i < PICK_PRESETS.length; i++) {
+			int sx = svX + i * (PICK_SWATCH + gap);
+			if (sx + PICK_SWATCH > px + pw - PICK_PAD) break;
+			fill(sx, swY, sx + PICK_SWATCH, swY + PICK_SWATCH, 0xFF000000 | PICK_PRESETS[i]);
+			boolean chosen = PICK_PRESETS[i] == current;
+			outline(sx - 1, swY - 1, PICK_SWATCH + 2, PICK_SWATCH + 2, chosen ? ACCENT : OpticTheme.BORDER);
+			optionHits.add(OptionHit.colorPreset(key, sx, swY, PICK_SWATCH, PICK_SWATCH, PICK_PRESETS[i]));
 		}
-		outline(barX, barY, barW, barH, 0xFF202420);
-		int knobY = barY + Math.round((1.0F - hsv[2]) * (barH - 1));
-		fill(barX - 2, knobY - 2, barX + barW + 2, knobY + 2, 0xFFFFFFFF);
-
-		int previewX = barX + barW + 12;
-		int previewY = barY + 4;
-		fill(previewX, previewY, previewX + 28, previewY + 28, OpticConfig.withAlpha(selectedColor, 0xFF));
-		outline(previewX, previewY, 28, 28, BORDER);
-		OpticUiFont.drawSized(
-			client,
-			String.format("#%06X", selectedColor & 0xFFFFFF),
-			previewX - 4,
-			previewY + 34,
-			MUTED,
-			7.5F
-		);
 
 		optionHits.add(OptionHit.colorPopup(px, py, pw, ph));
-		optionHits.add(OptionHit.colorWheel(key, centerX, centerY, radius, hsv[2]));
-		optionHits.add(OptionHit.colorValue(key, barX - 2, barY, barW + 4, barH, hsv[0], hsv[1]));
+		optionHits.add(OptionHit.colorSv(key, svX, svY, PICK_SV, PICK_SV));
+		optionHits.add(OptionHit.colorHue(key, hueX - 2, svY, PICK_HUE_W + 4, PICK_SV));
+		optionHits.add(OptionHit.colorHex(key, colX, hexY, colW, 16));
 	}
 
+	/** Quad with one color per corner (top-left, top-right, bottom-right, bottom-left). */
+	private static void gradientRect(int x, int y, int w, int h, int tl, int tr, int br, int bl) {
+		GL11.glDisable(GL11.GL_TEXTURE_2D);
+		GL11.glEnable(GL11.GL_BLEND);
+		GL11.glDisable(GL11.GL_ALPHA_TEST);
+		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+		GL11.glShadeModel(GL11.GL_SMOOTH);
+		net.minecraft.client.render.Tessellator t = net.minecraft.client.render.Tessellator.INSTANCE;
+		t.begin(GL11.GL_QUADS);
+		vertex(t, x + w, y, tr);
+		vertex(t, x, y, tl);
+		vertex(t, x, y + h, bl);
+		vertex(t, x + w, y + h, br);
+		t.end();
+		GL11.glShadeModel(GL11.GL_FLAT);
+		GL11.glEnable(GL11.GL_ALPHA_TEST);
+		GL11.glEnable(GL11.GL_TEXTURE_2D);
+	}
+
+	private static void vertex(net.minecraft.client.render.Tessellator t, int x, int y, int argb) {
+		t.color((argb >> 16) & 0xFF, (argb >> 8) & 0xFF, argb & 0xFF, (argb >>> 24) & 0xFF);
+		t.vertex(x, y, 0.0);
+	}
+
+	/** Hollow square marker with a dark rim so it reads on any color. */
+	private void ring(int cx, int cy, int r, int argb) {
+		outline(cx - r - 1, cy - r - 1, r * 2 + 3, r * 2 + 3, 0x99000000);
+		outline(cx - r, cy - r, r * 2 + 1, r * 2 + 1, argb);
+	}
+
+	/** Typed hex: 0-9 / A-F, Backspace, Enter to apply, Escape to cancel. @return handled */
+	private boolean hexKey(char character, int keyCode) {
+		if (!hexEditing) return false;
+		if (keyCode == Keyboard.KEY_ESCAPE) {
+			hexEditing = false;
+			return true;
+		}
+		if (keyCode == Keyboard.KEY_RETURN || keyCode == Keyboard.KEY_NUMPADENTER) {
+			if (hexBuffer.length() == 6 && pickKey != null) {
+				setColor(pickKey, Integer.parseInt(hexBuffer, 16));
+			} else if (hexBuffer.length() == 3 && pickKey != null) {
+				String full = "" + hexBuffer.charAt(0) + hexBuffer.charAt(0) + hexBuffer.charAt(1) + hexBuffer.charAt(1) + hexBuffer.charAt(2) + hexBuffer.charAt(2);
+				setColor(pickKey, Integer.parseInt(full, 16));
+			}
+			hexEditing = false;
+			return true;
+		}
+		if (keyCode == Keyboard.KEY_BACK) {
+			if (hexBuffer.length() > 0) hexBuffer = hexBuffer.substring(0, hexBuffer.length() - 1);
+			return true;
+		}
+		char c = Character.toUpperCase(character);
+		if (((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F')) && hexBuffer.length() < 6) hexBuffer += c;
+		return true;
+	}
 	private List<ConfigOption> optionsFor(int id) {
 		List<ConfigOption> options = new ArrayList<ConfigOption>();
 		switch (id) {
@@ -2398,6 +2495,17 @@ public final class OpticModScreen extends Screen {
 
 	private void updateColorDrag(int mouseX, int mouseY) {
 		if (activeColor == null) return;
+		if (activeColor.mode == ColorDragMode.SV) {
+			pickSat = Math.max(0.0F, Math.min(1.0F, (mouseX - activeColor.centerX) / (float) Math.max(1, activeColor.radius - 1)));
+			pickVal = 1.0F - Math.max(0.0F, Math.min(1.0F, (mouseY - activeColor.centerY) / (float) Math.max(1, activeColor.barH - 1)));
+			applyPicker();
+			return;
+		}
+		if (activeColor.mode == ColorDragMode.HUE) {
+			pickHue = Math.max(0.0F, Math.min(0.999F, (mouseY - activeColor.barY) / (float) Math.max(1, activeColor.barH - 1)));
+			applyPicker();
+			return;
+		}
 		if (activeColor.mode == ColorDragMode.WHEEL) {
 			float dx = mouseX - activeColor.centerX;
 			float dy = mouseY - activeColor.centerY;
@@ -2552,14 +2660,36 @@ public final class OpticModScreen extends Screen {
 			if (openColorKey != null && !clickedPopup && !clickedSwatch) {
 				openColorKey = null;
 				activeColor = null;
+				hexEditing = false;
 				return;
 			}
 
 			// The popup is drawn over the rows below the swatch. Only its own controls take the
 			// click, otherwise toggles/sliders underneath (e.g. Outline) would flip too.
 			if (clickedPopup) {
+				boolean wasEditing = hexEditing;
+				hexEditing = false;
 				for (OptionHit hit : optionHits) {
 					if (!inside(mouseX, mouseY, hit.x, hit.y, hit.w, hit.h)) continue;
+					if (hit.kind == HitKind.COLOR_SV) {
+						activeColor = ColorDrag.sv(hit.key, hit.x, hit.y, hit.w, hit.h);
+						updateColorDrag(mouseX, mouseY);
+						return;
+					}
+					if (hit.kind == HitKind.COLOR_HUE) {
+						activeColor = ColorDrag.hue(hit.key, hit.y, hit.h);
+						updateColorDrag(mouseX, mouseY);
+						return;
+					}
+					if (hit.kind == HitKind.COLOR_PRESET) {
+						setColor(hit.key, hit.centerX);
+						return;
+					}
+					if (hit.kind == HitKind.COLOR_HEX) {
+						hexEditing = !wasEditing;
+						hexBuffer = "";
+						return;
+					}
 					if (hit.kind == HitKind.COLOR_WHEEL) {
 						activeColor = ColorDrag.wheel(hit.key, hit.centerX, hit.centerY, hit.radius, hit.value);
 						updateColorDrag(mouseX, mouseY);
@@ -2650,6 +2780,7 @@ public final class OpticModScreen extends Screen {
 
 	@Override
 	protected void keyPressed(char character, int keyCode) {
+		if (openColorKey != null && hexKey(character, keyCode)) return;
 		if (bindingKey != null) {
 			if (keyCode != Keyboard.KEY_ESCAPE && keyCode != Keyboard.KEY_RSHIFT && keyCode != Keyboard.KEY_NONE) {
 				assignBind(bindingKey, keyCode);
@@ -2867,7 +2998,7 @@ public final class OpticModScreen extends Screen {
 	private void drawSmoothField(TextFieldWidget field, int x, int y, int w, int h, String placeholder) {
 		if (field == null || w <= 0 || h <= 0) return;
 		fillExact(x, y, w, h, RADIUS_SM, 0xFF101014);
-		outlineExact(x, y, w, h, RADIUS_SM, field.isFocused() ? ACCENT : 0xFF3A403C);
+		outlineExact(x, y, w, h, RADIUS_SM, field.isFocused() ? ACCENT : OpticTheme.BORDER);
 
 		float size = 9.0F;
 		String text = field.getText() == null ? "" : field.getText();
@@ -3142,12 +3273,18 @@ public final class OpticModScreen extends Screen {
 		COLOR_SWATCH,
 		COLOR_POPUP,
 		COLOR_WHEEL,
-		COLOR_VALUE
+		COLOR_VALUE,
+		COLOR_SV,
+		COLOR_HUE,
+		COLOR_PRESET,
+		COLOR_HEX
 	}
 
 	private enum ColorDragMode {
 		WHEEL,
-		VALUE
+		VALUE,
+		SV,
+		HUE
 	}
 
 	private static final class ConfigOption {
@@ -3301,6 +3438,23 @@ public final class OpticModScreen extends Screen {
 		static OptionHit colorValue(String key, int x, int y, int w, int h, float hue, float sat) {
 			return new OptionHit(HitKind.COLOR_VALUE, -1, key, x, y, w, h, 0.0F, 0.0F, 0, 0, 0, hue, sat, 0.0F);
 		}
+
+		static OptionHit colorSv(String key, int x, int y, int w, int h) {
+			return new OptionHit(HitKind.COLOR_SV, -1, key, x, y, w, h, 0.0F, 0.0F, 0, 0, 0, 0.0F, 0.0F, 0.0F);
+		}
+
+		static OptionHit colorHue(String key, int x, int y, int w, int h) {
+			return new OptionHit(HitKind.COLOR_HUE, -1, key, x, y, w, h, 0.0F, 0.0F, 0, 0, 0, 0.0F, 0.0F, 0.0F);
+		}
+
+		/** centerX carries the preset's RGB. */
+		static OptionHit colorPreset(String key, int x, int y, int w, int h, int rgb) {
+			return new OptionHit(HitKind.COLOR_PRESET, -1, key, x, y, w, h, 0.0F, 0.0F, rgb, 0, 0, 0.0F, 0.0F, 0.0F);
+		}
+
+		static OptionHit colorHex(String key, int x, int y, int w, int h) {
+			return new OptionHit(HitKind.COLOR_HEX, -1, key, x, y, w, h, 0.0F, 0.0F, 0, 0, 0, 0.0F, 0.0F, 0.0F);
+		}
 	}
 
 	private static final class SliderDrag {
@@ -3361,6 +3515,15 @@ public final class OpticModScreen extends Screen {
 
 		static ColorDrag value(String key, int barY, int barH, float hue, float sat) {
 			return new ColorDrag(ColorDragMode.VALUE, key, 0, 0, 0, 0.0F, barY, barH, hue, sat);
+		}
+
+		/** Square at (x, y) of w x h: centerX/centerY = origin, radius = width, barH = height. */
+		static ColorDrag sv(String key, int x, int y, int w, int h) {
+			return new ColorDrag(ColorDragMode.SV, key, x, y, w, 0.0F, y, h, 0.0F, 0.0F);
+		}
+
+		static ColorDrag hue(String key, int y, int h) {
+			return new ColorDrag(ColorDragMode.HUE, key, 0, 0, 0, 0.0F, y, h, 0.0F, 0.0F);
 		}
 	}
 }

@@ -27,10 +27,10 @@ public class ClientPlayerInteractionManagerMixin {
 	@Inject(method = "attackEntity(Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/entity/Entity;)V", at = @At("TAIL"))
 	private void optic$alwaysSharpness(PlayerEntity player, Entity target, CallbackInfo ci) {
 		OpticConfig c = OpticClient.get().config();
+		float modifier = target instanceof LivingEntity ? EnchantmentHelper.method_6387(player, (LivingEntity) target) : 0.0F;
 		if (!c.particles || !c.alwaysSharpnessParticles) return;
 		if (target == null || this.client.world == null || this.client.particleManager == null) return;
 		// Vanilla already shows these when the weapon has sharpness (or smite/bane on the right mob).
-		float modifier = target instanceof LivingEntity ? EnchantmentHelper.method_6387(player, (LivingEntity) target) : 0.0F;
 		if (modifier > 0.0F) return;
 		gg.optic.client.render.OpticHitParticles.burst(target, "magicCrit");
 	}

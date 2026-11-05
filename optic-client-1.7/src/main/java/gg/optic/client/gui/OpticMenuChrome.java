@@ -63,16 +63,16 @@ public final class OpticMenuChrome {
 		layout.btnW = 200;
 		layout.btnH = 20;
 		layout.btnGap = 5;
-		// Logo + wordmark + subtitle (40px) + 3 button rows.
-		int header = layout.logoSize + 40;
+		// Logo, "OPTIC" (16px) and the 3 button rows as one tight block, centered on screen.
+		int header = layout.logoSize + WORD_GAP + WORD_H + BUTTON_GAP;
 		int total = header + 3 * layout.btnH + 2 * layout.btnGap;
-		int top = Math.max(BAR_Y + BAR_H + 6, (screenH - total) / 2 - 6);
+		int top = Math.max(BAR_Y + BAR_H + 6, (screenH - total) / 2);
 		layout.cardW = layout.btnW;
 		layout.cardH = total;
 		layout.cardX = (screenW - layout.cardW) / 2;
 		layout.cardY = top;
 		layout.logoY = top;
-		layout.wordY = top + layout.logoSize + 6;
+		layout.wordY = top + layout.logoSize + WORD_GAP;
 		layout.btnX = layout.cardX;
 		layout.btnY = top + header;
 
@@ -90,14 +90,16 @@ public final class OpticMenuChrome {
 		int w = client.currentScreen != null ? client.currentScreen.width : 0;
 		int h = client.currentScreen != null ? client.currentScreen.height : 0;
 		if (w <= 0 || h <= 0) return;
-		DrawableHelper.fill(0, 0, w, h, 0x38050608);
-		gradient(0, h / 2, w, h, 0x00000000, 0x9A000000);
-		gradient(0, 0, w, Math.max(1, layout.logoY), 0x55000000, 0x00000000);
-		int glow = layout.logoSize + 40;
-		OpticUiDraw.fillExact(client, (w - glow) / 2, layout.logoY - 20, glow, glow, glow / 2, 0x105CFF8A);
+		// One even wash: the gradient bands and the glow behind the logo showed visible steps.
+		DrawableHelper.fill(0, 0, w, h, 0x5A050608);
 	}
 
-	/** Logo, "OPTIC" wordmark and a small accent subtitle with a gradient rule. */
+	/** Space between logo and wordmark, wordmark height, and wordmark to first button. */
+	private static final int WORD_GAP = 3;
+	private static final int WORD_H = 16;
+	private static final int BUTTON_GAP = 10;
+
+	/** Logo with the "OPTIC" wordmark under it, centered above the buttons. */
 	public static void drawCenterLogo(MinecraftClient client, Layout layout) {
 		int w = client.currentScreen != null ? client.currentScreen.width : layout.cardX * 2 + layout.cardW;
 		drawLogo(client, (w - layout.logoSize) / 2, layout.logoY, layout.logoSize);
@@ -105,13 +107,6 @@ public final class OpticMenuChrome {
 		float size = 16.0F;
 		int ww = OpticUiFont.widthSharp(client, word, OpticTheme.TEXT, size);
 		OpticUiFont.drawSharp(client, word, (w - ww) / 2, layout.wordY, OpticTheme.TEXT, size);
-		String sub = "CLIENT  \u00b7  1.7.10";
-		float subSize = 7.5F;
-		int sw = OpticUiFont.widthSharp(client, sub, ACCENT, subSize);
-		OpticUiFont.drawSharp(client, sub, (w - sw) / 2, layout.wordY + 19, ACCENT, subSize);
-		int rule = 64;
-		OpticTheme.accentLine(w / 2, layout.wordY + 31, rule / 2, 1);
-		mirroredAccentLine(w / 2 - rule / 2, layout.wordY + 31, rule / 2);
 	}
 
 	public static void drawTopBar(MinecraftClient client, Layout layout, int mouseX, int mouseY) {

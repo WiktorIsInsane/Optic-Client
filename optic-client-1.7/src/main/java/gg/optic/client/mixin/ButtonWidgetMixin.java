@@ -57,9 +57,7 @@ public abstract class ButtonWidgetMixin extends DrawableHelper {
 		boolean hot = hovered && active;
 		int fill = !active ? OpticTheme.BUTTON_OFF : hot ? OpticTheme.BUTTON_HOVER : OpticTheme.BUTTON;
 		OpticUiDraw.fillExact(client, x, y, width, height, 5, fill);
-		DrawableHelper.fill(x + 5, y + 1, x + width - 5, y + 2, OpticTheme.HIGHLIGHT);
 		OpticUiDraw.outlineExact(client, x, y, width, height, 5, hot ? ACCENT : OpticTheme.BORDER);
-		if (hot) OpticTheme.accentEdge(x, y, height, true);
 
 		String label = message == null ? "" : message;
 		if (title && id == 1) label = "Singleplayer";

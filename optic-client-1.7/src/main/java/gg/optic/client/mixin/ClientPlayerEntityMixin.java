@@ -29,6 +29,8 @@ public abstract class ClientPlayerEntityMixin {
 		OpticConfig c = OpticClient.get().config();
 		if (!c.particles) return;
 		ci.cancel();
-		if (c.renderOwnParticles) OpticHitParticles.burst(target, "magicCrit");
+		// As on 1.8.9: Always Sharpness keeps your own sharpness particles even with Render Own
+		// Particles off (that combo hid them only on enchanted swords, while fists showed them).
+		if (c.renderOwnParticles || c.alwaysSharpnessParticles) OpticHitParticles.burst(target, "magicCrit");
 	}
 }

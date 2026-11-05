@@ -27,17 +27,18 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Top-right account chip + dropdown (hot-swap, sign-in offline/Microsoft). */
+/** Top-left account chip + dropdown (hot-swap, sign-in offline/Microsoft). The close X stays top-right. */
 public final class AccountMenuOverlay {
-	private static final int ACCENT = 0xFF5CFF8A;
+	private static final int ACCENT = OpticTheme.ACCENT;
 	private static final int ACCENT_HOVER = 0xFF3DB86A;
 	private static final int BACK = 0xFFFF4D4D;
 	private static final int CHIP = OpticMenuChrome.GLASS_20;
 	private static final int CHIP_HOT = OpticMenuChrome.GLASS_20_HOT;
-	private static final int PANEL = 0xF0101014;
+	private static final int PANEL = OpticTheme.PANEL;
 	private static final int HEAD = 14;
 	private static final int CHEV = 7;
 	private static final float NAME_SIZE = 8.0F;
+	private static final float CHIP_KIND_SIZE = 6.5F;
 	private static final int CHIP_H = OpticMenuChrome.BAR_H;
 	private static final int CHIP_Y = OpticMenuChrome.BAR_Y;
 	private static Identifier chevronIcon;
@@ -79,11 +80,13 @@ public final class AccountMenuOverlay {
 		SharedAccount active = resolveActive(client);
 		String name = displayName(client, active);
 		int nameW = OpticUiFont.widthSharp(client, name, 0xFFFFFFFF, NAME_SIZE);
-		return Math.min(220, 4 + HEAD + 6 + nameW + 8 + CHEV + 8);
+		int kindW = OpticUiFont.widthSharp(client, kindLabel(active).toUpperCase(), ACCENT, CHIP_KIND_SIZE);
+		return Math.min(240, 4 + HEAD + 7 + nameW + 7 + kindW + 9 + CHEV + 8);
 	}
 
+	/** Pinned to the top-left corner, level with the close button on the right. */
 	public int chipX(MinecraftClient client, int screenWidth) {
-		return Math.max(4, screenWidth - RIGHT_GUTTER - chipWidth(client));
+		return OpticMenuChrome.BAR_EDGE;
 	}
 
 	public void render(MinecraftClient client, int screenWidth, int mouseX, int mouseY) {
@@ -98,14 +101,21 @@ public final class AccountMenuOverlay {
 		int y = CHIP_Y;
 		boolean hot = inside(mouseX, mouseY, x, y, chipW, CHIP_H);
 
-		OpticUiDraw.fillExact(client, x, y, chipW, CHIP_H, CHIP_H / 2, hot ? CHIP_HOT : CHIP);
+		// Glass pill: head, name, account type in accent, chevron. Accent outline when hovered/open.
+		boolean open = mode != Mode.CLOSED;
+		OpticUiDraw.fillExact(client, x, y, chipW, CHIP_H, CHIP_H / 2, hot || open ? OpticTheme.BUTTON_HOVER : OpticTheme.BUTTON);
+		OpticUiDraw.outlineExact(client, x, y, chipW, CHIP_H, CHIP_H / 2, hot || open ? ACCENT : OpticTheme.BORDER);
 		int headX = x + 3;
 		int headY = y + (CHIP_H - HEAD) / 2;
 		drawHead(client, uuid, headX, headY, HEAD);
-		drawBadge(client, headX + HEAD - 6, headY + HEAD - 6, 8);
+		int nameX = headX + HEAD + 7;
 		int nameH = OpticUiFont.heightSharp(client, name, 0xFFFFFFFF, NAME_SIZE);
-		OpticUiFont.drawSharp(client, name, headX + HEAD + 6, y + (CHIP_H - nameH) / 2, 0xFFFFFFFF, NAME_SIZE);
-		drawIcon(client, chevron(client), x + chipW - 8 - CHEV, y + (CHIP_H - CHEV) / 2, CHEV, 0xFFE4E4EA, mode != Mode.CLOSED);
+		OpticUiFont.drawSharp(client, name, nameX, y + (CHIP_H - nameH) / 2, OpticTheme.TEXT, NAME_SIZE);
+		String kind = kindLabel(active).toUpperCase();
+		int kindX = nameX + OpticUiFont.widthSharp(client, name, 0xFFFFFFFF, NAME_SIZE) + 7;
+		int kindH = OpticUiFont.heightSharp(client, kind, ACCENT, CHIP_KIND_SIZE);
+		OpticUiFont.drawSharp(client, kind, kindX, y + (CHIP_H - kindH) / 2 + 1, ACCENT, CHIP_KIND_SIZE);
+		drawIcon(client, chevron(client), x + chipW - 8 - CHEV, y + (CHIP_H - CHEV) / 2, CHEV, hot || open ? ACCENT : 0xFFE4E4EA, open);
 
 		if (mode == Mode.LIST) {
 			drawList(client, active, x, chipW, y, mouseX, mouseY);
@@ -197,7 +207,7 @@ public final class AccountMenuOverlay {
 		int menuX = menuX(chipX, chipW, MENU_W);
 		int menuY = chipY + CHIP_H + 6;
 		OpticUiDraw.fillExact(client, menuX, menuY, MENU_W, menuH, 8, PANEL);
-		OpticUiDraw.outlineExact(client, menuX, menuY, MENU_W, menuH, 8, 0x22FFFFFF);
+		OpticUiDraw.outlineExact(client, menuX, menuY, MENU_W, menuH, 8, OpticTheme.BORDER);
 
 		int head = 18;
 		drawHead(client, active == null ? "" : active.uuid, menuX + 8, menuY + 8, head);
@@ -205,7 +215,7 @@ public final class AccountMenuOverlay {
 		name = fitText(client, name, MENU_W - 40, 9.0F);
 		OpticUiFont.drawSharp(client, name, menuX + 8 + head + 8, menuY + 8, 0xFFFFFFFF, 9.0F);
 		OpticUiFont.drawSharp(client, kindLabel(active), menuX + 8 + head + 8, menuY + 20, 0xFF9A9AA8, KIND_SIZE);
-		fill(menuX + 8, menuY + HEADER_H, menuX + MENU_W - 8, menuY + HEADER_H + 1, 0x18FFFFFF);
+		OpticTheme.accentLine(menuX + 8, menuY + HEADER_H, MENU_W - 16, 1);
 
 		int rowY = menuY + HEADER_H + 4;
 		for (SharedAccount account : others) {
@@ -272,7 +282,7 @@ public final class AccountMenuOverlay {
 		int menuX = menuX(chipX, chipW, MENU_W);
 		int menuY = chipY + CHIP_H + 6;
 		OpticUiDraw.fillExact(client, menuX, menuY, MENU_W, menuH, 8, PANEL);
-		OpticUiDraw.outlineExact(client, menuX, menuY, MENU_W, menuH, 8, 0x22FFFFFF);
+		OpticUiDraw.outlineExact(client, menuX, menuY, MENU_W, menuH, 8, OpticTheme.BORDER);
 		boolean backHot = inside(mouseX, mouseY, menuX, menuY + 4, MENU_W, 16);
 		OpticUiFont.drawSharp(client, "Back", menuX + 10, menuY + 6, backHot ? 0xFFFFFFFF : 0xFF9A9AA8, KIND_SIZE);
 
@@ -286,7 +296,7 @@ public final class AccountMenuOverlay {
 		int offY = msY + 28;
 		boolean offHot = inside(mouseX, mouseY, menuX + 8, offY, MENU_W - 16, 24);
 		OpticUiDraw.fillExact(client, menuX + 8, offY, MENU_W - 16, 24, 6, offHot ? 0xFF1C1C22 : 0xFF141418);
-		OpticUiDraw.outlineExact(client, menuX + 8, offY, MENU_W - 16, 24, 6, 0x33FFFFFF);
+		OpticUiDraw.outlineExact(client, menuX + 8, offY, MENU_W - 16, 24, 6, OpticTheme.BORDER);
 		String off = "Offline account";
 		int offW = OpticUiFont.widthSharp(client, off, 0xFFFFFFFF, ROW_SIZE);
 		OpticUiFont.drawSharp(client, off, menuX + (MENU_W - offW) / 2, offY + 7, 0xFFFFFFFF, ROW_SIZE);
@@ -325,7 +335,7 @@ public final class AccountMenuOverlay {
 		int menuX = menuX(chipX, chipW, MENU_W);
 		int menuY = chipY + CHIP_H + 6;
 		OpticUiDraw.fillExact(client, menuX, menuY, MENU_W, menuH, 8, PANEL);
-		OpticUiDraw.outlineExact(client, menuX, menuY, MENU_W, menuH, 8, 0x22FFFFFF);
+		OpticUiDraw.outlineExact(client, menuX, menuY, MENU_W, menuH, 8, OpticTheme.BORDER);
 		boolean backHot = inside(mouseX, mouseY, menuX, menuY + 4, MENU_W, 16);
 		OpticUiFont.drawSharp(client, "Back", menuX + 10, menuY + 6, backHot ? 0xFFFFFFFF : 0xFF9A9AA8, KIND_SIZE);
 		OpticUiDraw.fillExact(client, menuX + 8, menuY + 26, MENU_W - 16, 22, 6, 0xFF101014);
@@ -359,7 +369,7 @@ public final class AccountMenuOverlay {
 		int menuX = menuX(chipX, chipW, MENU_W);
 		int menuY = chipY + CHIP_H + 6;
 		OpticUiDraw.fillExact(client, menuX, menuY, MENU_W, 58, 8, PANEL);
-		OpticUiDraw.outlineExact(client, menuX, menuY, MENU_W, 58, 8, 0x22FFFFFF);
+		OpticUiDraw.outlineExact(client, menuX, menuY, MENU_W, 58, 8, OpticTheme.BORDER);
 		OpticUiFont.drawSharp(client, "Microsoft sign-in", menuX + 10, menuY + 8, 0xFFFFFFFF, 9.0F);
 		String line = msStatus.isEmpty() ? "Starting..." : msStatus;
 		if (!msCode.isEmpty()) line = line + " " + msCode;
@@ -484,8 +494,9 @@ public final class AccountMenuOverlay {
 		return name == null ? "" : name.toUpperCase();
 	}
 
+	/** Dropdown opens under the chip, aligned to its left edge. */
 	private static int menuX(int chipX, int chipW, int menuW) {
-		return Math.max(4, chipX + chipW - menuW);
+		return Math.max(4, chipX);
 	}
 
 	private static String fitText(MinecraftClient client, String text, int maxW, float size) {

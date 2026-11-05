@@ -37,6 +37,7 @@
     "OpticListAccess",
     "OpticPanoramaAccess",
     "OpticScreenAccess",
+    "ParticleManagerMixin",
     "PlayerSkinTextureMixin",
     "ScreenBackgroundMixin",
     "SelectWorldScreenMixin",

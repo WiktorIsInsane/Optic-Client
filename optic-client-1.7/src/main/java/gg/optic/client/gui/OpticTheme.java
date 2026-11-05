@@ -33,8 +33,12 @@ public final class OpticTheme {
 	public static final int SHADOW = 0x55000000;
 
 	// Lines and text.
-	public static final int BORDER = 0x1EFFFFFF;
-	public static final int BORDER_SOFT = 0x12FFFFFF;
+	// Outlines are solid colors: see-through ones blend twice where the rounded-corner pieces
+	// overlap and look broken.
+	public static final int BORDER = 0xFF25272E;
+	public static final int BORDER_SOFT = 0xFF1C1E23;
+	/** Outline of an enabled card / active tab: solid dark green. */
+	public static final int BORDER_ON = 0xFF2C6B45;
 	public static final int HIGHLIGHT = 0x0FFFFFFF;
 	public static final int TEXT = 0xFFF2F4F7;
 	public static final int MUTED = 0xFF8C93A1;
