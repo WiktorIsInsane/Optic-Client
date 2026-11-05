@@ -156,7 +156,7 @@ public final class OpticNametags {
 		if (plate < 0.0F) plate = 0.0F;
 		else if (plate > 1.0F) plate = 1.0F;
 		if (c.nametagsBackground && plate > 0.0F) {
-			float[] bg = rgba(c.nametagsBackgroundColor, plate * 0.25F);
+			float[] bg = rgba(c.nametagsBackgroundColor, plate) /* real alpha: up to fully solid, CheatBreaker-style */;
 			GlStateManager.disableTexture();
 			// 1.7 Tessellator: one colour for the whole quad batch, set before the vertices.
 			Tessellator buf = Tessellator.INSTANCE;

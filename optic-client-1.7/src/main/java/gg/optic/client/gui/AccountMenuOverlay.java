@@ -37,6 +37,8 @@ public final class AccountMenuOverlay {
 	private static final int PANEL = OpticTheme.PANEL;
 	private static final int HEAD = 14;
 	private static final int CHEV = 7;
+	/** Space between the head and the name on the chip. */
+	private static final int HEAD_GAP = 4;
 	private static final float NAME_SIZE = 8.0F;
 	private static final float CHIP_KIND_SIZE = 6.5F;
 	private static final int CHIP_H = OpticMenuChrome.BAR_H;
@@ -80,8 +82,7 @@ public final class AccountMenuOverlay {
 		SharedAccount active = resolveActive(client);
 		String name = displayName(client, active);
 		int nameW = OpticUiFont.widthSharp(client, name, 0xFFFFFFFF, NAME_SIZE);
-		int kindW = OpticUiFont.widthSharp(client, kindLabel(active).toUpperCase(), ACCENT, CHIP_KIND_SIZE);
-		return Math.min(240, 4 + HEAD + 7 + nameW + 7 + kindW + 9 + CHEV + 8);
+		return Math.min(240, 3 + HEAD + HEAD_GAP + nameW + 4);
 	}
 
 	/** Pinned to the top-left corner, level with the close button on the right. */
@@ -101,21 +102,14 @@ public final class AccountMenuOverlay {
 		int y = CHIP_Y;
 		boolean hot = inside(mouseX, mouseY, x, y, chipW, CHIP_H);
 
-		// Glass pill: head, name, account type in accent, chevron. Accent outline when hovered/open.
+		// No background at all: head, name, account type in accent, chevron. Name and chevron go accent on hover.
 		boolean open = mode != Mode.CLOSED;
-		OpticUiDraw.fillExact(client, x, y, chipW, CHIP_H, CHIP_H / 2, hot || open ? OpticTheme.BUTTON_HOVER : OpticTheme.BUTTON);
-		OpticUiDraw.outlineExact(client, x, y, chipW, CHIP_H, CHIP_H / 2, hot || open ? ACCENT : OpticTheme.BORDER);
 		int headX = x + 3;
 		int headY = y + (CHIP_H - HEAD) / 2;
-		drawHead(client, uuid, headX, headY, HEAD);
-		int nameX = headX + HEAD + 7;
+		drawHead(client, uuid, active != null ? active.username : client.getSession().getUsername(), headX, headY, HEAD);
+		int nameX = headX + HEAD + HEAD_GAP;
 		int nameH = OpticUiFont.heightSharp(client, name, 0xFFFFFFFF, NAME_SIZE);
-		OpticUiFont.drawSharp(client, name, nameX, y + (CHIP_H - nameH) / 2, OpticTheme.TEXT, NAME_SIZE);
-		String kind = kindLabel(active).toUpperCase();
-		int kindX = nameX + OpticUiFont.widthSharp(client, name, 0xFFFFFFFF, NAME_SIZE) + 7;
-		int kindH = OpticUiFont.heightSharp(client, kind, ACCENT, CHIP_KIND_SIZE);
-		OpticUiFont.drawSharp(client, kind, kindX, y + (CHIP_H - kindH) / 2 + 1, ACCENT, CHIP_KIND_SIZE);
-		drawIcon(client, chevron(client), x + chipW - 8 - CHEV, y + (CHIP_H - CHEV) / 2, CHEV, hot || open ? ACCENT : 0xFFE4E4EA, open);
+		OpticUiFont.drawSharp(client, name, nameX, y + (CHIP_H - nameH) / 2, hot || open ? ACCENT : OpticTheme.TEXT, NAME_SIZE);
 
 		if (mode == Mode.LIST) {
 			drawList(client, active, x, chipW, y, mouseX, mouseY);
@@ -210,7 +204,7 @@ public final class AccountMenuOverlay {
 		OpticUiDraw.outlineExact(client, menuX, menuY, MENU_W, menuH, 8, OpticTheme.BORDER);
 
 		int head = 18;
-		drawHead(client, active == null ? "" : active.uuid, menuX + 8, menuY + 8, head);
+		drawHead(client, active == null ? "" : active.uuid, active == null ? client.getSession().getUsername() : active.username, menuX + 8, menuY + 8, head);
 		String name = active == null || active.username == null ? "Not signed in" : active.username;
 		name = fitText(client, name, MENU_W - 40, 9.0F);
 		OpticUiFont.drawSharp(client, name, menuX + 8 + head + 8, menuY + 8, 0xFFFFFFFF, 9.0F);
@@ -222,7 +216,7 @@ public final class AccountMenuOverlay {
 			if (inside(mouseX, mouseY, menuX + 4, rowY, MENU_W - 8, ROW_H)) {
 				OpticUiDraw.fillExact(client, menuX + 4, rowY, MENU_W - 8, ROW_H, 4, 0x14FFFFFF);
 			}
-			drawHead(client, account.uuid, menuX + 8, rowY + (ROW_H - ROW_HEAD) / 2, ROW_HEAD);
+			drawHead(client, account.uuid, account.username, menuX + 8, rowY + (ROW_H - ROW_HEAD) / 2, ROW_HEAD);
 			String ign = fitText(client, account.username == null ? "" : account.username, MENU_W - 48, ROW_SIZE);
 			OpticUiFont.drawSharp(client, ign, menuX + 8 + ROW_HEAD + 8, rowY + 4, 0xFFFFFFFF, ROW_SIZE);
 			OpticUiFont.drawSharp(client, kindLabel(account), menuX + 8 + ROW_HEAD + 8, rowY + 14, 0xFF9A9AA8, KIND_SIZE);
@@ -589,7 +583,12 @@ public final class AccountMenuOverlay {
 	}
 
 	private static void drawHead(MinecraftClient client, String uuid, int x, int y, int size) {
-		Identifier head = AccountHeads.get(client, uuid);
+		drawHead(client, uuid, null, x, y, size);
+	}
+
+	/** The account's real skin face; nearest filtering keeps the skin pixels square. */
+	private static void drawHead(MinecraftClient client, String uuid, String name, int x, int y, int size) {
+		Identifier head = AccountHeads.get(client, uuid, name);
 		if (head != null) {
 			GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 			GlStateManager.enableBlend();
@@ -597,7 +596,7 @@ public final class AccountMenuOverlay {
 			client.getTextureManager().bindTexture(head);
 			net.minecraft.client.texture.Texture bound = client.getTextureManager().getTexture(head);
 			if (bound instanceof net.minecraft.client.texture.AbstractTexture) {
-				gg.optic.client.compat.Mc17.setFilter((net.minecraft.client.texture.AbstractTexture) bound, true, true);
+				gg.optic.client.compat.Mc17.setFilter((net.minecraft.client.texture.AbstractTexture) bound, false, false);
 			}
 			DrawableHelper.drawTexture(x, y, 0.0F, 0.0F, 128, 128, size, size, 128.0F, 128.0F);
 			GlStateManager.disableBlend();

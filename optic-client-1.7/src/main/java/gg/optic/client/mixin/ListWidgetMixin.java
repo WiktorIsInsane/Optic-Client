@@ -83,6 +83,10 @@ public abstract class ListWidgetMixin {
 	}
 
 	private boolean optic$browser() {
-		return client != null && (client.currentScreen instanceof MultiplayerScreen || client.currentScreen instanceof SelectWorldScreen);
+		if (client == null) return false;
+		if (client.currentScreen instanceof MultiplayerScreen || client.currentScreen instanceof SelectWorldScreen) return true;
+		// Lists in out-of-game menus (controls, language, resource packs) sit on the wallpaper too.
+		return client.world == null && client.currentScreen != null
+			&& !(client.currentScreen instanceof net.minecraft.client.gui.screen.TitleScreen);
 	}
 }

@@ -62,6 +62,9 @@ public final class OpticRevampOptions {
 		if ("keystrokesShowLeftCps".equals(key)) return c.keystrokesShowLeftCps;
 		if ("keystrokesShowRightCps".equals(key)) return c.keystrokesShowRightCps;
 		if ("keystrokesBorder".equals(key)) return c.keystrokesBorder;
+		if ("bossBarShow".equals(key)) return c.bossBarShow;
+		if ("bossBarShowName".equals(key)) return c.bossBarShowName;
+		if ("bossBarShowBar".equals(key)) return c.bossBarShowBar;
 		if ("pvpLowFire".equals(key)) return c.pvpLowFire;
 		if ("pvpNoPumpkin".equals(key)) return c.pvpNoPumpkin;
 		if ("pvpClearWater".equals(key)) return c.pvpClearWater;
@@ -138,6 +141,9 @@ public final class OpticRevampOptions {
 		else if ("keystrokesShowLeftCps".equals(key)) c.keystrokesShowLeftCps = value;
 		else if ("keystrokesShowRightCps".equals(key)) c.keystrokesShowRightCps = value;
 		else if ("keystrokesBorder".equals(key)) c.keystrokesBorder = value;
+		else if ("bossBarShow".equals(key)) c.bossBarShow = value;
+		else if ("bossBarShowName".equals(key)) c.bossBarShowName = value;
+		else if ("bossBarShowBar".equals(key)) c.bossBarShowBar = value;
 		else if ("pvpLowFire".equals(key)) c.pvpLowFire = value;
 		else if ("pvpNoPumpkin".equals(key)) c.pvpNoPumpkin = value;
 		else if ("pvpClearWater".equals(key)) c.pvpClearWater = value;
@@ -291,6 +297,7 @@ public final class OpticRevampOptions {
 		if ("keystrokesBoxSize".equals(key)) return c.keystrokesBoxSize;
 		if ("keystrokesBorderThickness".equals(key)) return c.keystrokesBorderThickness;
 		if ("keystrokesSpaceThickness".equals(key)) return c.keystrokesSpaceThickness;
+		if ("bossBarScale".equals(key)) return c.bossBarScale;
 		if ("keystrokesAnimDuration".equals(key)) return c.keystrokesAnimDuration;
 		if ("titlesScale".equals(key)) return c.titlesScale;
 		if ("hitColorAlpha".equals(key)) return c.hitColorAlpha;
@@ -312,6 +319,7 @@ public final class OpticRevampOptions {
 		else if ("keystrokesBoxSize".equals(key)) c.keystrokesBoxSize = clamp(value, 10.0F, 32.0F);
 		else if ("keystrokesBorderThickness".equals(key)) c.keystrokesBorderThickness = clamp(value, 0.5F, 3.0F);
 		else if ("keystrokesSpaceThickness".equals(key)) c.keystrokesSpaceThickness = clamp(value, 1.0F, 4.25F);
+		else if ("bossBarScale".equals(key)) c.bossBarScale = clamp(value, 0.5F, 3.0F);
 		else if ("keystrokesAnimDuration".equals(key)) c.keystrokesAnimDuration = clamp(value, 0.1F, 1.0F);
 		else if ("titlesScale".equals(key)) c.titlesScale = clamp(value, 0.5F, 3.0F);
 		else if ("hitColorAlpha".equals(key)) c.hitColorAlpha = clamp(value, 0.05F, 1.0F);

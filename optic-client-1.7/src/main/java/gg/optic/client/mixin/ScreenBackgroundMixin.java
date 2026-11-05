@@ -25,7 +25,9 @@ public abstract class ScreenBackgroundMixin {
 
 	@Inject(method = "renderBackground()V", at = @At("HEAD"), cancellable = true)
 	private void optic$worldBackground(CallbackInfo ci) {
-		if (!((Object) this instanceof MultiplayerScreen) && !((Object) this instanceof SelectWorldScreen)) return;
+		// Every out-of-game menu (worlds, servers, options and its sub-screens) uses the menu wallpaper.
+		boolean browser = (Object) this instanceof MultiplayerScreen || (Object) this instanceof SelectWorldScreen;
+		if (!browser && (client == null || client.world != null)) return;
 		OpticWorldBackground.draw(client, this.width, this.height);
 		ci.cancel();
 	}

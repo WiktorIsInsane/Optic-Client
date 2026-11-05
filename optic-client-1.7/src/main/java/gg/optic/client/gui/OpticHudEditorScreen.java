@@ -92,6 +92,9 @@ public final class OpticHudEditorScreen extends Screen {
 		if (c.hotbar) {
 			items.add(HudItem.box("HOTBAR", OpticModScreen.MODULE_HOTBAR, true));
 		}
+		if (c.bossBar && c.bossBarShow) {
+			items.add(HudItem.box("BOSSBAR", OpticModScreen.MODULE_BOSS_BAR, true));
+		}
 		refreshBounds();
 	}
 
@@ -116,6 +119,11 @@ public final class OpticHudEditorScreen extends Screen {
 				item.y = OpticHudLayout.hotbarY(c, window) - 2;
 				item.w = OpticHudLayout.hotbarDrawW(c) + 4;
 				item.h = OpticHudLayout.hotbarDrawH(c) + 4;
+			} else if ("BOSSBAR".equals(item.id)) {
+				item.x = gg.optic.client.hud.OpticBossBar.x(c, window) - 2;
+				item.y = gg.optic.client.hud.OpticBossBar.y(c) - 2;
+				item.w = gg.optic.client.hud.OpticBossBar.drawW(c) + 4;
+				item.h = gg.optic.client.hud.OpticBossBar.drawH(c) + 4;
 			} else if ("FPS".equals(item.id) || "CPS".equals(item.id) || "PING".equals(item.id) || "XYZ".equals(item.id) || "POTIONS".equals(item.id) || "TITLES".equals(item.id)) {
 				int[] size = elementSize(item.id, c);
 				item.x = posX(item.id, c) - 2;
@@ -207,6 +215,7 @@ public final class OpticHudEditorScreen extends Screen {
 		if ("TITLES".equals(id)) return c.titlesScale;
 		if ("KEYSTROKES".equals(id)) return c.keystrokesScale;
 		if ("HOTBAR".equals(id)) return c.hotbarScale;
+		if ("BOSSBAR".equals(id)) return c.bossBarScale;
 		return 1.0F;
 	}
 
@@ -222,6 +231,7 @@ public final class OpticHudEditorScreen extends Screen {
 		else if ("TITLES".equals(id)) c.titlesScale = scale;
 		else if ("KEYSTROKES".equals(id)) c.keystrokesScale = scale;
 		else if ("HOTBAR".equals(id)) c.hotbarScale = scale;
+		else if ("BOSSBAR".equals(id)) c.bossBarScale = scale;
 	}
 
 	private int posX(String id, OpticConfig c) {
@@ -241,6 +251,9 @@ public final class OpticHudEditorScreen extends Screen {
 		if ("HOTBAR".equals(id)) {
 			return OpticHudLayout.hotbarX(c, new Window(client, client.width, client.height));
 		}
+		if ("BOSSBAR".equals(id)) {
+			return gg.optic.client.hud.OpticBossBar.x(c, new Window(client, client.width, client.height));
+		}
 		return 0;
 	}
 
@@ -258,6 +271,7 @@ public final class OpticHudEditorScreen extends Screen {
 		if ("HOTBAR".equals(id)) {
 			return OpticHudLayout.hotbarY(c, new Window(client, client.width, client.height));
 		}
+		if ("BOSSBAR".equals(id)) return gg.optic.client.hud.OpticBossBar.y(c);
 		return 0;
 	}
 
@@ -283,6 +297,9 @@ public final class OpticHudEditorScreen extends Screen {
 		} else if ("HOTBAR".equals(id)) {
 			c.hotbarX = x;
 			c.hotbarY = y;
+		} else if ("BOSSBAR".equals(id)) {
+			c.bossBarX = x;
+			c.bossBarY = y;
 		}
 	}
 

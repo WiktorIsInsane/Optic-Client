@@ -34,9 +34,23 @@ public final class OpticWorldBackground {
 		GlStateManager.disableLighting();
 		GlStateManager.disableRescaleNormal();
 		GlStateManager.disableDepthTest();
+		GlStateManager.enableTexture();
+		OpticMenuChrome.drawWallpaper(client, width, height);
+		GlStateManager.enableBlend();
+		DrawableHelper.fill(0, 0, width, height, WALLPAPER_DARK);
+		GlStateManager.enableBlend();
+		GlStateManager.blendFuncSeparate(770, 771, 1, 0);
+		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+	}
+
+	/** Darkens the wallpaper behind lists and settings so white text stays readable. */
+	private static final int WALLPAPER_DARK = 0x8C000000;
+
+	/** The old darkened title-screen world (kept as a fallback). */
+	public static void drawPanoramaWorld(MinecraftClient client, int width, int height) {
 		if (!failed) {
 			try {
-				drawWorld(client, width, height, now);
+				drawWorld(client, width, height, System.nanoTime());
 			} catch (Throwable error) {
 				failed = true;
 				System.out.println("[Optic] World background unavailable: " + error);

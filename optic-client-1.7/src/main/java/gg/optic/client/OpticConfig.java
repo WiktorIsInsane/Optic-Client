@@ -77,6 +77,15 @@ public final class OpticConfig {
 	public boolean pvpNoVignette = false;
 	public boolean pvpNoPortal = false;
 
+	// Boss Bar: hide, move and scale the boss bar (-1 = vanilla spot)
+	public boolean bossBar = false;
+	public boolean bossBarShow = true;
+	public boolean bossBarShowName = true;
+	public boolean bossBarShowBar = true;
+	public float bossBarScale = 1.0F;
+	public int bossBarX = -1;
+	public int bossBarY = -1;
+
 	// Hitboxes
 	public boolean hitboxes = false;
 	/** Hide the blue look-direction line. */
@@ -383,7 +392,8 @@ public final class OpticConfig {
 	public int nametagsToggleAllKey = 0;
 	public int nametagsTogglePlayersKey = 0;
 	/** 0–1. On 1.8 the plate alpha is this value times 0.25. */
-	public float nametagsBackgroundOpacity = 1.0F;
+	/** Real alpha of the nametag plate, 0..1 (stored as nametagsBackgroundAlpha; 0.25 = vanilla). */
+	public float nametagsBackgroundOpacity = 0.25F;
 	public boolean nametagsBadlionFont = false;
 	public boolean nametagsRoundedCorners = false;
 	public boolean nametagsBackground = true;
@@ -571,6 +581,13 @@ public final class OpticConfig {
 		pvpClearWater = read(values, "pvpClearWater", pvpClearWater);
 		pvpNoVignette = read(values, "pvpNoVignette", pvpNoVignette);
 		pvpNoPortal = read(values, "pvpNoPortal", pvpNoPortal);
+		bossBar = read(values, "bossBar", bossBar);
+		bossBarShow = read(values, "bossBarShow", bossBarShow);
+		bossBarShowName = read(values, "bossBarShowName", bossBarShowName);
+		bossBarShowBar = read(values, "bossBarShowBar", bossBarShowBar);
+		bossBarScale = clampFloat(readFloat(values, "bossBarScale", bossBarScale), 0.5F, 3.0F);
+		bossBarX = readInt(values, "bossBarX", bossBarX);
+		bossBarY = readInt(values, "bossBarY", bossBarY);
 		hitboxHideLook = read(values, "hitboxHideLook", hitboxHideLook);
 		hitboxPlayerColor = readColor(values, "hitboxPlayerColor", hitboxPlayerColor);
 		hitboxMobColor = readColor(values, "hitboxMobColor", hitboxMobColor);
@@ -713,7 +730,10 @@ public final class OpticConfig {
 		nametagsReplaceOwnColor = read(values, "nametagsReplaceOwnColor", nametagsReplaceOwnColor);
 		nametagsToggleAllKey = readInt(values, "nametagsToggleAllKey", nametagsToggleAllKey);
 		nametagsTogglePlayersKey = readInt(values, "nametagsTogglePlayersKey", nametagsTogglePlayersKey);
-		nametagsBackgroundOpacity = clampFloat(readFloat(values, "nametagsBackgroundOpacity", nametagsBackgroundOpacity), 0.0F, 1.0F);
+		// Older configs stored a value the renderer multiplied by 0.25; convert it once.
+		nametagsBackgroundOpacity = values.getProperty("nametagsBackgroundAlpha") != null
+			? clampFloat(readFloat(values, "nametagsBackgroundAlpha", nametagsBackgroundOpacity), 0.0F, 1.0F)
+			: clampFloat(readFloat(values, "nametagsBackgroundOpacity", 1.0F) * 0.25F, 0.0F, 1.0F);
 		nametagsBadlionFont = read(values, "nametagsBadlionFont", nametagsBadlionFont);
 		nametagsRoundedCorners = read(values, "nametagsRoundedCorners", nametagsRoundedCorners);
 		nametagsBackground = read(values, "nametagsBackground", nametagsBackground);
@@ -899,6 +919,13 @@ public final class OpticConfig {
 		values.setProperty("pvpClearWater", Boolean.toString(pvpClearWater));
 		values.setProperty("pvpNoVignette", Boolean.toString(pvpNoVignette));
 		values.setProperty("pvpNoPortal", Boolean.toString(pvpNoPortal));
+		values.setProperty("bossBar", Boolean.toString(bossBar));
+		values.setProperty("bossBarShow", Boolean.toString(bossBarShow));
+		values.setProperty("bossBarShowName", Boolean.toString(bossBarShowName));
+		values.setProperty("bossBarShowBar", Boolean.toString(bossBarShowBar));
+		values.setProperty("bossBarScale", Float.toString(bossBarScale));
+		values.setProperty("bossBarX", Integer.toString(bossBarX));
+		values.setProperty("bossBarY", Integer.toString(bossBarY));
 		values.setProperty("hitboxHideLook", Boolean.toString(hitboxHideLook));
 		values.setProperty("hitboxPlayerColor", toHex(hitboxPlayerColor));
 		values.setProperty("hitboxMobColor", toHex(hitboxMobColor));
@@ -1042,7 +1069,7 @@ public final class OpticConfig {
 		values.setProperty("nametagsReplaceOwnColor", Boolean.toString(nametagsReplaceOwnColor));
 		values.setProperty("nametagsToggleAllKey", Integer.toString(nametagsToggleAllKey));
 		values.setProperty("nametagsTogglePlayersKey", Integer.toString(nametagsTogglePlayersKey));
-		values.setProperty("nametagsBackgroundOpacity", Float.toString(nametagsBackgroundOpacity));
+		values.setProperty("nametagsBackgroundAlpha", Float.toString(nametagsBackgroundOpacity));
 		values.setProperty("nametagsBadlionFont", Boolean.toString(nametagsBadlionFont));
 		values.setProperty("nametagsRoundedCorners", Boolean.toString(nametagsRoundedCorners));
 		values.setProperty("nametagsBackground", Boolean.toString(nametagsBackground));
@@ -1172,6 +1199,13 @@ public final class OpticConfig {
 		o.addProperty("pvpClearWater", pvpClearWater);
 		o.addProperty("pvpNoVignette", pvpNoVignette);
 		o.addProperty("pvpNoPortal", pvpNoPortal);
+		o.addProperty("bossBar", bossBar);
+		o.addProperty("bossBarShow", bossBarShow);
+		o.addProperty("bossBarShowName", bossBarShowName);
+		o.addProperty("bossBarShowBar", bossBarShowBar);
+		o.addProperty("bossBarScale", bossBarScale);
+		o.addProperty("bossBarX", bossBarX);
+		o.addProperty("bossBarY", bossBarY);
 		o.addProperty("hitboxHideLook", hitboxHideLook);
 		o.addProperty("hitboxPlayerColor", toHex(hitboxPlayerColor));
 		o.addProperty("hitboxMobColor", toHex(hitboxMobColor));
@@ -1307,7 +1341,7 @@ public final class OpticConfig {
 		o.addProperty("nametagsReplaceOwnColor", nametagsReplaceOwnColor);
 		o.addProperty("nametagsToggleAllKey", nametagsToggleAllKey);
 		o.addProperty("nametagsTogglePlayersKey", nametagsTogglePlayersKey);
-		o.addProperty("nametagsBackgroundOpacity", nametagsBackgroundOpacity);
+		o.addProperty("nametagsBackgroundAlpha", nametagsBackgroundOpacity);
 		o.addProperty("nametagsBadlionFont", nametagsBadlionFont);
 		o.addProperty("nametagsRoundedCorners", nametagsRoundedCorners);
 		o.addProperty("nametagsBackground", nametagsBackground);
@@ -1421,6 +1455,13 @@ public final class OpticConfig {
 		pvpClearWater = getBool(o, "pvpClearWater", pvpClearWater);
 		pvpNoVignette = getBool(o, "pvpNoVignette", pvpNoVignette);
 		pvpNoPortal = getBool(o, "pvpNoPortal", pvpNoPortal);
+		bossBar = getBool(o, "bossBar", bossBar);
+		bossBarShow = getBool(o, "bossBarShow", bossBarShow);
+		bossBarShowName = getBool(o, "bossBarShowName", bossBarShowName);
+		bossBarShowBar = getBool(o, "bossBarShowBar", bossBarShowBar);
+		bossBarScale = clampFloat(getFloat(o, "bossBarScale", bossBarScale), 0.5F, 3.0F);
+		bossBarX = getInt(o, "bossBarX", bossBarX);
+		bossBarY = getInt(o, "bossBarY", bossBarY);
 		hitboxHideLook = getBool(o, "hitboxHideLook", hitboxHideLook);
 		hitboxPlayerColor = getColor(o, "hitboxPlayerColor", hitboxPlayerColor);
 		hitboxMobColor = getColor(o, "hitboxMobColor", hitboxMobColor);
@@ -1558,7 +1599,9 @@ public final class OpticConfig {
 		nametagsReplaceOwnColor = getBool(o, "nametagsReplaceOwnColor", nametagsReplaceOwnColor);
 		nametagsToggleAllKey = getInt(o, "nametagsToggleAllKey", nametagsToggleAllKey);
 		nametagsTogglePlayersKey = getInt(o, "nametagsTogglePlayersKey", nametagsTogglePlayersKey);
-		nametagsBackgroundOpacity = clampFloat(getFloat(o, "nametagsBackgroundOpacity", nametagsBackgroundOpacity), 0.0F, 1.0F);
+		nametagsBackgroundOpacity = o.has("nametagsBackgroundAlpha")
+			? clampFloat(getFloat(o, "nametagsBackgroundAlpha", nametagsBackgroundOpacity), 0.0F, 1.0F)
+			: clampFloat(getFloat(o, "nametagsBackgroundOpacity", 1.0F) * 0.25F, 0.0F, 1.0F);
 		nametagsBadlionFont = getBool(o, "nametagsBadlionFont", nametagsBadlionFont);
 		nametagsRoundedCorners = getBool(o, "nametagsRoundedCorners", nametagsRoundedCorners);
 		nametagsBackground = getBool(o, "nametagsBackground", nametagsBackground);
@@ -1875,7 +1918,7 @@ public final class OpticConfig {
 				nametagsReplaceOwnColor = false;
 				nametagsToggleAllKey = 0;
 				nametagsTogglePlayersKey = 0;
-				nametagsBackgroundOpacity = 1.0F;
+				nametagsBackgroundOpacity = 0.25F;
 				nametagsBadlionFont = false;
 				nametagsRoundedCorners = false;
 				nametagsBackground = true;
@@ -1945,6 +1988,14 @@ public final class OpticConfig {
 				skins3dArms = true;
 				skins3dLegs = true;
 				skins3dDistance = 16.0F;
+				break;
+			case 40: // Boss Bar
+				bossBarShow = true;
+				bossBarShowName = true;
+				bossBarShowBar = true;
+				bossBarScale = 1.0F;
+				bossBarX = -1;
+				bossBarY = -1;
 				break;
 			case 39: // PvP Tweaks
 				pvpLowFire = true;

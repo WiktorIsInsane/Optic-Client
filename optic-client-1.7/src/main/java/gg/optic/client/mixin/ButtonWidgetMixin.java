@@ -47,8 +47,19 @@ public abstract class ButtonWidgetMixin extends DrawableHelper {
 		}
 
 		hovered = mouseX >= x && mouseY >= y && mouseX < x + width && mouseY < y + height;
-		boolean menuButton = id == 1 || id == 2 || id == 11 || id == 12 || id == 0 || id == 900;
+		boolean menuButton = id == 1 || id == 2 || id == 11 || id == 12 || id == 0 || id == 4 || id == 900;
 		if (title && !menuButton) {
+			ci.cancel();
+			return;
+		}
+		if (title) {
+			String label = message == null ? "" : message;
+			if (id == 1) label = "Singleplayer";
+			else if (id == 2) label = "Multiplayer";
+			else if (id == 0) label = "Options";
+			else if (id == 4) label = "Quit";
+			else if (id == 900) label = "Mods";
+			gg.optic.client.gui.OpticMenuChrome.drawMenuItem(client, x, y, width, height, label.toUpperCase(), hovered && active, active);
 			ci.cancel();
 			return;
 		}

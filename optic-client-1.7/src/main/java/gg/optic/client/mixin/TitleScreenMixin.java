@@ -44,6 +44,8 @@ public abstract class TitleScreenMixin extends Screen {
 	private void optic$accountClick(int mouseX, int mouseY, int button, CallbackInfo ci) {
 		if (button == 0 && optic$accounts.mouseClicked(client, mouseX, mouseY, width)) {
 			ci.cancel();
+		} else if (button == 0 && OpticMenuChrome.clickCosmetics(client, width, mouseX, mouseY)) {
+			ci.cancel();
 		}
 	}
 
@@ -84,42 +86,23 @@ public abstract class TitleScreenMixin extends Screen {
 		for (ButtonWidget button : list) if (button.id == MODS_BUTTON) hasMods = true;
 		if (!hasMods) list.add(new ButtonWidget(MODS_BUTTON, 0, 0, 98, 20, "Mods"));
 
-		// Rows: Singleplayer, Multiplayer (full width), then Options | Mods side by side.
-		int half = (layout.btnW - layout.btnGap) / 2;
-		int playIndex = 0;
-		for (ButtonWidget button : list) {
-			if (button.id == 1 || button.id == 2 || button.id == 11 || button.id == 12) {
+		// One left-aligned list: Singleplayer, Multiplayer (and demo buttons), Mods, Options, Quit.
+		int[] order = { 1, 2, 11, 12, MODS_BUTTON, 0, 4 };
+		int row = 0;
+		for (int id : order) {
+			for (ButtonWidget button : list) {
+				if (button.id != id) continue;
+				button.visible = true;
 				optic$setButtonSize(button, layout.btnW, layout.btnH);
 				button.x = layout.btnX;
-				button.y = layout.btnY + playIndex * (layout.btnH + layout.btnGap);
-				playIndex++;
+				button.y = layout.btnY + row * (layout.btnH + layout.btnGap);
+				row++;
 			}
 		}
-		int lastRow = layout.btnY + Math.max(2, playIndex) * (layout.btnH + layout.btnGap);
 		for (ButtonWidget button : list) {
-			if (button.id == 1 || button.id == 2 || button.id == 11 || button.id == 12) {
-				continue;
-			} else if (button.id == 0) {
-				button.visible = true;
-				optic$setButtonSize(button, half, layout.btnH);
-				button.x = layout.btnX;
-				button.y = lastRow;
-			} else if (button.id == MODS_BUTTON) {
-				button.visible = true;
-				optic$setButtonSize(button, layout.btnW - half - layout.btnGap, layout.btnH);
-				button.x = layout.btnX + half + layout.btnGap;
-				button.y = lastRow;
-			} else if (button.id == 4) {
-				button.visible = true;
-				optic$setButtonSize(button, layout.closeS, layout.closeS);
-				button.x = layout.closeX;
-				button.y = layout.closeY;
-			} else if (button.id == 5 || button instanceof LanguageButton) {
-				button.visible = false;
-			}
+			if (button.id == 5 || button instanceof LanguageButton) button.visible = false;
 		}
 	}
-
 	@Unique
 	private static void optic$setButtonSize(ButtonWidget button, int w, int h) {
 		ButtonWidgetAccessor access = (ButtonWidgetAccessor) button;
@@ -145,7 +128,7 @@ public abstract class TitleScreenMixin extends Screen {
 		self.drawTexture(x, y, u, v, width, height);
 	}
 
-	/** Blur the panorama and place the center card under the buttons. */
+	/** Wallpaper over the panorama, with a dark fade on the left. */
 	@Inject(
 		method = "render(IIF)V",
 		at = @At(
@@ -155,7 +138,6 @@ public abstract class TitleScreenMixin extends Screen {
 		)
 	)
 	private void optic$blurBackground(int mouseX, int mouseY, float delta, CallbackInfo ci) {
-		OpticMenuBlur.apply(client);
 		OpticMenuChrome.drawCard(client, optic$layout());
 	}
 
@@ -178,8 +160,8 @@ public abstract class TitleScreenMixin extends Screen {
 	private void optic$renderBrand(int mouseX, int mouseY, float delta, CallbackInfo ci) {
 		OpticMenuChrome.Layout layout = optic$layout();
 		OpticMenuChrome.drawCenterLogo(client, layout);
-		OpticMenuChrome.drawTopBar(client, layout, mouseX, mouseY);
 		OpticMenuChrome.drawFooter(client, width, height, layout, mouseX, mouseY);
+		OpticMenuChrome.drawCosmetics(client, width, mouseX, mouseY);
 		optic$accounts.render(client, width, mouseX, mouseY);
 	}
 }

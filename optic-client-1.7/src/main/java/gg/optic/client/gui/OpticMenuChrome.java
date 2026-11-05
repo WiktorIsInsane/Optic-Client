@@ -7,6 +7,8 @@ import gg.optic.client.OpticUiDraw;
 import gg.optic.client.OpticUiFont;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawableHelper;
+import net.minecraft.client.render.Tessellator;
+import org.lwjgl.opengl.GL11;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.util.Identifier;
 
@@ -39,14 +41,11 @@ public final class OpticMenuChrome {
 	}
 
 	public static final class Layout {
-		/** Centered column: logo, wordmark, then the buttons. */
-		public int cardX;
-		public int cardY;
-		public int cardW;
-		public int cardH;
+		/** Portal-style: wide logo top-left, a left-aligned list of text items in the lower left. */
+		public int logoX;
 		public int logoY;
-		public int logoSize;
-		public int wordY;
+		public int logoW;
+		public int logoH;
 		public int btnX;
 		public int btnY;
 		public int btnW;
@@ -57,24 +56,27 @@ public final class OpticMenuChrome {
 		public int closeS;
 	}
 
+	public static final String MENU_LOGO = "menu_logo.png";
+	public static final String MENU_BACKGROUND = "menu_background.png";
+	/** Number of list items: Singleplayer, Multiplayer, Mods, Options, Quit. */
+	public static final int ITEMS = 5;
+	/** Text inset from the start of the hover bar. */
+	public static final int ITEM_PAD = 8;
+
 	public static Layout layout(MinecraftClient client, int screenW, int screenH) {
 		Layout layout = new Layout();
-		layout.logoSize = screenH < 260 ? 44 : 56;
-		layout.btnW = 200;
-		layout.btnH = 20;
-		layout.btnGap = 5;
-		// Logo, "OPTIC" (16px) and the 3 button rows as one tight block, centered on screen.
-		int header = layout.logoSize + WORD_GAP + WORD_H + BUTTON_GAP;
-		int total = header + 3 * layout.btnH + 2 * layout.btnGap;
-		int top = Math.max(BAR_Y + BAR_H + 6, (screenH - total) / 2);
-		layout.cardW = layout.btnW;
-		layout.cardH = total;
-		layout.cardX = (screenW - layout.cardW) / 2;
-		layout.cardY = top;
-		layout.logoY = top;
-		layout.wordY = top + layout.logoSize + WORD_GAP;
-		layout.btnX = layout.cardX;
-		layout.btnY = top + header;
+		int left = Math.max(18, Math.round(screenW * 0.07F));
+		layout.logoW = Math.max(150, Math.min(300, Math.round(screenW * 0.36F)));
+		layout.logoH = Math.round(layout.logoW * (274.0F / 1024.0F));
+		layout.logoX = left;
+		layout.logoY = Math.max(BAR_Y + BAR_H + 14, Math.round(screenH * 0.15F));
+
+		layout.btnH = 16;
+		layout.btnGap = 2;
+		layout.btnW = 190;
+		layout.btnX = left - ITEM_PAD;
+		// The list sits right under the logo.
+		layout.btnY = layout.logoY + layout.logoH + 12;
 
 		layout.closeS = BAR_H;
 		layout.closeX = screenW - BAR_EDGE - layout.closeS;
@@ -82,33 +84,146 @@ public final class OpticMenuChrome {
 		return layout;
 	}
 
-	/**
-	 * Backdrop over the blurred panorama: a light dark wash, a darker band at the bottom
-	 * (Lunar-style vignette) and a faint accent tint behind the logo.
-	 */
+	/** Wallpaper, scaled to cover the screen, with a dark fade on the left so text and logo read. */
 	public static void drawCard(MinecraftClient client, Layout layout) {
 		int w = client.currentScreen != null ? client.currentScreen.width : 0;
 		int h = client.currentScreen != null ? client.currentScreen.height : 0;
 		if (w <= 0 || h <= 0) return;
-		// One even wash: the gradient bands and the glow behind the logo showed visible steps.
-		DrawableHelper.fill(0, 0, w, h, 0x5A050608);
+		drawWallpaper(client, w, h);
+		DrawableHelper.fill(0, 0, w, h, 0x26000000);
+		horizontalFade(0, 0, Math.round(w * 0.62F), h, 0x8C000000);
 	}
 
-	/** Space between logo and wordmark, wordmark height, and wordmark to first button. */
-	private static final int WORD_GAP = 3;
-	private static final int WORD_H = 16;
-	private static final int BUTTON_GAP = 10;
+	/** The menu wallpaper, scaled to cover the whole screen without stretching. */
+	public static void drawWallpaper(MinecraftClient client, int w, int h) {
+		Identifier bg = OpticTextures.image(client, MENU_BACKGROUND);
+		if (bg != null) {
+			int[] size = OpticTextures.imageSize(MENU_BACKGROUND);
+			float scale = Math.max(w / (float) size[0], h / (float) size[1]);
+			int dw = (int) Math.ceil(size[0] * scale);
+			int dh = (int) Math.ceil(size[1] * scale);
+			GlStateManager.enableTexture();
+			GlStateManager.disableBlend();
+			GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+			client.getTextureManager().bindTexture(bg);
+			DrawableHelper.drawTexture((w - dw) / 2, (h - dh) / 2, 0.0F, 0.0F, size[0], size[1], dw, dh, (float) size[0], (float) size[1]);
+		} else {
+			DrawableHelper.fill(0, 0, w, h, 0xFF2A2C30);
+		}
+	}
 
-	/** Logo with the "OPTIC" wordmark under it, centered above the buttons. */
+	/**
+	 * Left-to-right fade from {@code argb} to fully clear. Drawn as a few quads with per-vertex
+	 * alpha and smooth shading, so the GPU interpolates it: no stepped strips, no visible lines.
+	 */
+	private static void horizontalFade(int x, int y, int w, int h, int argb) {
+		float alpha = ((argb >>> 24) & 0xFF) / 255.0F;
+		float r = ((argb >> 16) & 0xFF) / 255.0F;
+		float g = ((argb >> 8) & 0xFF) / 255.0F;
+		float b = (argb & 0xFF) / 255.0F;
+		int segments = 12;
+		GlStateManager.disableTexture();
+		GlStateManager.enableBlend();
+		GlStateManager.disableAlphaTest();
+		GlStateManager.blendFuncSeparate(770, 771, 1, 0);
+		GL11.glShadeModel(GL11.GL_SMOOTH);
+		Tessellator buf = Tessellator.INSTANCE;
+		buf.begin(7);
+		for (int i = 0; i < segments; i++) {
+			float t0 = i / (float) segments;
+			float t1 = (i + 1) / (float) segments;
+			double x0 = x + w * t0;
+			double x1 = x + w * t1;
+			// Smoothstep falloff: flat start, soft tail, no kink where the fade ends.
+			float a0 = alpha * (1.0F - smooth(t0));
+			float a1 = alpha * (1.0F - smooth(t1));
+			buf.color(r, g, b, a1);
+			buf.vertex(x1, y, 0.0);
+			buf.color(r, g, b, a0);
+			buf.vertex(x0, y, 0.0);
+			buf.vertex(x0, y + h, 0.0);
+			buf.color(r, g, b, a1);
+			buf.vertex(x1, y + h, 0.0);
+		}
+		buf.end();
+		GL11.glShadeModel(GL11.GL_FLAT);
+		GlStateManager.enableAlphaTest();
+		GlStateManager.enableTexture();
+		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+	}
+
+	private static float smooth(float t) {
+		return t * t * (3.0F - 2.0F * t);
+	}
+	/** The Optic wordmark at the top-left, with a soft drop shadow against the light sky. */
 	public static void drawCenterLogo(MinecraftClient client, Layout layout) {
-		int w = client.currentScreen != null ? client.currentScreen.width : layout.cardX * 2 + layout.cardW;
-		drawLogo(client, (w - layout.logoSize) / 2, layout.logoY, layout.logoSize);
-		String word = "OPTIC";
-		float size = 16.0F;
-		int ww = OpticUiFont.widthSharp(client, word, OpticTheme.TEXT, size);
-		OpticUiFont.drawSharp(client, word, (w - ww) / 2, layout.wordY, OpticTheme.TEXT, size);
+		Identifier logo = OpticTextures.image(client, MENU_LOGO);
+		if (logo == null) return;
+		int[] size = OpticTextures.imageSize(MENU_LOGO);
+		GlStateManager.enableTexture();
+		GlStateManager.enableBlend();
+		GlStateManager.blendFuncSeparate(770, 771, 1, 0);
+		client.getTextureManager().bindTexture(logo);
+		GlStateManager.color(0.0F, 0.0F, 0.0F, 0.35F);
+		DrawableHelper.drawTexture(layout.logoX + 1, layout.logoY + 2, 0.0F, 0.0F, size[0], size[1], layout.logoW, layout.logoH, (float) size[0], (float) size[1]);
+		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+		DrawableHelper.drawTexture(layout.logoX, layout.logoY, 0.0F, 0.0F, size[0], size[1], layout.logoW, layout.logoH, (float) size[0], (float) size[1]);
 	}
 
+	/** One list item: plain uppercase text, a translucent bar behind it on hover. */
+	public static void drawMenuItem(MinecraftClient client, int x, int y, int w, int h, String label, boolean hot, boolean active) {
+		if (hot) {
+			int solid = Math.round(w * 0.7F);
+			DrawableHelper.fill(x, y, x + solid, y + h, 0x38FFFFFF);
+			int steps = 24;
+			for (int i = 0; i < steps; i++) {
+				int x1 = x + solid + (w - solid) * i / steps;
+				int x2 = x + solid + (w - solid) * (i + 1) / steps;
+				int a = Math.round(0x38 * (1.0F - i / (float) steps));
+				DrawableHelper.fill(x1, y, x2, y + h, (a << 24) | 0xFFFFFF);
+			}
+			DrawableHelper.fill(x, y, x + 2, y + h, ACCENT);
+		}
+		float size = 10.0F;
+		int color = !active ? 0xFF8A8A8A : hot ? 0xFFFFFFFF : 0xFFE4E4E4;
+		int th = OpticUiFont.heightSharp(client, label, color, size);
+		int tx = x + ITEM_PAD;
+		int ty = y + (h - th) / 2;
+		OpticUiFont.drawSharp(client, label, tx + 1, ty + 1, 0x8C000000, size);
+		OpticUiFont.drawSharp(client, label, tx, ty, color, size);
+	}
+	private static final String COSMETICS = "COSMETICS";
+	private static final float COSMETICS_SIZE = 8.0F;
+	private static long cosmeticsNoteUntil;
+
+	/** Hit box of the Cosmetics button: top-right, level with the account chip. {x, y, w, h} */
+	public static int[] cosmeticsBounds(MinecraftClient client, int screenW) {
+		int w = OpticUiFont.widthSharp(client, COSMETICS, 0xFFFFFFFF, COSMETICS_SIZE) + 8;
+		return new int[] { screenW - BAR_EDGE - w, BAR_Y, w, BAR_H };
+	}
+
+	/** Same look as the account chip: no background, text turns accent on hover. */
+	public static void drawCosmetics(MinecraftClient client, int screenW, int mouseX, int mouseY) {
+		int[] b = cosmeticsBounds(client, screenW);
+		boolean hot = inside(mouseX, mouseY, b[0], b[1], b[2], b[3]);
+		int color = hot ? ACCENT : OpticTheme.TEXT;
+		int th = OpticUiFont.heightSharp(client, COSMETICS, color, COSMETICS_SIZE);
+		OpticUiFont.drawSharp(client, COSMETICS, b[0] + 4, b[1] + (b[3] - th) / 2, color, COSMETICS_SIZE);
+		if (cosmeticsNoteUntil > System.currentTimeMillis()) {
+			String note = "Coming soon";
+			int nw = OpticUiFont.widthSharp(client, note, ACCENT, COSMETICS_SIZE);
+			OpticUiFont.drawSharp(client, note, b[0] + b[2] - 4 - nw, b[1] + b[3] + 4, ACCENT, COSMETICS_SIZE);
+		}
+	}
+
+	/** @return true if the click hit the Cosmetics button */
+	public static boolean clickCosmetics(MinecraftClient client, int screenW, int mouseX, int mouseY) {
+		int[] b = cosmeticsBounds(client, screenW);
+		if (!inside(mouseX, mouseY, b[0], b[1], b[2], b[3])) return false;
+		// No cosmetics yet, so the button just says so for a moment.
+		cosmeticsNoteUntil = System.currentTimeMillis() + 2000L;
+		return true;
+	}
 	public static void drawTopBar(MinecraftClient client, Layout layout, int mouseX, int mouseY) {
 		boolean closeHot = inside(mouseX, mouseY, layout.closeX, layout.closeY, layout.closeS, layout.closeS);
 		OpticUiDraw.fillExact(client, layout.closeX, layout.closeY, layout.closeS, layout.closeS, 6, closeHot ? 0xCC3A1216 : GLASS_20);

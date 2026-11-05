@@ -70,6 +70,47 @@ public final class OpticTextures {
 		return logoId;
 	}
 
+	private static final java.util.Map<String, int[]> IMAGE_SIZES = new java.util.HashMap<String, int[]>();
+	private static final java.util.Map<String, Identifier> IMAGES = new java.util.HashMap<String, Identifier>();
+
+	/** A plain image from the gui texture folder, smooth-filtered with mipmaps. Size via {@link #imageSize}. */
+	public static Identifier image(MinecraftClient client, String file) {
+		if (IMAGES.containsKey(file)) return IMAGES.get(file);
+		IMAGES.put(file, null);
+		try (InputStream in = OpticTextures.class.getResourceAsStream("/assets/optic/textures/gui/" + file)) {
+			if (in == null) {
+				System.err.println("[Optic] " + file + " missing from classpath");
+				return null;
+			}
+			BufferedImage image = ImageIO.read(in);
+			if (image == null) return null;
+			NativeImageBackedTexture texture = new NativeImageBackedTexture(image);
+			Identifier id = client.getTextureManager().registerDynamicTexture("optic_" + file.replace('.', '_'), texture);
+			client.getTextureManager().bindTexture(id);
+			try {
+				int levels = 31 - Integer.numberOfLeadingZeros(Math.max(image.getWidth(), image.getHeight()));
+				GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_MAX_LEVEL, Math.max(0, levels));
+				GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
+				GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
+				GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D);
+				gg.optic.client.compat.Mc17.setFilter(texture, true, true);
+			} catch (Throwable ignored) {
+				gg.optic.client.compat.Mc17.setFilter(texture, true, false);
+			}
+			IMAGES.put(file, id);
+			IMAGE_SIZES.put(file, new int[] { image.getWidth(), image.getHeight() });
+			return id;
+		} catch (Exception e) {
+			System.err.println("[Optic] Failed to load " + file + ": " + e.getMessage());
+			return null;
+		}
+	}
+
+	public static int[] imageSize(String file) {
+		int[] size = IMAGE_SIZES.get(file);
+		return size != null ? size : new int[] { 1, 1 };
+	}
+
 	public static int logoWidth() {
 		return logoW;
 	}

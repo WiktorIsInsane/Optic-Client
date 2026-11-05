@@ -63,6 +63,7 @@ public final class OpticModScreen extends Screen {
 	public static final int MODULE_POTIONS = 37;
 	public static final int MODULE_SKINS_3D = 38;
 	public static final int MODULE_PVP_TWEAKS = 39;
+	public static final int MODULE_BOSS_BAR = 40;
 
 	private static final int FPS = MODULE_FPS;
 	private static final int CPS = MODULE_CPS;
@@ -94,6 +95,7 @@ public final class OpticModScreen extends Screen {
 	private static final int POTIONS = MODULE_POTIONS;
 	private static final int SKINS_3D = MODULE_SKINS_3D;
 	private static final int PVP_TWEAKS = MODULE_PVP_TWEAKS;
+	private static final int BOSS_BAR = MODULE_BOSS_BAR;
 
 	// Colors and sizes live in OpticTheme so the look can be tuned in one place.
 	private static final int ACCENT = OpticTheme.ACCENT;
@@ -267,6 +269,8 @@ public final class OpticModScreen extends Screen {
 		modules.add(new ModuleCard(NAMETAGS, "Nametags", "Opacity, shadow, and toggles", "\uD83C\uDFF7"));
 		modules.add(new ModuleCard(SKINS_3D, "3D Skins", "Skin outer layer in 3D", "\uD83D\uDC64"));
 		modules.add(new ModuleCard(PVP_TWEAKS, "PotPvP", "Low fire, clear water, overlays", "\uD83D\uDD25"));
+		modules.add(new ModuleCard(BOSS_BAR, "Boss Bar", "Hide, move or resize the boss bar", "\uD83D\uDC80"));
+		modules.add(new ModuleCard(TITLES, "Titles", "Title text and window title bar", "\uD83D\uDCDD"));
 		modules.add(new ModuleCard(PARTICLES, "Particles", "Client-side hit particles", "\u2728"));
 		modules.add(new ModuleCard(SCOREBOARD, "Scoreboard", "Sidebar scoreboard style", "\uD83D\uDCCB"));
 		modules.add(new ModuleCard(TIME_CHANGER, "Time Changer", "Freeze time and sky type", "\uD83C\uDF19"));
@@ -387,6 +391,7 @@ public final class OpticModScreen extends Screen {
 			case HITBOXES: return c.hitboxes;
 			case SKINS_3D: return c.skins3d;
 			case PVP_TWEAKS: return c.pvpTweaks;
+			case BOSS_BAR: return c.bossBar;
 			case HIT_PREDICT: return c.hitPredict;
 			case FOV: return c.fovMod;
 			case FREE_LOOK: return c.freeLook;
@@ -526,6 +531,7 @@ public final class OpticModScreen extends Screen {
 			case HITBOXES: c.hitboxes = !c.hitboxes; break;
 			case SKINS_3D: c.skins3d = !c.skins3d; break;
 			case PVP_TWEAKS: c.pvpTweaks = !c.pvpTweaks; break;
+			case BOSS_BAR: c.bossBar = !c.bossBar; break;
 			case HIT_PREDICT: c.hitPredict = !c.hitPredict; break;
 			case FOV: c.fovMod = !c.fovMod; break;
 			case FREE_LOOK: c.freeLook = !c.freeLook; break;
@@ -1131,7 +1137,7 @@ public final class OpticModScreen extends Screen {
 
 		if (visible.isEmpty()) {
 			String empty = modSearchField != null && !modSearchField.getText().trim().isEmpty()
-				? "No mods start with that"
+				? "No mods match that"
 				: modFilter == ModFilter.FAVORITES
 					? "No favorite mods yet — click the star on a card"
 					: "No mods in this filter";
@@ -1205,7 +1211,8 @@ public final class OpticModScreen extends Screen {
 		for (ModuleCard module : modules) {
 			if (modFilter == ModFilter.FAVORITES && !c.isFavoriteModule(module.id)) continue;
 			if (modFilter == ModFilter.PVP && !isPvpModule(module.id)) continue;
-			if (!query.isEmpty() && !module.name.toLowerCase().startsWith(query)) continue;
+			// Spaces don't matter and the text can be anywhere: "bossbar" finds "Boss Bar".
+			if (!query.isEmpty() && !module.name.toLowerCase().replace(" ", "").contains(query.replace(" ", ""))) continue;
 			out.add(module);
 		}
 		return out;
@@ -1905,6 +1912,13 @@ public final class OpticModScreen extends Screen {
 				break;
 			case HIT_PREDICT:
 				options.add(ConfigOption.header("Visual only. Clicks stay vanilla."));
+				break;
+			case BOSS_BAR:
+				options.add(ConfigOption.header("General"));
+				options.add(ConfigOption.toggle("bossBarShow", "Show Boss Bar"));
+				options.add(ConfigOption.toggle("bossBarShowName", "Show Name"));
+				options.add(ConfigOption.toggle("bossBarShowBar", "Show Health Bar"));
+				options.add(ConfigOption.slider("bossBarScale", "Scale", 0.5F, 3.0F));
 				break;
 			case PVP_TWEAKS:
 				options.add(ConfigOption.header("Overlays"));

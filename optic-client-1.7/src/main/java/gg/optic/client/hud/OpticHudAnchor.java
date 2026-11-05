@@ -58,6 +58,8 @@ public final class OpticHudAnchor {
 		c.scoreboardY = y(c.scoreboardY, oh, h);
 		c.hotbarX = x(c.hotbarX, ow, w);
 		c.hotbarY = y(c.hotbarY, oh, h);
+		c.bossBarX = x(c.bossBarX, ow, w);
+		c.bossBarY = y(c.bossBarY, oh, h);
 		c.save();
 	}
 
