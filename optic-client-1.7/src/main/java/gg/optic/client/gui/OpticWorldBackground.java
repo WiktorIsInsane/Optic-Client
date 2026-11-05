@@ -24,9 +24,7 @@ public final class OpticWorldBackground {
 	}
 
 	public static void draw(MinecraftClient client, int width, int height) {
-		long now = System.nanoTime();
-		if (now - lastDrawNs < 12_000_000L) return;
-		lastDrawNs = now;
+		// No frame skipping here: skipping a frame let the game show through (flicker).
 		if (client == null || width < 1 || height < 1) return;
 		// 1.7's tooltip (e.g. hovering a server's ping) leaves item lighting on; with it on the
 		// background and its tint come out almost black. Start from unlit GUI state.

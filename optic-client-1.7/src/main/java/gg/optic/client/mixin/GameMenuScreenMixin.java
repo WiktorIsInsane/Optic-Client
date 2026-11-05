@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Pause menu uses the Optic button theme and the client logo. */
+/** Pause menu: Optic labels, no card or logo; buttons use the shared transparent box style. */
 @Mixin(GameMenuScreen.class)
 public abstract class GameMenuScreenMixin extends Screen {
 	@Inject(method = "init()V", at = @At("TAIL"))
@@ -54,26 +54,5 @@ public abstract class GameMenuScreenMixin extends Screen {
 		)
 	)
 	private void optic$hideTitle(GameMenuScreen self, TextRenderer renderer, String text, int x, int y, int color) {
-	}
-
-	@Inject(
-		method = "render(IIF)V",
-		at = @At(
-			value = "INVOKE",
-			target = "Lnet/minecraft/client/gui/screen/GameMenuScreen;renderBackground()V",
-			shift = At.Shift.AFTER
-		)
-	)
-	private void optic$card(int mouseX, int mouseY, float delta, CallbackInfo ci) {
-		int top = this.height / 4 + 8;
-		int blockH = 116;
-		int logo = 48;
-		int cardW = 220;
-		int cardH = 12 + logo + 8 + blockH + 12;
-		int cardX = this.width / 2 - cardW / 2;
-		int cardY = top - logo - 8 - 12;
-		if (cardY < 6) cardY = 6;
-		OpticUiDraw.fillExact(this.client, cardX, cardY, cardW, cardH, 10, OpticMenuChrome.BOX);
-		OpticMenuChrome.drawLogo(this.client, this.width / 2 - logo / 2, cardY + 10, logo);
 	}
 }

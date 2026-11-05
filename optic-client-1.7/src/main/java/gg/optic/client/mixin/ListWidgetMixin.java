@@ -77,6 +77,33 @@ public abstract class ListWidgetMixin {
 		return tessellator.end();
 	}
 
+	/** The 4px black fades at the top and bottom edge of the list read as black lines on the wallpaper. */
+	@Redirect(
+		method = "render(IIF)V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Tessellator;end()I", ordinal = 1),
+		require = 0
+	)
+	private int optic$skipTopShadow(Tessellator tessellator) {
+		return optic$hidden(tessellator);
+	}
+
+	@Redirect(
+		method = "render(IIF)V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Tessellator;end()I", ordinal = 2),
+		require = 0
+	)
+	private int optic$skipBottomShadow(Tessellator tessellator) {
+		return optic$hidden(tessellator);
+	}
+
+	private int optic$hidden(Tessellator tessellator) {
+		if (!optic$browser()) return tessellator.end();
+		GL11.glColorMask(false, false, false, false);
+		int drawn = tessellator.end();
+		GL11.glColorMask(true, true, true, true);
+		return drawn;
+	}
+
 	@Inject(method = "renderHoleBackground(IIII)V", at = @At("HEAD"), cancellable = true)
 	private void optic$clearBars(int y1, int y2, int startAlpha, int endAlpha, CallbackInfo ci) {
 		if (optic$browser()) ci.cancel();
@@ -85,6 +112,7 @@ public abstract class ListWidgetMixin {
 	private boolean optic$browser() {
 		if (client == null) return false;
 		if (client.currentScreen instanceof MultiplayerScreen || client.currentScreen instanceof SelectWorldScreen) return true;
+		if (client.currentScreen instanceof net.minecraft.client.gui.screen.ResourcePackScreen) return true;
 		// Lists in out-of-game menus (controls, language, resource packs) sit on the wallpaper too.
 		return client.world == null && client.currentScreen != null
 			&& !(client.currentScreen instanceof net.minecraft.client.gui.screen.TitleScreen);

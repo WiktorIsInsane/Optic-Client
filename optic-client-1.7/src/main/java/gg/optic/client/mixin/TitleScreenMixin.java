@@ -163,5 +163,6 @@ public abstract class TitleScreenMixin extends Screen {
 		OpticMenuChrome.drawFooter(client, width, height, layout, mouseX, mouseY);
 		OpticMenuChrome.drawCosmetics(client, width, mouseX, mouseY);
 		optic$accounts.render(client, width, mouseX, mouseY);
+		OpticMenuChrome.drawIntro(client, width, height);
 	}
 }

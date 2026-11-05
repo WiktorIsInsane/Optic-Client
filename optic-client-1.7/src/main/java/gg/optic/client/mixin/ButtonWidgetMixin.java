@@ -40,7 +40,9 @@ public abstract class ButtonWidgetMixin extends DrawableHelper {
 		boolean browser = client != null
 			&& (client.currentScreen instanceof MultiplayerScreen || client.currentScreen instanceof SelectWorldScreen);
 		boolean pause = client != null && client.currentScreen instanceof GameMenuScreen;
-		if (!title && !account && !browser && !pause) return;
+		// Everything except the title list and Optic's account screen uses vanilla drawing with the
+		// box style below (see optic$box), so all Minecraft menus and the pause menu match.
+		if (!title && !account) return;
 		if (!visible) {
 			ci.cancel();
 			return;
@@ -84,5 +86,26 @@ public abstract class ButtonWidgetMixin extends DrawableHelper {
 		}
 
 		ci.cancel();
+	}
+
+	/** Vanilla button background (left half): draw our box over the full button instead. */
+	@org.spongepowered.asm.mixin.injection.Redirect(
+		method = "render(Lnet/minecraft/client/MinecraftClient;II)V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/widget/ButtonWidget;drawTexture(IIIIII)V", ordinal = 0),
+		require = 0
+	)
+	private void optic$box(ButtonWidget self, int bx, int by, int u, int v, int w, int h) {
+		// Not from the texture row: sliders always ask for the "disabled" row as their track.
+		int state = !active ? 0 : hovered ? 2 : 1;
+		gg.optic.client.gui.OpticButtonStyle.box(MinecraftClient.getInstance(), x, y, width, height, state);
+	}
+
+	/** Right half of the vanilla texture: already covered by the box. */
+	@org.spongepowered.asm.mixin.injection.Redirect(
+		method = "render(Lnet/minecraft/client/MinecraftClient;II)V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/widget/ButtonWidget;drawTexture(IIIIII)V", ordinal = 1),
+		require = 0
+	)
+	private void optic$boxRight(ButtonWidget self, int bx, int by, int u, int v, int w, int h) {
 	}
 }

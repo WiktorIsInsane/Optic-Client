@@ -32,7 +32,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * nothing here changes when or how a click becomes an attack.
  */
 @Mixin(MinecraftClient.class)
-public abstract class MinecraftClientMixin {
+public abstract class MinecraftClientMixin implements gg.optic.client.account.SessionSwap.SessionHolder {
+	/** Account switching swaps this; it is final in vanilla. */
+	@Shadow @org.spongepowered.asm.mixin.Mutable @org.spongepowered.asm.mixin.Final private net.minecraft.client.util.Session session;
+
+	@Override
+	public void optic$setSession(net.minecraft.client.util.Session session) {
+		this.session = session;
+	}
+
 	@Shadow public Screen currentScreen;
 	@Shadow public GameOptions options;
 
@@ -80,6 +88,22 @@ public abstract class MinecraftClientMixin {
 	@Unique private static boolean optic$started;
 	@Unique private boolean optic$rightShiftDown;
 
+	/** Grab the finished Mojang loading screen just before it is shown, for the fade into the menu. */
+	@Inject(
+		method = "method_2915()V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/MinecraftClient;method_6648()V"),
+		require = 0
+	)
+	private void optic$captureSplash(CallbackInfo ci) {
+		gg.optic.client.gui.OpticMenuChrome.captureSplash();
+	}
+
+	/** The game always opens in a window (the launcher's --fullscreen and the saved option are ignored). */
+	@Inject(method = "initializeGame()V", at = @At("HEAD"))
+	private void optic$startWindowed(CallbackInfo ci) {
+		fullscreen = false;
+	}
+
 	@Inject(method = "initializeGame()V", at = @At("TAIL"))
 	private void optic$initialized(CallbackInfo ci) {
 		if (!optic$started) {
@@ -91,7 +115,7 @@ public abstract class MinecraftClientMixin {
 			options.gamma = OpticClient.get().config().fullbrightGamma;
 		}
 		if (OpticClient.get().config().rawMouseInput) OpticRawInput.setEnabled(true);
-		if (OpticClient.get().config().borderlessFullscreen) OpticBorderless.apply(true);
+		// Borderless is a fullscreen look; the game starts windowed, so it is not applied on launch.
 	}
 
 	/**

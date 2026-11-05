@@ -104,15 +104,23 @@ public final class AccountMenuOverlay {
 
 		// No background at all: head, name, account type in accent, chevron. Name and chevron go accent on hover.
 		boolean open = mode != Mode.CLOSED;
+		if (mode == Mode.LIST) {
+			// Open: the chip becomes the header of one panel with the list under it.
+			drawList(client, active, x, chipW, y, mouseX, mouseY);
+		}
 		int headX = x + 3;
 		int headY = y + (CHIP_H - HEAD) / 2;
 		drawHead(client, uuid, active != null ? active.username : client.getSession().getUsername(), headX, headY, HEAD);
 		int nameX = headX + HEAD + HEAD_GAP;
 		int nameH = OpticUiFont.heightSharp(client, name, 0xFFFFFFFF, NAME_SIZE);
-		OpticUiFont.drawSharp(client, name, nameX, y + (CHIP_H - nameH) / 2, hot || open ? ACCENT : OpticTheme.TEXT, NAME_SIZE);
+		OpticUiFont.drawSharp(client, name, nameX, y + (CHIP_H - nameH) / 2, mode == Mode.LIST ? 0xFFFFFFFF : hot || open ? ACCENT : OpticTheme.TEXT, NAME_SIZE);
+		if (mode == Mode.LIST) {
+			int pw = panelWidth(client, active, chipW);
+			drawIcon(client, chevron(client), x + pw - 7 - CHEV, y + (CHIP_H - CHEV) / 2, CHEV, 0xFFFFFFFF, true);
+		}
 
 		if (mode == Mode.LIST) {
-			drawList(client, active, x, chipW, y, mouseX, mouseY);
+			// drawn above, under the header text
 		} else if (mode == Mode.SIGN_IN) {
 			drawAdd(client, x, chipW, y, mouseX, mouseY);
 		} else if (mode == Mode.OFFLINE) {
@@ -134,7 +142,8 @@ public final class AccountMenuOverlay {
 		int x = chipX(client, screenWidth);
 		int y = CHIP_Y;
 
-		if (inside(mouseX, mouseY, x, y, chipW, CHIP_H)) {
+		int headerW = mode == Mode.LIST ? panelWidth(client, active, chipW) : chipW;
+		if (inside(mouseX, mouseY, x, y, headerW, CHIP_H)) {
 			mode = mode == Mode.CLOSED ? Mode.LIST : Mode.CLOSED;
 			return true;
 		}
@@ -194,82 +203,90 @@ public final class AccountMenuOverlay {
 		return true;
 	}
 
+	/** Open-list metrics: one dark panel, header (the chip) on top, rows, then "Add account". */
+	private static final int LIST_ROW = 20;
+	private static final int LIST_HEAD = 14;
+	private static final int LIST_X = 11;
+	private static final int LIST_BG = 0xF2262628;
+	private static final int LIST_HEADER = 0xFF3A3A3D;
+	private static final int LIST_EDGE = 0xFF505054;
+	private static final int ADD_BLUE = 0xFF3FA9F5;
+
+	private int panelWidth(MinecraftClient client, SharedAccount active, int chipW) {
+		int w = Math.max(chipW + CHEV + 10, 120);
+		for (SharedAccount account : others(active)) {
+			String ign = account.username == null ? "" : account.username;
+			int need = 5 + LIST_HEAD + 6 + OpticUiFont.widthSharp(client, ign, 0xFFFFFFFF, 9.0F) + 8 + LIST_X + 6;
+			if (need > w) w = need;
+		}
+		return Math.min(MENU_W, w);
+	}
+
 	private void drawList(MinecraftClient client, SharedAccount active, int chipX, int chipW, int chipY, int mouseX, int mouseY) {
 		List<SharedAccount> others = others(active);
-		boolean saved = savedAccount(active);
-		int menuH = 8 + HEADER_H + others.size() * ROW_H + (saved ? ROW_H : 0) + ROW_H + 6;
-		int menuX = menuX(chipX, chipW, MENU_W);
-		int menuY = chipY + CHIP_H + 6;
-		OpticUiDraw.fillExact(client, menuX, menuY, MENU_W, menuH, 8, PANEL);
-		OpticUiDraw.outlineExact(client, menuX, menuY, MENU_W, menuH, 8, OpticTheme.BORDER);
+		int pw = panelWidth(client, active, chipW);
+		int bodyY = chipY + CHIP_H;
+		int totalH = CHIP_H + others.size() * LIST_ROW + LIST_ROW + 2;
+		OpticUiDraw.fillExact(client, chipX, chipY, pw, totalH, 5, LIST_BG);
+		OpticUiDraw.fillExact(client, chipX, chipY, pw, CHIP_H, 5, LIST_HEADER);
+		fill(chipX, bodyY - 5, chipX + pw, bodyY, LIST_HEADER);
+		fill(chipX, bodyY, chipX + pw, bodyY + 1, LIST_EDGE);
+		OpticUiDraw.outlineExact(client, chipX, chipY, pw, totalH, 5, LIST_EDGE);
 
-		int head = 18;
-		drawHead(client, active == null ? "" : active.uuid, active == null ? client.getSession().getUsername() : active.username, menuX + 8, menuY + 8, head);
-		String name = active == null || active.username == null ? "Not signed in" : active.username;
-		name = fitText(client, name, MENU_W - 40, 9.0F);
-		OpticUiFont.drawSharp(client, name, menuX + 8 + head + 8, menuY + 8, 0xFFFFFFFF, 9.0F);
-		OpticUiFont.drawSharp(client, kindLabel(active), menuX + 8 + head + 8, menuY + 20, 0xFF9A9AA8, KIND_SIZE);
-		OpticTheme.accentLine(menuX + 8, menuY + HEADER_H, MENU_W - 16, 1);
-
-		int rowY = menuY + HEADER_H + 4;
+		int rowY = bodyY + 1;
 		for (SharedAccount account : others) {
-			if (inside(mouseX, mouseY, menuX + 4, rowY, MENU_W - 8, ROW_H)) {
-				OpticUiDraw.fillExact(client, menuX + 4, rowY, MENU_W - 8, ROW_H, 4, 0x14FFFFFF);
-			}
-			drawHead(client, account.uuid, account.username, menuX + 8, rowY + (ROW_H - ROW_HEAD) / 2, ROW_HEAD);
-			String ign = fitText(client, account.username == null ? "" : account.username, MENU_W - 48, ROW_SIZE);
-			OpticUiFont.drawSharp(client, ign, menuX + 8 + ROW_HEAD + 8, rowY + 4, 0xFFFFFFFF, ROW_SIZE);
-			OpticUiFont.drawSharp(client, kindLabel(account), menuX + 8 + ROW_HEAD + 8, rowY + 14, 0xFF9A9AA8, KIND_SIZE);
-			rowY += ROW_H;
+			boolean rowHot = inside(mouseX, mouseY, chipX + 1, rowY, pw - 2, LIST_ROW);
+			int xX = chipX + pw - 6 - LIST_X;
+			int xY = rowY + (LIST_ROW - LIST_X) / 2;
+			boolean xHot = inside(mouseX, mouseY, xX, xY, LIST_X, LIST_X);
+			if (rowHot && !xHot) fill(chipX + 1, rowY, chipX + pw - 1, rowY + LIST_ROW, 0x16FFFFFF);
+			drawHead(client, account.uuid, account.username, chipX + 5, rowY + (LIST_ROW - LIST_HEAD) / 2, LIST_HEAD);
+			String ign = fitText(client, account.username == null ? "" : account.username, pw - 5 - LIST_HEAD - 6 - LIST_X - 12, 9.0F);
+			int th = OpticUiFont.heightSharp(client, ign, 0xFFFFFFFF, 9.0F);
+			OpticUiFont.drawSharp(client, ign, chipX + 5 + LIST_HEAD + 6, rowY + (LIST_ROW - th) / 2, 0xFFFFFFFF, 9.0F);
+			// Remove: small outlined square with an X.
+			if (xHot) fill(xX, xY, xX + LIST_X, xY + LIST_X, 0x30FFFFFF);
+			OpticUiDraw.outlineExact(client, xX, xY, LIST_X, LIST_X, 2, xHot ? 0xFFFFFFFF : 0xFFBDBDC2);
+			drawIcon(client, removeIcon(client), xX + 1, xY + 1, LIST_X - 2, xHot ? 0xFFFFFFFF : 0xFFE0E0E4, false);
+			rowY += LIST_ROW;
 		}
-		if (others.size() > 0) {
-			fill(menuX + 8, rowY, menuX + MENU_W - 8, rowY + 1, 0x18FFFFFF);
-			rowY += 4;
-		}
-		if (saved) {
-			drawTextRow(client, "Sign out", menuX, rowY, MENU_W, mouseX, mouseY, 0xFFFFFFFF);
-			rowY += ROW_H;
-		}
-		boolean addHot = inside(mouseX, mouseY, menuX + 4, rowY, MENU_W - 8, ROW_H);
-		if (addHot) OpticUiDraw.fillExact(client, menuX + 4, rowY, MENU_W - 8, ROW_H, 4, 0x14FFFFFF);
-		OpticUiDraw.fillExact(client, menuX + 8, rowY + 4, 16, 16, 4, 0x335CFF8A);
-		OpticUiFont.drawSharp(client, "+", menuX + 12, rowY + 6, ACCENT, 9.0F);
-		OpticUiFont.drawSharp(client, "Add account", menuX + 30, rowY + 8, 0xFFFFFFFF, ROW_SIZE);
+		String add = "Add account";
+		boolean addHot = inside(mouseX, mouseY, chipX + 1, rowY, pw - 2, LIST_ROW);
+		if (addHot) fill(chipX + 1, rowY, chipX + pw - 1, rowY + LIST_ROW, 0x10FFFFFF);
+		int aw = OpticUiFont.widthSharp(client, add, ADD_BLUE, 9.0F);
+		int ah = OpticUiFont.heightSharp(client, add, ADD_BLUE, 9.0F);
+		OpticUiFont.drawSharp(client, add, chipX + (pw - aw) / 2, rowY + (LIST_ROW - ah) / 2, addHot ? 0xFF7CC6FF : ADD_BLUE, 9.0F);
 	}
 
 	private boolean clickList(MinecraftClient client, SharedAccount active, int chipX, int chipW, int chipY, int mouseX, int mouseY) {
 		List<SharedAccount> others = others(active);
-		boolean saved = savedAccount(active);
-		int menuH = 8 + HEADER_H + others.size() * ROW_H + (saved ? ROW_H : 0) + ROW_H + 6;
-		int menuX = menuX(chipX, chipW, MENU_W);
-		int menuY = chipY + CHIP_H + 6;
-		int rowY = menuY + HEADER_H + 4;
+		int pw = panelWidth(client, active, chipW);
+		int totalH = CHIP_H + others.size() * LIST_ROW + LIST_ROW + 2;
+		int rowY = chipY + CHIP_H + 1;
 		for (SharedAccount account : others) {
-			if (inside(mouseX, mouseY, menuX, rowY, MENU_W, ROW_H)) {
+			int xX = chipX + pw - 6 - LIST_X;
+			int xY = rowY + (LIST_ROW - LIST_X) / 2;
+			if (inside(mouseX, mouseY, xX - 2, xY - 2, LIST_X + 4, LIST_X + 4)) {
+				SharedAccounts.remove(account.id);
+				reload();
+				return true;
+			}
+			if (inside(mouseX, mouseY, chipX, rowY, pw, LIST_ROW)) {
 				SessionSwap.apply(client, account);
 				reload();
 				mode = Mode.CLOSED;
 				toast("Signed in as " + account.username);
 				return true;
 			}
-			rowY += ROW_H;
+			rowY += LIST_ROW;
 		}
-		if (others.size() > 0) rowY += 4;
-		if (saved) {
-			if (inside(mouseX, mouseY, menuX, rowY, MENU_W, ROW_H)) {
-				signOut(client, active);
-				return true;
-			}
-			rowY += ROW_H;
-		}
-		if (inside(mouseX, mouseY, menuX, rowY, MENU_W, ROW_H)) {
+		if (inside(mouseX, mouseY, chipX, rowY, pw, LIST_ROW)) {
 			mode = Mode.SIGN_IN;
 			return true;
 		}
-		if (!inside(mouseX, mouseY, menuX, menuY, MENU_W, menuH)) mode = Mode.CLOSED;
+		if (!inside(mouseX, mouseY, chipX, chipY, pw, totalH)) mode = Mode.CLOSED;
 		return true;
 	}
-
 	private void drawAdd(MinecraftClient client, int chipX, int chipW, int chipY, int mouseX, int mouseY) {
 		int extra = msStatus.isEmpty() ? 0 : 28;
 		int menuH = 8 + 18 + 28 + 28 + extra;

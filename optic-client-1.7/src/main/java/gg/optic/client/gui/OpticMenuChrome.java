@@ -192,6 +192,84 @@ public final class OpticMenuChrome {
 		OpticUiFont.drawSharp(client, label, tx + 1, ty + 1, 0x8C000000, size);
 		OpticUiFont.drawSharp(client, label, tx, ty, color, size);
 	}
+	/** Startup fade: the last loading-screen frame dissolves into the menu, once per launch. */
+	private static long introStart = -1L;
+	private static boolean introDone;
+	private static final long INTRO_HOLD_MS = 150L;
+	private static final long INTRO_FADE_MS = 700L;
+	private static java.awt.image.BufferedImage splashPixels;
+	private static Identifier splashId;
+	private static int splashW = 1;
+	private static int splashH = 1;
+
+	/** Reads the splash frame from the back buffer (called right before it is presented). */
+	public static void captureSplash() {
+		try {
+			int w = org.lwjgl.opengl.Display.getWidth();
+			int h = org.lwjgl.opengl.Display.getHeight();
+			if (w <= 0 || h <= 0) return;
+			java.nio.ByteBuffer buf = org.lwjgl.BufferUtils.createByteBuffer(w * h * 4);
+			GL11.glReadBuffer(GL11.GL_BACK);
+			GL11.glPixelStorei(GL11.GL_PACK_ALIGNMENT, 1);
+			GL11.glReadPixels(0, 0, w, h, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buf);
+			BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+			for (int y = 0; y < h; y++) {
+				int row = (h - 1 - y) * w * 4;
+				for (int x = 0; x < w; x++) {
+					int i = row + x * 4;
+					int r = buf.get(i) & 0xFF;
+					int g = buf.get(i + 1) & 0xFF;
+					int b = buf.get(i + 2) & 0xFF;
+					image.setRGB(x, y, 0xFF000000 | (r << 16) | (g << 8) | b);
+				}
+			}
+			splashPixels = image;
+			splashW = w;
+			splashH = h;
+		} catch (Throwable e) {
+			System.err.println("[Optic] Splash capture failed: " + e);
+		}
+	}
+
+	public static void drawIntro(MinecraftClient client, int w, int h) {
+		if (introDone || w <= 0 || h <= 0) return;
+		long now = System.currentTimeMillis();
+		if (introStart < 0L) introStart = now;
+		long t = now - introStart - INTRO_HOLD_MS;
+		float k = t <= 0L ? 0.0F : Math.min(1.0F, t / (float) INTRO_FADE_MS);
+		if (k >= 1.0F) {
+			introDone = true;
+			splashPixels = null;
+			if (splashId != null) client.getTextureManager().close(splashId);
+			splashId = null;
+			return;
+		}
+		float alpha = 1.0F - smooth(k);
+		if (splashId == null && splashPixels != null) {
+			try {
+				NativeImageBackedTexture texture = new NativeImageBackedTexture(splashPixels);
+				splashId = client.getTextureManager().registerDynamicTexture("optic_splash", texture);
+				gg.optic.client.OpticSmooth.linearize(texture);
+			} catch (Throwable e) {
+				System.err.println("[Optic] Splash texture failed: " + e);
+			}
+			splashPixels = null;
+		}
+		if (splashId != null) {
+			int tw = splashW;
+			int th = splashH;
+			GlStateManager.enableTexture();
+			GlStateManager.enableBlend();
+			GlStateManager.blendFuncSeparate(770, 771, 1, 0);
+			GlStateManager.color(1.0F, 1.0F, 1.0F, alpha);
+			client.getTextureManager().bindTexture(splashId);
+			// The whole captured frame stretched over the screen: same picture, just fading out.
+			DrawableHelper.drawTexture(0, 0, 0.0F, 0.0F, tw, th, w, h, (float) tw, (float) th);
+			GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+		} else {
+			DrawableHelper.fill(0, 0, w, h, (Math.round(alpha * 255.0F) << 24) | 0xFFFFFF);
+		}
+	}
 	private static final String COSMETICS = "COSMETICS";
 	private static final float COSMETICS_SIZE = 8.0F;
 	private static long cosmeticsNoteUntil;
