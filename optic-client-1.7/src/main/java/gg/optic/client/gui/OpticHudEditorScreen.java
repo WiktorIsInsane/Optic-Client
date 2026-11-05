@@ -133,7 +133,7 @@ public final class OpticHudEditorScreen extends Screen {
 				item.h = textH + 4;
 			}
 			// Resize handle on bottom-left; gear stays on the right.
-			item.handleX = item.x;
+			item.handleX = item.x + item.w - (int) OpticHudLayout.HANDLE;
 			item.handleY = item.y + item.h - (int) OpticHudLayout.HANDLE;
 			item.gearX = item.x + item.w + 3;
 			item.gearY = item.y;
@@ -319,8 +319,6 @@ public final class OpticHudEditorScreen extends Screen {
 		OpticFrame.begin(client);
 		try {
 		fill(0, 0, width, height, 0x44000000);
-		OpticUiFont.drawSized(client, "EDIT GUI", 10, 10, ACCENT, 12.0F);
-		OpticUiFont.drawSized(client, "Drag HUD · center lines lock · corner resize", 10, 26, 0xFFB0B8B0, 8.0F);
 		if (snapGuideX) fill(width / 2, 0, width / 2 + 1, height, 0xEEFFFFFF);
 		if (snapGuideY) fill(0, height / 2, width, height / 2 + 1, 0xEEFFFFFF);
 
@@ -333,10 +331,6 @@ public final class OpticHudEditorScreen extends Screen {
 			}
 			drawGear(item.gearX, item.gearY, inside(mouseX, mouseY, item.gearX, item.gearY, (int) OpticHudLayout.GEAR, (int) OpticHudLayout.GEAR));
 		}
-
-		drawTool(centerHX, "Center H", mouseX, mouseY);
-		drawTool(centerVX, "Center V", mouseX, mouseY);
-		drawTool(centerBX, "Center", mouseX, mouseY);
 
 		boolean doneHover = inside(mouseX, mouseY, doneX, doneY, doneW, doneH);
 		fill(doneX, doneY, doneX + doneW, doneY + doneH, doneHover ? 0xFF2A4A28 : 0xFF1A221A);
@@ -354,11 +348,10 @@ public final class OpticHudEditorScreen extends Screen {
 		OpticUiFont.drawCenteredSized(client, label, x + toolW / 2, toolY + 4, 0xFFFFFFFF, 8.5F);
 	}
 
+	/** Settings button: a smooth, high-res cog (baked at screen resolution), green on hover. */
 	private void drawGear(int x, int y, boolean hover) {
 		int s = (int) OpticHudLayout.GEAR;
-		fill(x, y, x + s, y + s, hover ? 0xFF2A3038 : 0xFF1A1E22);
-		outline(x, y, s, s, ACCENT);
-		drawGearIcon(x + s / 2, y + s / 2, s / 2 - 1, 0xFFE8EEF2);
+		OpticUiFont.drawLineIconCentered(client, "gear", x + s / 2, y + s / 2, s, hover ? ACCENT : 0xFFE8EEF2);
 	}
 
 	/** Simple 8-tooth cog drawn with fills. */
@@ -499,18 +492,6 @@ public final class OpticHudEditorScreen extends Screen {
 			client.setScreen(parent);
 			return;
 		}
-		if (inside(mouseX, mouseY, centerHX, toolY, toolW, toolH)) {
-			centerSelected(true, false);
-			return;
-		}
-		if (inside(mouseX, mouseY, centerVX, toolY, toolW, toolH)) {
-			centerSelected(false, true);
-			return;
-		}
-		if (inside(mouseX, mouseY, centerBX, toolY, toolW, toolH)) {
-			centerSelected(true, true);
-			return;
-		}
 
 		for (int i = items.size() - 1; i >= 0; i--) {
 			HudItem item = items.get(i);
@@ -524,7 +505,8 @@ public final class OpticHudEditorScreen extends Screen {
 				resizing = true;
 				resizeStartScale = scaleOf(item.id, OpticClient.get().config());
 				// Fixed top-right (opposite the bottom-left handle) — does not move while scaling.
-				resizeOriginX = item.x + item.w;
+				// Bottom-right handle: scale from the fixed top-left corner (positions are top-left based).
+				resizeOriginX = item.x;
 				resizeOriginY = item.y;
 				float dx = mouseX - resizeOriginX;
 				float dy = mouseY - resizeOriginY;

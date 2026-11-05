@@ -69,6 +69,14 @@ public final class OpticConfig {
 	public boolean skins3dLegs = true;
 	public float skins3dDistance = 16.0F;
 
+	// PvP Tweaks: visual comfort tweaks common to PvP clients
+	public boolean pvpTweaks = false;
+	public boolean pvpLowFire = true;
+	public boolean pvpNoPumpkin = true;
+	public boolean pvpClearWater = false;
+	public boolean pvpNoVignette = false;
+	public boolean pvpNoPortal = false;
+
 	// Hitboxes
 	public boolean hitboxes = false;
 	/** Hide the blue look-direction line. */
@@ -109,7 +117,7 @@ public final class OpticConfig {
 	// Keystrokes
 	public boolean keystrokesShowMouse = true;
 	public boolean keystrokesModernStyle = true;
-	public boolean keystrokesTextShadow = true;
+	public boolean keystrokesTextShadow = false;
 	public boolean keystrokesOpticFont = false;
 	public boolean keystrokesBackground = true;
 	public boolean keystrokesShowLabels = true;
@@ -121,7 +129,15 @@ public final class OpticConfig {
 	public boolean keystrokesUseArrows = false;
 	public boolean keystrokesShowLeftCps = false;
 	public boolean keystrokesShowRightCps = false;
-	public boolean keystrokesBorder = true;
+	public boolean keystrokesBorder = false;
+	public boolean keystrokesInnerBorder = false;
+	public boolean keystrokesAnimate = false;
+	public int keystrokesAnimation = 0;
+	public float keystrokesAnimDuration = 0.5F;
+	public int keystrokesEasing = 0;
+	public boolean keystrokesAnimateColor = false;
+	public int keystrokesAnimStartColor = 0xFFFFFF;
+	public int keystrokesAnimEndColor = 0xFFFFFF;
 	public float keystrokesBoxSize = 18.0F;
 	public float keystrokesBorderThickness = 1.0F;
 	public float keystrokesSpaceThickness = 1.0F;
@@ -129,7 +145,7 @@ public final class OpticConfig {
 	public int keystrokesBackgroundColor = 0x000000;
 	public int keystrokesBackgroundPressedColor = 0xFFFFFF;
 	public int keystrokesBorderColor = 0xFFFFFF;
-	public float keystrokesFadeMs = 200.0F;
+	public float keystrokesFadeMs = 75.0F;
 	/** 0=Off, 1=Replace label, 2=Under label, 3=While clicking */
 	public int keystrokesCpsMode = 0;
 	public float keystrokesScale = 1.0F;
@@ -242,16 +258,23 @@ public final class OpticConfig {
 	public boolean tabDisableFooter = false;
 	public boolean tabHeads = true;
 	public boolean tabHidePing = false;
-	public boolean tabHidePingOver500 = false;
+	public boolean tabHidePingOver500 = true;
 	public boolean tabPingNumbers = false;
 	public boolean tabDynamicPing = true;
 	public int tabPingColor = 0xFFFF55;
 	public boolean tabHighlightSelf = false;
-	public int tabSelfColor = 0x55FF55;
+	public int tabSelfColor = 0xFF0000;
 	public boolean tabNameShadow = true;
 	public boolean tabMoveSelfTop = false;
 	public boolean tabHideNpc = false;
 	public int tabBackgroundColor = 0x000000;
+	public boolean tabPingRow = false;
+	public int tabRowsColor = 0x000000;
+	public boolean tabPingNumberShadow = false;
+	public int tabPingLowColor = 0x55FF55;
+	public int tabPingMediumColor = 0xFFFF55;
+	public int tabPingHighColor = 0xFF5555;
+	public int tabPingExtremeColor = 0xAA0000;
 	public int tabHeaderColor = 0x000000;
 	public int tabFooterColor = 0x000000;
 
@@ -432,6 +455,11 @@ public final class OpticConfig {
 	public boolean disableMouseScrollWheel = false;
 	/** Hide the "Achievement get!" popup (General settings). */
 	public boolean disableAchievements = false;
+	/** Ctrl+C over a chat message copies it (General settings). */
+	public boolean copyChatMessages = false;
+	/** Scaled screen size the HUD positions were saved for (0 = unknown). */
+	public int hudRefW = 0;
+	public int hudRefH = 0;
 	/** Show held-item name ("Diamond Sword") when switching slots. */
 	public boolean itemInfo = true;
 
@@ -537,6 +565,12 @@ public final class OpticConfig {
 		skins3dArms = read(values, "skins3dArms", skins3dArms);
 		skins3dLegs = read(values, "skins3dLegs", skins3dLegs);
 		skins3dDistance = clampFloat(readFloat(values, "skins3dDistance", skins3dDistance), 4.0F, 64.0F);
+		pvpTweaks = read(values, "pvpTweaks", pvpTweaks);
+		pvpLowFire = read(values, "pvpLowFire", pvpLowFire);
+		pvpNoPumpkin = read(values, "pvpNoPumpkin", pvpNoPumpkin);
+		pvpClearWater = read(values, "pvpClearWater", pvpClearWater);
+		pvpNoVignette = read(values, "pvpNoVignette", pvpNoVignette);
+		pvpNoPortal = read(values, "pvpNoPortal", pvpNoPortal);
 		hitboxHideLook = read(values, "hitboxHideLook", hitboxHideLook);
 		hitboxPlayerColor = readColor(values, "hitboxPlayerColor", hitboxPlayerColor);
 		hitboxMobColor = readColor(values, "hitboxMobColor", hitboxMobColor);
@@ -727,6 +761,9 @@ public final class OpticConfig {
 		borderlessFullscreen = read(values, "borderlessFullscreen", borderlessFullscreen);
 		disableMouseScrollWheel = read(values, "disableMouseScrollWheel", disableMouseScrollWheel);
 		disableAchievements = read(values, "disableAchievements", disableAchievements);
+		copyChatMessages = read(values, "copyChatMessages", copyChatMessages);
+		hudRefW = readInt(values, "hudRefW", hudRefW);
+		hudRefH = readInt(values, "hudRefH", hudRefH);
 		itemInfo = read(values, "itemInfo", itemInfo);
 		fpsOptimizer = read(values, "fpsOptimizer", fpsOptimizer);
 		opticSnap = read(values, "opticSnap", opticSnap);
@@ -856,6 +893,12 @@ public final class OpticConfig {
 		values.setProperty("skins3dArms", Boolean.toString(skins3dArms));
 		values.setProperty("skins3dLegs", Boolean.toString(skins3dLegs));
 		values.setProperty("skins3dDistance", Float.toString(skins3dDistance));
+		values.setProperty("pvpTweaks", Boolean.toString(pvpTweaks));
+		values.setProperty("pvpLowFire", Boolean.toString(pvpLowFire));
+		values.setProperty("pvpNoPumpkin", Boolean.toString(pvpNoPumpkin));
+		values.setProperty("pvpClearWater", Boolean.toString(pvpClearWater));
+		values.setProperty("pvpNoVignette", Boolean.toString(pvpNoVignette));
+		values.setProperty("pvpNoPortal", Boolean.toString(pvpNoPortal));
 		values.setProperty("hitboxHideLook", Boolean.toString(hitboxHideLook));
 		values.setProperty("hitboxPlayerColor", toHex(hitboxPlayerColor));
 		values.setProperty("hitboxMobColor", toHex(hitboxMobColor));
@@ -1047,6 +1090,9 @@ public final class OpticConfig {
 		values.setProperty("borderlessFullscreen", Boolean.toString(borderlessFullscreen));
 		values.setProperty("disableMouseScrollWheel", Boolean.toString(disableMouseScrollWheel));
 		values.setProperty("disableAchievements", Boolean.toString(disableAchievements));
+		values.setProperty("copyChatMessages", Boolean.toString(copyChatMessages));
+		values.setProperty("hudRefW", Integer.toString(hudRefW));
+		values.setProperty("hudRefH", Integer.toString(hudRefH));
 		values.setProperty("itemInfo", Boolean.toString(itemInfo));
 		values.setProperty("fpsOptimizer", Boolean.toString(fpsOptimizer));
 		values.setProperty("opticSnap", Boolean.toString(opticSnap));
@@ -1120,6 +1166,12 @@ public final class OpticConfig {
 		o.addProperty("skins3dArms", skins3dArms);
 		o.addProperty("skins3dLegs", skins3dLegs);
 		o.addProperty("skins3dDistance", skins3dDistance);
+		o.addProperty("pvpTweaks", pvpTweaks);
+		o.addProperty("pvpLowFire", pvpLowFire);
+		o.addProperty("pvpNoPumpkin", pvpNoPumpkin);
+		o.addProperty("pvpClearWater", pvpClearWater);
+		o.addProperty("pvpNoVignette", pvpNoVignette);
+		o.addProperty("pvpNoPortal", pvpNoPortal);
 		o.addProperty("hitboxHideLook", hitboxHideLook);
 		o.addProperty("hitboxPlayerColor", toHex(hitboxPlayerColor));
 		o.addProperty("hitboxMobColor", toHex(hitboxMobColor));
@@ -1296,6 +1348,9 @@ public final class OpticConfig {
 		o.addProperty("borderlessFullscreen", borderlessFullscreen);
 		o.addProperty("disableMouseScrollWheel", disableMouseScrollWheel);
 		o.addProperty("disableAchievements", disableAchievements);
+		o.addProperty("copyChatMessages", copyChatMessages);
+		o.addProperty("hudRefW", hudRefW);
+		o.addProperty("hudRefH", hudRefH);
 		o.addProperty("itemInfo", itemInfo);
 		o.addProperty("fpsOptimizer", fpsOptimizer);
 		o.addProperty("opticSnap", opticSnap);
@@ -1360,6 +1415,12 @@ public final class OpticConfig {
 		skins3dArms = getBool(o, "skins3dArms", skins3dArms);
 		skins3dLegs = getBool(o, "skins3dLegs", skins3dLegs);
 		skins3dDistance = clampFloat(getFloat(o, "skins3dDistance", skins3dDistance), 4.0F, 64.0F);
+		pvpTweaks = getBool(o, "pvpTweaks", pvpTweaks);
+		pvpLowFire = getBool(o, "pvpLowFire", pvpLowFire);
+		pvpNoPumpkin = getBool(o, "pvpNoPumpkin", pvpNoPumpkin);
+		pvpClearWater = getBool(o, "pvpClearWater", pvpClearWater);
+		pvpNoVignette = getBool(o, "pvpNoVignette", pvpNoVignette);
+		pvpNoPortal = getBool(o, "pvpNoPortal", pvpNoPortal);
 		hitboxHideLook = getBool(o, "hitboxHideLook", hitboxHideLook);
 		hitboxPlayerColor = getColor(o, "hitboxPlayerColor", hitboxPlayerColor);
 		hitboxMobColor = getColor(o, "hitboxMobColor", hitboxMobColor);
@@ -1542,6 +1603,7 @@ public final class OpticConfig {
 		borderlessFullscreen = false;
 		disableMouseScrollWheel = false;
 		disableAchievements = false;
+		copyChatMessages = false;
 		itemInfo = true;
 		fpsOptimizer = false;
 		opticSnap = false;
@@ -1566,6 +1628,9 @@ public final class OpticConfig {
 		borderlessFullscreen = getBool(o, "borderlessFullscreen", borderlessFullscreen);
 		disableMouseScrollWheel = getBool(o, "disableMouseScrollWheel", disableMouseScrollWheel);
 		disableAchievements = getBool(o, "disableAchievements", disableAchievements);
+		copyChatMessages = getBool(o, "copyChatMessages", copyChatMessages);
+		hudRefW = getInt(o, "hudRefW", hudRefW);
+		hudRefH = getInt(o, "hudRefH", hudRefH);
 		itemInfo = getBool(o, "itemInfo", itemInfo);
 		fpsOptimizer = getBool(o, "fpsOptimizer", fpsOptimizer);
 		opticSnap = getBool(o, "opticSnap", opticSnap);
@@ -1673,7 +1738,7 @@ public final class OpticConfig {
 			case 12: // Keystrokes
 				keystrokesShowMouse = true;
 				keystrokesModernStyle = true;
-				keystrokesTextShadow = true;
+				keystrokesTextShadow = false;
 				keystrokesOpticFont = false;
 				keystrokesBackground = true;
 				keystrokesShowLabels = true;
@@ -1685,7 +1750,15 @@ public final class OpticConfig {
 				keystrokesUseArrows = false;
 				keystrokesShowLeftCps = false;
 				keystrokesShowRightCps = false;
-				keystrokesBorder = true;
+				keystrokesBorder = false;
+				keystrokesInnerBorder = false;
+				keystrokesAnimate = false;
+				keystrokesAnimation = 0;
+				keystrokesAnimDuration = 0.5F;
+				keystrokesEasing = 0;
+				keystrokesAnimateColor = false;
+				keystrokesAnimStartColor = 0xFFFFFF;
+				keystrokesAnimEndColor = 0xFFFFFF;
 				keystrokesBoxSize = 18.0F;
 				keystrokesBorderThickness = 1.0F;
 				keystrokesSpaceThickness = 1.0F;
@@ -1866,11 +1939,19 @@ public final class OpticConfig {
 				freeLookPerspective = 1;
 				break;
 			case 38: // 3D Skins
+
 				skins3dHead = true;
 				skins3dBody = true;
 				skins3dArms = true;
 				skins3dLegs = true;
 				skins3dDistance = 16.0F;
+				break;
+			case 39: // PvP Tweaks
+				pvpLowFire = true;
+				pvpNoPumpkin = true;
+				pvpClearWater = false;
+				pvpNoVignette = false;
+				pvpNoPortal = false;
 				break;
 			case 28: // Hitboxes
 				hitboxHideLook = false;
@@ -2044,6 +2125,13 @@ public final class OpticConfig {
 		tabMoveSelfTop = read(values, "tabMoveSelfTop", tabMoveSelfTop);
 		tabHideNpc = read(values, "tabHideNpc", tabHideNpc);
 		tabBackgroundColor = readColor(values, "tabBackgroundColor", tabBackgroundColor);
+		tabPingRow = read(values, "tabPingRow", tabPingRow);
+		tabRowsColor = readColor(values, "tabRowsColor", tabRowsColor);
+		tabPingNumberShadow = read(values, "tabPingNumberShadow", tabPingNumberShadow);
+		tabPingLowColor = readColor(values, "tabPingLowColor", tabPingLowColor);
+		tabPingMediumColor = readColor(values, "tabPingMediumColor", tabPingMediumColor);
+		tabPingHighColor = readColor(values, "tabPingHighColor", tabPingHighColor);
+		tabPingExtremeColor = readColor(values, "tabPingExtremeColor", tabPingExtremeColor);
 		tabHeaderColor = readColor(values, "tabHeaderColor", tabHeaderColor);
 		tabFooterColor = readColor(values, "tabFooterColor", tabFooterColor);
 		titles = read(values, "titles", titles);
@@ -2086,6 +2174,14 @@ public final class OpticConfig {
 		keystrokesShowLeftCps = read(values, "keystrokesShowLeftCps", keystrokesShowLeftCps);
 		keystrokesShowRightCps = read(values, "keystrokesShowRightCps", keystrokesShowRightCps);
 		keystrokesBorder = read(values, "keystrokesBorder", keystrokesBorder);
+		keystrokesInnerBorder = read(values, "keystrokesInnerBorder", keystrokesInnerBorder);
+		keystrokesAnimate = read(values, "keystrokesAnimate", keystrokesAnimate);
+		keystrokesAnimation = Math.max(0, Math.min(1, readInt(values, "keystrokesAnimation", keystrokesAnimation)));
+		keystrokesAnimDuration = clampFloat(readFloat(values, "keystrokesAnimDuration", keystrokesAnimDuration), 0.1F, 1.0F);
+		keystrokesEasing = Math.max(0, Math.min(2, readInt(values, "keystrokesEasing", keystrokesEasing)));
+		keystrokesAnimateColor = read(values, "keystrokesAnimateColor", keystrokesAnimateColor);
+		keystrokesAnimStartColor = readColor(values, "keystrokesAnimStartColor", keystrokesAnimStartColor);
+		keystrokesAnimEndColor = readColor(values, "keystrokesAnimEndColor", keystrokesAnimEndColor);
 		keystrokesBoxSize = clampFloat(readFloat(values, "keystrokesBoxSize", keystrokesBoxSize), 10.0F, 32.0F);
 		keystrokesBorderThickness = clampFloat(readFloat(values, "keystrokesBorderThickness", keystrokesBorderThickness), 0.5F, 3.0F);
 		keystrokesSpaceThickness = clampFloat(readFloat(values, "keystrokesSpaceThickness", keystrokesSpaceThickness), 1.0F, 4.25F);
@@ -2167,6 +2263,13 @@ public final class OpticConfig {
 		values.setProperty("tabMoveSelfTop", Boolean.toString(tabMoveSelfTop));
 		values.setProperty("tabHideNpc", Boolean.toString(tabHideNpc));
 		values.setProperty("tabBackgroundColor", toHex(tabBackgroundColor));
+		values.setProperty("tabPingRow", Boolean.toString(tabPingRow));
+		values.setProperty("tabRowsColor", toHex(tabRowsColor));
+		values.setProperty("tabPingNumberShadow", Boolean.toString(tabPingNumberShadow));
+		values.setProperty("tabPingLowColor", toHex(tabPingLowColor));
+		values.setProperty("tabPingMediumColor", toHex(tabPingMediumColor));
+		values.setProperty("tabPingHighColor", toHex(tabPingHighColor));
+		values.setProperty("tabPingExtremeColor", toHex(tabPingExtremeColor));
 		values.setProperty("tabHeaderColor", toHex(tabHeaderColor));
 		values.setProperty("tabFooterColor", toHex(tabFooterColor));
 		values.setProperty("titles", Boolean.toString(titles));
@@ -2209,6 +2312,14 @@ public final class OpticConfig {
 		values.setProperty("keystrokesShowLeftCps", Boolean.toString(keystrokesShowLeftCps));
 		values.setProperty("keystrokesShowRightCps", Boolean.toString(keystrokesShowRightCps));
 		values.setProperty("keystrokesBorder", Boolean.toString(keystrokesBorder));
+		values.setProperty("keystrokesInnerBorder", Boolean.toString(keystrokesInnerBorder));
+		values.setProperty("keystrokesAnimate", Boolean.toString(keystrokesAnimate));
+		values.setProperty("keystrokesAnimation", Integer.toString(keystrokesAnimation));
+		values.setProperty("keystrokesAnimDuration", Float.toString(keystrokesAnimDuration));
+		values.setProperty("keystrokesEasing", Integer.toString(keystrokesEasing));
+		values.setProperty("keystrokesAnimateColor", Boolean.toString(keystrokesAnimateColor));
+		values.setProperty("keystrokesAnimStartColor", toHex(keystrokesAnimStartColor));
+		values.setProperty("keystrokesAnimEndColor", toHex(keystrokesAnimEndColor));
 		values.setProperty("keystrokesBoxSize", Float.toString(keystrokesBoxSize));
 		values.setProperty("keystrokesBorderThickness", Float.toString(keystrokesBorderThickness));
 		values.setProperty("keystrokesSpaceThickness", Float.toString(keystrokesSpaceThickness));
@@ -2290,6 +2401,13 @@ public final class OpticConfig {
 		o.addProperty("tabMoveSelfTop", tabMoveSelfTop);
 		o.addProperty("tabHideNpc", tabHideNpc);
 		o.addProperty("tabBackgroundColor", toHex(tabBackgroundColor));
+		o.addProperty("tabPingRow", tabPingRow);
+		o.addProperty("tabRowsColor", toHex(tabRowsColor));
+		o.addProperty("tabPingNumberShadow", tabPingNumberShadow);
+		o.addProperty("tabPingLowColor", toHex(tabPingLowColor));
+		o.addProperty("tabPingMediumColor", toHex(tabPingMediumColor));
+		o.addProperty("tabPingHighColor", toHex(tabPingHighColor));
+		o.addProperty("tabPingExtremeColor", toHex(tabPingExtremeColor));
 		o.addProperty("tabHeaderColor", toHex(tabHeaderColor));
 		o.addProperty("tabFooterColor", toHex(tabFooterColor));
 		o.addProperty("titles", titles);
@@ -2332,6 +2450,14 @@ public final class OpticConfig {
 		o.addProperty("keystrokesShowLeftCps", keystrokesShowLeftCps);
 		o.addProperty("keystrokesShowRightCps", keystrokesShowRightCps);
 		o.addProperty("keystrokesBorder", keystrokesBorder);
+		o.addProperty("keystrokesInnerBorder", keystrokesInnerBorder);
+		o.addProperty("keystrokesAnimate", keystrokesAnimate);
+		o.addProperty("keystrokesAnimation", keystrokesAnimation);
+		o.addProperty("keystrokesAnimDuration", keystrokesAnimDuration);
+		o.addProperty("keystrokesEasing", keystrokesEasing);
+		o.addProperty("keystrokesAnimateColor", keystrokesAnimateColor);
+		o.addProperty("keystrokesAnimStartColor", toHex(keystrokesAnimStartColor));
+		o.addProperty("keystrokesAnimEndColor", toHex(keystrokesAnimEndColor));
 		o.addProperty("keystrokesBoxSize", keystrokesBoxSize);
 		o.addProperty("keystrokesBorderThickness", keystrokesBorderThickness);
 		o.addProperty("keystrokesSpaceThickness", keystrokesSpaceThickness);
@@ -2414,6 +2540,13 @@ public final class OpticConfig {
 		tabMoveSelfTop = getBool(o, "tabMoveSelfTop", tabMoveSelfTop);
 		tabHideNpc = getBool(o, "tabHideNpc", tabHideNpc);
 		tabBackgroundColor = getColor(o, "tabBackgroundColor", tabBackgroundColor);
+		tabPingRow = getBool(o, "tabPingRow", tabPingRow);
+		tabRowsColor = getColor(o, "tabRowsColor", tabRowsColor);
+		tabPingNumberShadow = getBool(o, "tabPingNumberShadow", tabPingNumberShadow);
+		tabPingLowColor = getColor(o, "tabPingLowColor", tabPingLowColor);
+		tabPingMediumColor = getColor(o, "tabPingMediumColor", tabPingMediumColor);
+		tabPingHighColor = getColor(o, "tabPingHighColor", tabPingHighColor);
+		tabPingExtremeColor = getColor(o, "tabPingExtremeColor", tabPingExtremeColor);
 		tabHeaderColor = getColor(o, "tabHeaderColor", tabHeaderColor);
 		tabFooterColor = getColor(o, "tabFooterColor", tabFooterColor);
 		titles = getBool(o, "titles", titles);
@@ -2456,6 +2589,14 @@ public final class OpticConfig {
 		keystrokesShowLeftCps = getBool(o, "keystrokesShowLeftCps", keystrokesShowLeftCps);
 		keystrokesShowRightCps = getBool(o, "keystrokesShowRightCps", keystrokesShowRightCps);
 		keystrokesBorder = getBool(o, "keystrokesBorder", keystrokesBorder);
+		keystrokesInnerBorder = getBool(o, "keystrokesInnerBorder", keystrokesInnerBorder);
+		keystrokesAnimate = getBool(o, "keystrokesAnimate", keystrokesAnimate);
+		keystrokesAnimation = Math.max(0, Math.min(1, getInt(o, "keystrokesAnimation", keystrokesAnimation)));
+		keystrokesAnimDuration = clampFloat(getFloat(o, "keystrokesAnimDuration", keystrokesAnimDuration), 0.1F, 1.0F);
+		keystrokesEasing = Math.max(0, Math.min(2, getInt(o, "keystrokesEasing", keystrokesEasing)));
+		keystrokesAnimateColor = getBool(o, "keystrokesAnimateColor", keystrokesAnimateColor);
+		keystrokesAnimStartColor = getColor(o, "keystrokesAnimStartColor", keystrokesAnimStartColor);
+		keystrokesAnimEndColor = getColor(o, "keystrokesAnimEndColor", keystrokesAnimEndColor);
 		keystrokesBoxSize = clampFloat(getFloat(o, "keystrokesBoxSize", keystrokesBoxSize), 10.0F, 32.0F);
 		keystrokesBorderThickness = clampFloat(getFloat(o, "keystrokesBorderThickness", keystrokesBorderThickness), 0.5F, 3.0F);
 		keystrokesSpaceThickness = clampFloat(getFloat(o, "keystrokesSpaceThickness", keystrokesSpaceThickness), 1.0F, 4.25F);
@@ -2533,16 +2674,23 @@ public final class OpticConfig {
 				tabDisableFooter = false;
 				tabHeads = true;
 				tabHidePing = false;
-				tabHidePingOver500 = false;
+				tabHidePingOver500 = true;
 				tabPingNumbers = false;
 				tabDynamicPing = true;
 				tabPingColor = 0xFFFF55;
 				tabHighlightSelf = false;
-				tabSelfColor = 0x55FF55;
+				tabSelfColor = 0xFF0000;
 				tabNameShadow = true;
 				tabMoveSelfTop = false;
 				tabHideNpc = false;
 				tabBackgroundColor = 0x000000;
+				tabPingRow = false;
+				tabRowsColor = 0x000000;
+				tabPingNumberShadow = false;
+				tabPingLowColor = 0x55FF55;
+				tabPingMediumColor = 0xFFFF55;
+				tabPingHighColor = 0xFF5555;
+				tabPingExtremeColor = 0xAA0000;
 				tabHeaderColor = 0x000000;
 				tabFooterColor = 0x000000;
 				break;

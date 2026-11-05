@@ -11,6 +11,9 @@ import org.lwjgl.input.Mouse;
 /** Grouped WASD, mouse, and spacebar overlay in the Lunar keystrokes layout. */
 public final class OpticKeystrokes {
 	private static final float[] PRESS = new float[7];
+	/** Press animation: when each key went down, and whether it was down last frame. */
+	private static final long[] PRESS_START = new long[7];
+	private static final boolean[] WAS_DOWN = new boolean[7];
 	private static long lastFrame;
 
 	private OpticKeystrokes() {
@@ -107,9 +110,13 @@ public final class OpticKeystrokes {
 		String cps,
 		float dt
 	) {
+		long now = System.currentTimeMillis();
+		if (down && !WAS_DOWN[index]) PRESS_START[index] = now;
+		WAS_DOWN[index] = down;
+
 		float amount = PRESS[index];
 		float fade = Math.max(0.0F, c.keystrokesFadeMs) / 1000.0F;
-		if (!c.keystrokesFade) {
+		if (!c.keystrokesFade || (c.keystrokesAnimate && down)) {
 			amount = down ? 1.0F : 0.0F;
 		} else if (down) {
 			amount = fade <= 0.0F ? 1.0F : Math.min(1.0F, amount + dt / Math.max(0.04F, fade));
@@ -118,19 +125,41 @@ public final class OpticKeystrokes {
 		}
 		PRESS[index] = amount;
 
+		// Both backgrounds are see-through by default (idle black, pressed white).
 		int idle = OpticConfig.withAlpha(c.keystrokesBackgroundColor, 0x6F);
-		int pressed = OpticConfig.withAlpha(c.keystrokesBackgroundPressedColor, 0xB0);
-		OpticHud.fill(x, y, w, h, blend(idle, pressed, amount));
+		int pressed = OpticConfig.withAlpha(c.keystrokesBackgroundPressedColor, 0x6F);
+		float textAmount = amount;
+		if (c.keystrokesAnimate) {
+			OpticHud.fill(x, y, w, h, idle);
+			if (down) {
+				float duration = Math.max(0.1F, c.keystrokesAnimDuration) * 1000.0F;
+				float p = ease(c.keystrokesEasing, Math.min(1.0F, (now - PRESS_START[index]) / duration));
+				int color = c.keystrokesAnimateColor
+					? blend(OpticConfig.withAlpha(c.keystrokesAnimStartColor, 0x6F), OpticConfig.withAlpha(c.keystrokesAnimEndColor, 0x6F), p)
+					: pressed;
+				drawPressShape(c.keystrokesAnimation, x, y, w, h, p, color);
+				textAmount = p;
+			} else if (amount > 0.0F) {
+				OpticHud.fill(x, y, w, h, scaleAlpha(pressed, amount));
+			}
+		} else {
+			OpticHud.fill(x, y, w, h, blend(idle, pressed, amount));
+		}
 		if (c.keystrokesBorder) {
 			int thick = Math.max(1, Math.round(c.keystrokesBorderThickness * c.keystrokesScale));
 			int border = OpticConfig.withAlpha(c.keystrokesBorderColor, 0xFF);
-			OpticHud.fill(x, y, w, thick, border);
-			OpticHud.fill(x, y + h - thick, w, thick, border);
-			OpticHud.fill(x, y, thick, h, border);
-			OpticHud.fill(x + w - thick, y, thick, h, border);
+			// Inner border sits inside the key; otherwise it wraps around the outside.
+			int bx = c.keystrokesInnerBorder ? x : x - thick;
+			int by = c.keystrokesInnerBorder ? y : y - thick;
+			int bw = c.keystrokesInnerBorder ? w : w + thick * 2;
+			int bh = c.keystrokesInnerBorder ? h : h + thick * 2;
+			OpticHud.fill(bx, by, bw, thick, border);
+			OpticHud.fill(bx, by + bh - thick, bw, thick, border);
+			OpticHud.fill(bx, by, thick, bh, border);
+			OpticHud.fill(bx + bw - thick, by, thick, bh, border);
 		}
 
-		int text = blend(0xFF000000 | (c.keystrokesTextColor & 0xFFFFFF), 0xFF000000 | (c.keystrokesTextPressedColor & 0xFFFFFF), amount);
+		int text = blend(0xFF000000 | (c.keystrokesTextColor & 0xFFFFFF), 0xFF000000 | (c.keystrokesTextPressedColor & 0xFFFFFF), textAmount);
 		if (index == 6) {
 			int bar = Math.max(1, Math.round(c.keystrokesSpaceThickness * c.keystrokesScale));
 			int barW = Math.max(8, w - Math.round(box(c) * 0.7F));
@@ -161,6 +190,54 @@ public final class OpticKeystrokes {
 		else client.textRenderer.draw(text, 0, 0, rgb);
 		org.lwjgl.opengl.GL11.glPopMatrix();
 		org.lwjgl.opengl.GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+	}
+
+	/** 0 Linear, 1 Ease Out, 2 Ease In-Out. */
+	private static float ease(int mode, float t) {
+		t = Math.max(0.0F, Math.min(1.0F, t));
+		if (mode == 1) return 1.0F - (1.0F - t) * (1.0F - t);
+		if (mode == 2) return t < 0.5F ? 2.0F * t * t : 1.0F - (float) Math.pow(-2.0F * t + 2.0F, 2.0) / 2.0F;
+		return t;
+	}
+
+	/**
+	 * Pressed fill growing from the key's center: 0 Ripple (circle reaching the corners),
+	 * 1 Grow (rectangle). Clipped to the key.
+	 */
+	private static void drawPressShape(int style, int x, int y, int w, int h, float p, int argb) {
+		if (p <= 0.0F) return;
+		if (style == 1) {
+			int gw = Math.round(w * p);
+			int gh = Math.round(h * p);
+			OpticHud.fill(x + (w - gw) / 2, y + (h - gh) / 2, gw, gh, argb);
+			return;
+		}
+		MinecraftClient client = MinecraftClient.getInstance();
+		int sf = Math.max(1, new net.minecraft.client.util.Window(client, client.width, client.height).getScaleFactor());
+		org.lwjgl.opengl.GL11.glEnable(org.lwjgl.opengl.GL11.GL_SCISSOR_TEST);
+		org.lwjgl.opengl.GL11.glScissor(x * sf, client.height - (y + h) * sf, w * sf, h * sf);
+		float cx = x + w / 2.0F;
+		float cy = y + h / 2.0F;
+		float r = (float) Math.sqrt(w * w + h * h) / 2.0F * p;
+		org.lwjgl.opengl.GL11.glDisable(org.lwjgl.opengl.GL11.GL_TEXTURE_2D);
+		org.lwjgl.opengl.GL11.glEnable(org.lwjgl.opengl.GL11.GL_BLEND);
+		org.lwjgl.opengl.GL11.glBlendFunc(org.lwjgl.opengl.GL11.GL_SRC_ALPHA, org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA);
+		org.lwjgl.opengl.GL11.glColor4f(((argb >> 16) & 0xFF) / 255.0F, ((argb >> 8) & 0xFF) / 255.0F, (argb & 0xFF) / 255.0F, ((argb >>> 24) & 0xFF) / 255.0F);
+		org.lwjgl.opengl.GL11.glBegin(org.lwjgl.opengl.GL11.GL_TRIANGLE_FAN);
+		org.lwjgl.opengl.GL11.glVertex2f(cx, cy);
+		for (int i = 0; i <= 32; i++) {
+			double a = -i * Math.PI * 2.0 / 32.0;
+			org.lwjgl.opengl.GL11.glVertex2f(cx + (float) Math.cos(a) * r, cy + (float) Math.sin(a) * r);
+		}
+		org.lwjgl.opengl.GL11.glEnd();
+		org.lwjgl.opengl.GL11.glEnable(org.lwjgl.opengl.GL11.GL_TEXTURE_2D);
+		org.lwjgl.opengl.GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+		org.lwjgl.opengl.GL11.glDisable(org.lwjgl.opengl.GL11.GL_SCISSOR_TEST);
+	}
+
+	private static int scaleAlpha(int argb, float t) {
+		int a = Math.round(((argb >>> 24) & 0xFF) * Math.max(0.0F, Math.min(1.0F, t)));
+		return (a << 24) | (argb & 0xFFFFFF);
 	}
 
 	private static int blend(int from, int to, float t) {

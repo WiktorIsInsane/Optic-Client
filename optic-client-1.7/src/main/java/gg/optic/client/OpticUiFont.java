@@ -302,10 +302,7 @@ public final class OpticUiFont {
 			g.setColor(Color.WHITE);
 			layout.draw(g, drawX, baseline);
 			g.dispose();
-
-			Identifier id = upload(client, image, name);
-
-			return new Label(id, cell, cell, draw, draw);
+			return iconLabel(client, image, draw, name, true);
 		} catch (Exception e) {
 			System.err.println("[Optic] Emoji bake failed: " + e.getMessage());
 			e.printStackTrace();
@@ -355,8 +352,7 @@ public final class OpticUiFont {
 			drawSword(g, pad, cell - pad, cell - pad, pad, thick);
 			drawSword(g, cell - pad, cell - pad, pad, pad, thick);
 			g.dispose();
-			Identifier id = upload(client, image, name);
-			return new Label(id, cell, cell, draw, draw);
+			return iconLabel(client, image, draw, name, false);
 		} catch (Exception e) {
 			System.err.println("[Optic] Swords bake failed: " + e.getMessage());
 			return null;
@@ -444,8 +440,7 @@ public final class OpticUiFont {
 				}
 			}
 			g.dispose();
-			Identifier id = upload(client, image, name);
-			return new Label(id, cell, cell, draw, draw);
+			return iconLabel(client, image, draw, name, false);
 		} catch (Exception e) {
 			System.err.println("[Optic] Grid icon bake failed: " + e.getMessage());
 			return null;
@@ -495,11 +490,11 @@ public final class OpticUiFont {
 				g.fill(path);
 				g.setColor(color);
 				g.fill(path);
-				g.setStroke(new java.awt.BasicStroke(Math.max(1.5F, cell / 48.0F), java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
+				g.setStroke(new java.awt.BasicStroke(Math.max(1.5F, cell / 22.0F), java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
 				g.setColor(new Color(255, 255, 255, 180));
 				g.draw(path);
 			} else {
-				float stroke = Math.max(2.5F, cell / 28.0F);
+				float stroke = Math.max(2.5F, cell / 13.0F);
 				g.setStroke(new java.awt.BasicStroke(stroke + cell / 40.0F, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
 				g.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), Math.min(255, color.getAlpha() / 3)));
 				g.draw(path);
@@ -508,14 +503,154 @@ public final class OpticUiFont {
 				g.draw(path);
 			}
 			g.dispose();
-
-			Identifier id = upload(client, image, name);
-			return new Label(id, cell, cell, draw, draw);
+			return iconLabel(client, image, draw, name, false);
 		} catch (Exception e) {
 			System.err.println("[Optic] Star bake failed: " + e.getMessage());
 			e.printStackTrace();
 			return null;
 		}
+	}
+
+	/** Line icons: "pencil", "copy", "trash", "export", "gear". Centered on (centerX, centerY). */
+	public static void drawLineIconCentered(MinecraftClient client, String kind, int centerX, int centerY, float guiSize, int argb) {
+		ensureScale(client);
+		String key = "line|" + kind + "|" + bakedScale + "|" + guiSize + "|" + Integer.toHexString(argb);
+		Label label = CACHE.get(key);
+		if (label == null) {
+			label = bakeLineIcon(client, kind, guiSize, argb, "optic_line_" + CACHE.size());
+			if (label != null) CACHE.put(key, label);
+		}
+		if (label == null) return;
+		label.draw(client, centerX - label.drawW / 2, centerY - label.drawH / 2);
+	}
+
+	private static Label bakeLineIcon(MinecraftClient client, String kind, float guiSize, int argb, String name) {
+		try {
+			int draw = Math.max(6, Math.round(guiSize));
+			int cell = 256;
+			BufferedImage image = new BufferedImage(cell, cell, BufferedImage.TYPE_INT_ARGB);
+			Graphics2D g = image.createGraphics();
+			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+			g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+			g.setColor(new Color(argb, true));
+			float s = cell;
+			java.awt.BasicStroke stroke = new java.awt.BasicStroke(s * 0.085F, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND);
+			g.setStroke(stroke);
+			if ("pencil".equals(kind)) {
+				java.awt.geom.Path2D.Float p = new java.awt.geom.Path2D.Float();
+				p.moveTo(s * 0.22F, s * 0.78F);
+				p.lineTo(s * 0.26F, s * 0.62F);
+				p.lineTo(s * 0.66F, s * 0.22F);
+				p.lineTo(s * 0.78F, s * 0.34F);
+				p.lineTo(s * 0.38F, s * 0.74F);
+				p.closePath();
+				g.draw(p);
+				g.draw(new java.awt.geom.Line2D.Float(s * 0.58F, s * 0.30F, s * 0.70F, s * 0.42F));
+			} else if ("copy".equals(kind)) {
+				g.draw(new java.awt.geom.RoundRectangle2D.Float(s * 0.34F, s * 0.34F, s * 0.44F, s * 0.46F, s * 0.1F, s * 0.1F));
+				java.awt.geom.Path2D.Float back = new java.awt.geom.Path2D.Float();
+				back.moveTo(s * 0.24F, s * 0.62F);
+				back.lineTo(s * 0.24F, s * 0.24F);
+				back.lineTo(s * 0.58F, s * 0.24F);
+				g.draw(back);
+			} else if ("trash".equals(kind)) {
+				g.draw(new java.awt.geom.Line2D.Float(s * 0.2F, s * 0.28F, s * 0.8F, s * 0.28F));
+				g.draw(new java.awt.geom.Line2D.Float(s * 0.4F, s * 0.28F, s * 0.42F, s * 0.18F));
+				g.draw(new java.awt.geom.Line2D.Float(s * 0.42F, s * 0.18F, s * 0.58F, s * 0.18F));
+				g.draw(new java.awt.geom.Line2D.Float(s * 0.58F, s * 0.18F, s * 0.6F, s * 0.28F));
+				java.awt.geom.Path2D.Float can = new java.awt.geom.Path2D.Float();
+				can.moveTo(s * 0.28F, s * 0.36F);
+				can.lineTo(s * 0.32F, s * 0.82F);
+				can.lineTo(s * 0.68F, s * 0.82F);
+				can.lineTo(s * 0.72F, s * 0.36F);
+				g.draw(can);
+				g.draw(new java.awt.geom.Line2D.Float(s * 0.44F, s * 0.46F, s * 0.45F, s * 0.70F));
+				g.draw(new java.awt.geom.Line2D.Float(s * 0.56F, s * 0.46F, s * 0.55F, s * 0.70F));
+			} else if ("export".equals(kind)) {
+				java.awt.geom.Path2D.Float tray = new java.awt.geom.Path2D.Float();
+				tray.moveTo(s * 0.22F, s * 0.56F);
+				tray.lineTo(s * 0.22F, s * 0.8F);
+				tray.lineTo(s * 0.78F, s * 0.8F);
+				tray.lineTo(s * 0.78F, s * 0.56F);
+				g.draw(tray);
+				g.draw(new java.awt.geom.Line2D.Float(s * 0.5F, s * 0.62F, s * 0.5F, s * 0.2F));
+				java.awt.geom.Path2D.Float head = new java.awt.geom.Path2D.Float();
+				head.moveTo(s * 0.34F, s * 0.36F);
+				head.lineTo(s * 0.5F, s * 0.2F);
+				head.lineTo(s * 0.66F, s * 0.36F);
+				g.draw(head);
+			} else if ("gear".equals(kind)) {
+				// Filled cog: 8 rounded teeth around a ring, hole in the middle.
+				java.awt.geom.Area cog = new java.awt.geom.Area(new java.awt.geom.Ellipse2D.Float(s * 0.2F, s * 0.2F, s * 0.6F, s * 0.6F));
+				for (int i = 0; i < 8; i++) {
+					java.awt.geom.RoundRectangle2D.Float tooth = new java.awt.geom.RoundRectangle2D.Float(s * 0.42F, s * 0.06F, s * 0.16F, s * 0.2F, s * 0.06F, s * 0.06F);
+					java.awt.geom.AffineTransform rot = java.awt.geom.AffineTransform.getRotateInstance(i * Math.PI / 4.0, s * 0.5F, s * 0.5F);
+					cog.add(new java.awt.geom.Area(rot.createTransformedShape(tooth)));
+				}
+				cog.subtract(new java.awt.geom.Area(new java.awt.geom.Ellipse2D.Float(s * 0.36F, s * 0.36F, s * 0.28F, s * 0.28F)));
+				g.fill(cog);
+			}
+			g.dispose();
+			return iconLabel(client, image, draw, name, false);
+		} catch (Exception e) {
+			System.err.println("[Optic] Line icon bake failed: " + e.getMessage());
+			return null;
+		}
+	}
+
+	/**
+	 * Finishes an icon drawn on a big canvas: optionally crops to the visible pixels and fits
+	 * them (centered, 88% of the box), then shrinks in halving steps to exactly the on-screen
+	 * pixel size. Drawn 1:1 it stays sharp; squeezing a 128px+ texture into a few pixels on the
+	 * GPU is what made the icons grainy and some emoji sit off-center.
+	 */
+	private static Label iconLabel(MinecraftClient client, BufferedImage big, int draw, String name, boolean fit) {
+		int target = Math.max(1, draw * Math.max(1, bakedScale));
+		BufferedImage source = big;
+		if (fit) {
+			int minX = big.getWidth(), minY = big.getHeight(), maxX = -1, maxY = -1;
+			for (int y = 0; y < big.getHeight(); y++) {
+				for (int x = 0; x < big.getWidth(); x++) {
+					if (((big.getRGB(x, y) >>> 24) & 0xFF) > 8) {
+						if (x < minX) minX = x;
+						if (y < minY) minY = y;
+						if (x > maxX) maxX = x;
+						if (y > maxY) maxY = y;
+					}
+				}
+			}
+			if (maxX >= minX && maxY >= minY) {
+				int bw = maxX - minX + 1;
+				int bh = maxY - minY + 1;
+				int side = Math.round(Math.max(bw, bh) / 0.88F);
+				BufferedImage square = new BufferedImage(side, side, BufferedImage.TYPE_INT_ARGB);
+				Graphics2D g = square.createGraphics();
+				g.drawImage(big.getSubimage(minX, minY, bw, bh), (side - bw) / 2, (side - bh) / 2, null);
+				g.dispose();
+				source = square;
+			}
+		}
+		BufferedImage current = source;
+		int w = current.getWidth();
+		while (w / 2 >= target) {
+			w /= 2;
+			current = scaled(current, w);
+		}
+		if (current.getWidth() != target) current = scaled(current, target);
+		Identifier id = upload(client, current, name);
+		return new Label(id, target, target, draw, draw);
+	}
+
+	private static BufferedImage scaled(BufferedImage image, int size) {
+		BufferedImage out = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+		Graphics2D g = out.createGraphics();
+		g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+		g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		g.drawImage(image, 0, 0, size, size, null);
+		g.dispose();
+		return out;
 	}
 
 	private static Identifier upload(MinecraftClient client, BufferedImage image, String name) {

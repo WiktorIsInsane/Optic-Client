@@ -62,6 +62,16 @@ public final class OpticRevampOptions {
 		if ("keystrokesShowLeftCps".equals(key)) return c.keystrokesShowLeftCps;
 		if ("keystrokesShowRightCps".equals(key)) return c.keystrokesShowRightCps;
 		if ("keystrokesBorder".equals(key)) return c.keystrokesBorder;
+		if ("pvpLowFire".equals(key)) return c.pvpLowFire;
+		if ("pvpNoPumpkin".equals(key)) return c.pvpNoPumpkin;
+		if ("pvpClearWater".equals(key)) return c.pvpClearWater;
+		if ("pvpNoVignette".equals(key)) return c.pvpNoVignette;
+		if ("pvpNoPortal".equals(key)) return c.pvpNoPortal;
+		if ("keystrokesInnerBorder".equals(key)) return c.keystrokesInnerBorder;
+		if ("keystrokesAnimate".equals(key)) return c.keystrokesAnimate;
+		if ("keystrokesAnimateColor".equals(key)) return c.keystrokesAnimateColor;
+		if ("tabPingRow".equals(key)) return c.tabPingRow;
+		if ("tabPingNumberShadow".equals(key)) return c.tabPingNumberShadow;
 		if ("potionsBlink".equals(key)) return c.potionsBlink;
 		if ("potionsHideVanilla".equals(key)) return c.potionsHideVanilla;
 		if ("potionsShowInInventory".equals(key)) return c.potionsShowInInventory;
@@ -128,6 +138,16 @@ public final class OpticRevampOptions {
 		else if ("keystrokesShowLeftCps".equals(key)) c.keystrokesShowLeftCps = value;
 		else if ("keystrokesShowRightCps".equals(key)) c.keystrokesShowRightCps = value;
 		else if ("keystrokesBorder".equals(key)) c.keystrokesBorder = value;
+		else if ("pvpLowFire".equals(key)) c.pvpLowFire = value;
+		else if ("pvpNoPumpkin".equals(key)) c.pvpNoPumpkin = value;
+		else if ("pvpClearWater".equals(key)) c.pvpClearWater = value;
+		else if ("pvpNoVignette".equals(key)) c.pvpNoVignette = value;
+		else if ("pvpNoPortal".equals(key)) c.pvpNoPortal = value;
+		else if ("keystrokesInnerBorder".equals(key)) c.keystrokesInnerBorder = value;
+		else if ("keystrokesAnimate".equals(key)) c.keystrokesAnimate = value;
+		else if ("keystrokesAnimateColor".equals(key)) c.keystrokesAnimateColor = value;
+		else if ("tabPingRow".equals(key)) c.tabPingRow = value;
+		else if ("tabPingNumberShadow".equals(key)) c.tabPingNumberShadow = value;
 		else if ("potionsBlink".equals(key)) c.potionsBlink = value;
 		else if ("potionsHideVanilla".equals(key)) c.potionsHideVanilla = value;
 		else if ("potionsShowInInventory".equals(key)) c.potionsShowInInventory = value;
@@ -155,6 +175,13 @@ public final class OpticRevampOptions {
 		if ("keystrokesBackgroundColor".equals(key)) return c.keystrokesBackgroundColor;
 		if ("keystrokesBackgroundPressedColor".equals(key)) return c.keystrokesBackgroundPressedColor;
 		if ("keystrokesBorderColor".equals(key)) return c.keystrokesBorderColor;
+		if ("keystrokesAnimStartColor".equals(key)) return c.keystrokesAnimStartColor;
+		if ("keystrokesAnimEndColor".equals(key)) return c.keystrokesAnimEndColor;
+		if ("tabRowsColor".equals(key)) return c.tabRowsColor;
+		if ("tabPingLowColor".equals(key)) return c.tabPingLowColor;
+		if ("tabPingMediumColor".equals(key)) return c.tabPingMediumColor;
+		if ("tabPingHighColor".equals(key)) return c.tabPingHighColor;
+		if ("tabPingExtremeColor".equals(key)) return c.tabPingExtremeColor;
 		if ("tabPingColor".equals(key)) return c.tabPingColor;
 		if ("tabSelfColor".equals(key)) return c.tabSelfColor;
 		if ("tabBackgroundColor".equals(key)) return c.tabBackgroundColor;
@@ -186,6 +213,13 @@ public final class OpticRevampOptions {
 		else if ("keystrokesBackgroundColor".equals(key)) c.keystrokesBackgroundColor = color;
 		else if ("keystrokesBackgroundPressedColor".equals(key)) c.keystrokesBackgroundPressedColor = color;
 		else if ("keystrokesBorderColor".equals(key)) c.keystrokesBorderColor = color;
+		else if ("keystrokesAnimStartColor".equals(key)) c.keystrokesAnimStartColor = color;
+		else if ("keystrokesAnimEndColor".equals(key)) c.keystrokesAnimEndColor = color;
+		else if ("tabRowsColor".equals(key)) c.tabRowsColor = color;
+		else if ("tabPingLowColor".equals(key)) c.tabPingLowColor = color;
+		else if ("tabPingMediumColor".equals(key)) c.tabPingMediumColor = color;
+		else if ("tabPingHighColor".equals(key)) c.tabPingHighColor = color;
+		else if ("tabPingExtremeColor".equals(key)) c.tabPingExtremeColor = color;
 		else if ("tabPingColor".equals(key)) c.tabPingColor = color;
 		else if ("tabSelfColor".equals(key)) c.tabSelfColor = color;
 		else if ("tabBackgroundColor".equals(key)) c.tabBackgroundColor = color;
@@ -212,6 +246,14 @@ public final class OpticRevampOptions {
 		}
 		if ("inventoryScale".equals(key)) return c.inventoryScale <= 0 ? "Auto" : Integer.toString(c.inventoryScale);
 		if ("menuScale".equals(key)) return c.menuScale <= 0 ? "Auto" : Integer.toString(c.menuScale);
+		if ("keystrokesAnimation".equals(key)) return c.keystrokesAnimation == 1 ? "Grow" : "Ripple";
+		if ("keystrokesEasing".equals(key)) {
+			switch (c.keystrokesEasing) {
+				case 1: return "Ease Out";
+				case 2: return "Ease In-Out";
+				default: return "Linear";
+			}
+		}
 		if ("windowTitleMode".equals(key)) {
 			switch (c.windowTitleMode) {
 				case 1: return "Optic + FPS";
@@ -231,6 +273,8 @@ public final class OpticRevampOptions {
 			gg.optic.client.hud.OpticGuiScale.beforeScreen(net.minecraft.client.MinecraftClient.getInstance(), net.minecraft.client.MinecraftClient.getInstance().currentScreen);
 		}
 		else if ("windowTitleMode".equals(key)) c.windowTitleMode = (c.windowTitleMode + 1) % 3;
+		else if ("keystrokesAnimation".equals(key)) c.keystrokesAnimation = (c.keystrokesAnimation + 1) % 2;
+		else if ("keystrokesEasing".equals(key)) c.keystrokesEasing = (c.keystrokesEasing + 1) % 3;
 		else return false;
 		return true;
 	}
@@ -247,6 +291,7 @@ public final class OpticRevampOptions {
 		if ("keystrokesBoxSize".equals(key)) return c.keystrokesBoxSize;
 		if ("keystrokesBorderThickness".equals(key)) return c.keystrokesBorderThickness;
 		if ("keystrokesSpaceThickness".equals(key)) return c.keystrokesSpaceThickness;
+		if ("keystrokesAnimDuration".equals(key)) return c.keystrokesAnimDuration;
 		if ("titlesScale".equals(key)) return c.titlesScale;
 		if ("hitColorAlpha".equals(key)) return c.hitColorAlpha;
 		if ("potionsScale".equals(key)) return c.potionsScale;
@@ -267,6 +312,7 @@ public final class OpticRevampOptions {
 		else if ("keystrokesBoxSize".equals(key)) c.keystrokesBoxSize = clamp(value, 10.0F, 32.0F);
 		else if ("keystrokesBorderThickness".equals(key)) c.keystrokesBorderThickness = clamp(value, 0.5F, 3.0F);
 		else if ("keystrokesSpaceThickness".equals(key)) c.keystrokesSpaceThickness = clamp(value, 1.0F, 4.25F);
+		else if ("keystrokesAnimDuration".equals(key)) c.keystrokesAnimDuration = clamp(value, 0.1F, 1.0F);
 		else if ("titlesScale".equals(key)) c.titlesScale = clamp(value, 0.5F, 3.0F);
 		else if ("hitColorAlpha".equals(key)) c.hitColorAlpha = clamp(value, 0.05F, 1.0F);
 		else if ("potionsScale".equals(key)) c.potionsScale = clamp(value, 0.5F, 3.0F);

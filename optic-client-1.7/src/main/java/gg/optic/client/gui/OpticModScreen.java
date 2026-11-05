@@ -62,6 +62,7 @@ public final class OpticModScreen extends Screen {
 	public static final int MODULE_HIT_COLOR = 36;
 	public static final int MODULE_POTIONS = 37;
 	public static final int MODULE_SKINS_3D = 38;
+	public static final int MODULE_PVP_TWEAKS = 39;
 
 	private static final int FPS = MODULE_FPS;
 	private static final int CPS = MODULE_CPS;
@@ -92,6 +93,7 @@ public final class OpticModScreen extends Screen {
 	private static final int HIT_COLOR = MODULE_HIT_COLOR;
 	private static final int POTIONS = MODULE_POTIONS;
 	private static final int SKINS_3D = MODULE_SKINS_3D;
+	private static final int PVP_TWEAKS = MODULE_PVP_TWEAKS;
 
 	// Colors and sizes live in OpticTheme so the look can be tuned in one place.
 	private static final int ACCENT = OpticTheme.ACCENT;
@@ -264,6 +266,7 @@ public final class OpticModScreen extends Screen {
 		modules.add(new ModuleCard(HITBOXES, "Hitboxes", "Colored entity boxes and look lines", "\uD83C\uDFAF"));
 		modules.add(new ModuleCard(NAMETAGS, "Nametags", "Opacity, shadow, and toggles", "\uD83C\uDFF7"));
 		modules.add(new ModuleCard(SKINS_3D, "3D Skins", "Skin outer layer in 3D", "\uD83D\uDC64"));
+		modules.add(new ModuleCard(PVP_TWEAKS, "PotPvP", "Low fire, clear water, overlays", "\uD83D\uDD25"));
 		modules.add(new ModuleCard(PARTICLES, "Particles", "Client-side hit particles", "\u2728"));
 		modules.add(new ModuleCard(SCOREBOARD, "Scoreboard", "Sidebar scoreboard style", "\uD83D\uDCCB"));
 		modules.add(new ModuleCard(TIME_CHANGER, "Time Changer", "Freeze time and sky type", "\uD83C\uDF19"));
@@ -383,6 +386,7 @@ public final class OpticModScreen extends Screen {
 			case ZOOM: return c.zoom;
 			case HITBOXES: return c.hitboxes;
 			case SKINS_3D: return c.skins3d;
+			case PVP_TWEAKS: return c.pvpTweaks;
 			case HIT_PREDICT: return c.hitPredict;
 			case FOV: return c.fovMod;
 			case FREE_LOOK: return c.freeLook;
@@ -446,6 +450,11 @@ public final class OpticModScreen extends Screen {
 		}
 		if ("disableMouseScrollWheel".equals(key)) {
 			c.disableMouseScrollWheel = !c.disableMouseScrollWheel;
+			c.save();
+			return;
+		}
+		if ("copyChatMessages".equals(key)) {
+			c.copyChatMessages = !c.copyChatMessages;
 			c.save();
 			return;
 		}
@@ -516,6 +525,7 @@ public final class OpticModScreen extends Screen {
 			case ZOOM: c.zoom = !c.zoom; break;
 			case HITBOXES: c.hitboxes = !c.hitboxes; break;
 			case SKINS_3D: c.skins3d = !c.skins3d; break;
+			case PVP_TWEAKS: c.pvpTweaks = !c.pvpTweaks; break;
 			case HIT_PREDICT: c.hitPredict = !c.hitPredict; break;
 			case FOV: c.fovMod = !c.fovMod; break;
 			case FREE_LOOK: c.freeLook = !c.freeLook; break;
@@ -594,6 +604,8 @@ public final class OpticModScreen extends Screen {
 				drawModuleGrid(mouseX, mouseY);
 			}
 		} finally {
+			// Panel border last, on top of header and sidebars, so the edge is one clean line.
+			outlineExact(panelX, panelY, panelW, panelH, RADIUS, BORDER);
 			OpticFrame.end();
 		}
 	}
@@ -602,7 +614,10 @@ public final class OpticModScreen extends Screen {
 		profileHits.clear();
 		int bodyTop = panelY + 52;
 		int sideW = 100;
-		fill(panelX, bodyTop, panelX + sideW, panelY + panelH, SIDEBAR);
+		// Same rounded bottom-left as the panel (a plain fill poked a square corner out).
+		fillExact(panelX, bodyTop, sideW, panelY + panelH - bodyTop, RADIUS, SIDEBAR);
+		fill(panelX + RADIUS, bodyTop, panelX + sideW, panelY + panelH, SIDEBAR);
+		fill(panelX, bodyTop, panelX + sideW, panelY + panelH - RADIUS, SIDEBAR);
 
 		int sideX = panelX + 8;
 		int sideY = bodyTop + 12;
@@ -714,9 +729,9 @@ public final class OpticModScreen extends Screen {
 			OpticUiFont.drawCenteredSized(client, "O", ix + iconBox / 2, iy + 16, ACCENT, 16.0F);
 		}
 
-		float emojiSize = 14.0F;
-		int iconSize = 14;
-		int iconGap = 8;
+		float emojiSize = 10.0F;
+		int iconSize = 18;
+		int iconGap = 5;
 		int totalIcons = 4;
 		int rowW = totalIcons * iconSize + (totalIcons - 1) * iconGap;
 		int iconX = x + (w - rowW) / 2;
@@ -740,21 +755,17 @@ public final class OpticModScreen extends Screen {
 		int mouseY
 	) {
 		boolean hover = inside(mouseX, mouseY, x, y, hitSize, hitSize);
-		if (hover) {
-			fillRound(x - 1, y - 1, hitSize + 2, hitSize + 2, 3, ACCENT_SOFT);
-		}
-		String emoji;
-		if (action == ProfileHit.Action.RENAME) {
-			emoji = "\u270F\uFE0F"; // ✏️
-		} else if (action == ProfileHit.Action.DUPLICATE) {
-			emoji = "\uD83D\uDCCB"; // 📋
-		} else if (action == ProfileHit.Action.DELETE) {
-			emoji = "\uD83D\uDDD1\uFE0F"; // 🗑️
-		} else {
-			emoji = "\uD83D\uDCE4"; // 📤
-		}
-		// Emoji bakes to a fixed square matching emojiSize — center in the hit box.
-		OpticUiFont.drawEmojiCentered(client, emoji, x + hitSize / 2, y + (hitSize - Math.round(emojiSize)) / 2, emojiSize);
+		boolean danger = action == ProfileHit.Action.DELETE;
+		int hot = danger ? 0xFFFF5C6A : ACCENT;
+		// Badlion-style square action button with a crisp line icon, fitted to the button.
+		fillExact(x, y, hitSize, hitSize, RADIUS_SM, hover ? OpticTheme.CARD_HOVER : 0xFF15171C);
+		outlineExact(x, y, hitSize, hitSize, RADIUS_SM, hover ? hot : OpticTheme.BORDER);
+		String icon;
+		if (action == ProfileHit.Action.RENAME) icon = "pencil";
+		else if (action == ProfileHit.Action.DUPLICATE) icon = "copy";
+		else if (danger) icon = "trash";
+		else icon = "export";
+		OpticUiFont.drawLineIconCentered(client, icon, x + hitSize / 2, y + hitSize / 2, emojiSize, hover ? hot : OpticTheme.MUTED);
 		profileHits.add(ProfileHit.action(file, action, x, y, hitSize, hitSize));
 	}
 
@@ -781,7 +792,7 @@ public final class OpticModScreen extends Screen {
 	/** Settings tab: same sidebar as the Mods tab, below the header, so nothing above moves. */
 	private void drawSettingsShell(int mouseX, int mouseY) {
 		int bodyTop = panelY + 48;
-		fillRound(panelX, bodyTop, sidebarW, panelY + panelH - bodyTop, RADIUS, SIDEBAR);
+		fillExact(panelX, bodyTop, sidebarW, panelY + panelH - bodyTop, RADIUS, SIDEBAR);
 		fill(panelX + RADIUS, bodyTop, panelX + sidebarW, panelY + panelH, SIDEBAR);
 		fill(panelX, bodyTop, panelX + sidebarW, panelY + panelH - RADIUS, SIDEBAR);
 		fill(panelX + sidebarW - 1, bodyTop, panelX + sidebarW, panelY + panelH - RADIUS, BORDER_SOFT);
@@ -850,6 +861,7 @@ public final class OpticModScreen extends Screen {
 		rowY = drawSettingToggle("Disable Hotbar Scroll", gc.disableMouseScrollWheel, "disableMouseScrollWheel", contentX, rowY, listW, mouseX, mouseY);
 		rowY = drawSettingToggle("Borderless Fullscreen", gc.borderlessFullscreen, "borderlessFullscreen", contentX, rowY, listW, mouseX, mouseY);
 		rowY = drawSettingToggle("Disable Achievements", gc.disableAchievements, "disableAchievements", contentX, rowY, listW, mouseX, mouseY);
+		rowY = drawSettingToggle("Copy Chat Messages (Ctrl+C)", gc.copyChatMessages, "copyChatMessages", contentX, rowY, listW, mouseX, mouseY);
 		GL11.glDisable(GL11.GL_SCISSOR_TEST);
 		settingsClipTop = Integer.MIN_VALUE;
 		settingsClipBottom = Integer.MAX_VALUE;
@@ -972,13 +984,12 @@ public final class OpticModScreen extends Screen {
 	private void drawPanel() {
 		// Soft drop shadow + frosted glass body (Lunar-style).
 		OpticTheme.shadow(client, panelX, panelY, panelW, panelH, RADIUS);
-		fillRound(panelX, panelY, panelW, panelH, RADIUS, PANEL);
-		outlineRound(panelX, panelY, panelW, panelH, RADIUS, BORDER);
+		fillExact(panelX, panelY, panelW, panelH, RADIUS, PANEL);
 	}
 
 	private void drawHeader(int mouseX, int mouseY) {
 		int headerBottom = panelY + 48;
-		fillRound(panelX, panelY, panelW, headerBottom - panelY, RADIUS, TOPBAR);
+		fillExact(panelX, panelY, panelW, headerBottom - panelY, RADIUS, TOPBAR);
 		fill(panelX, headerBottom - RADIUS, panelX + panelW, headerBottom, TOPBAR);
 		// Accent rule under the header, fading green -> teal -> out (CheatBreaker-style).
 		fill(panelX, headerBottom - 1, panelX + panelW, headerBottom, BORDER_SOFT);
@@ -1056,7 +1067,7 @@ public final class OpticModScreen extends Screen {
 		cardBounds.clear();
 		int bodyTop = panelY + 48;
 		int sideH = panelY + panelH - bodyTop;
-		fillRound(panelX, bodyTop, sidebarW, sideH, RADIUS, SIDEBAR);
+		fillExact(panelX, bodyTop, sidebarW, sideH, RADIUS, SIDEBAR);
 		fill(panelX + RADIUS, bodyTop, panelX + sidebarW, panelY + panelH, SIDEBAR);
 		fill(panelX, bodyTop, panelX + sidebarW, panelY + panelH - RADIUS, SIDEBAR);
 		fill(panelX + sidebarW - 1, bodyTop, panelX + sidebarW, panelY + panelH - RADIUS, BORDER_SOFT);
@@ -1213,6 +1224,7 @@ public final class OpticModScreen extends Screen {
 			|| id == FREE_LOOK
 			|| id == CROSSHAIR
 			|| id == HIT_COLOR
+			|| id == PVP_TWEAKS
 			|| id == POTIONS
 			|| id == PING
 			|| id == TAB;
@@ -1258,8 +1270,11 @@ public final class OpticModScreen extends Screen {
 		}
 		OpticUiFont.drawCenteredSized(client, module.name, x + w / 2, y + 7, 0xFFFFFFFF, titleSize);
 
+		// Icons are baked as fitted squares; center them between the title and the toggle.
 		float emojiSize = Math.min(22.0F, Math.max(16.0F, w * 0.26F));
-		int emojiY = y + (h / 2) - Math.round(emojiSize * 0.62F);
+		int areaTop = y + 18;
+		int areaBottom = y + h - 24;
+		int emojiY = (areaTop + areaBottom) / 2 - Math.round(emojiSize) / 2;
 		OpticUiFont.drawEmojiCentered(client, module.icon, x + w / 2, emojiY, emojiSize);
 
 		int toggleW = Math.min(34, Math.max(18, w - 20));
@@ -1705,11 +1720,21 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.toggle("keystrokesShowSpace", "Spacebar"));
 				options.add(ConfigOption.toggle("keystrokesTextShadow", "Text Shadow"));
 				options.add(ConfigOption.toggle("keystrokesBorder", "Border"));
+				options.add(ConfigOption.toggle("keystrokesInnerBorder", "Inner Border"));
 				options.add(ConfigOption.slider("keystrokesBoxSize", "Box Size", 10.0F, 32.0F));
 				options.add(ConfigOption.slider("keystrokesBorderThickness", "Border Thickness", 0.5F, 3.0F));
 				options.add(ConfigOption.slider("keystrokesSpaceThickness", "Spacebar Thickness", 1.0F, 4.25F));
 				options.add(ConfigOption.toggle("keystrokesFade", "Fade"));
 				options.add(ConfigOption.slider("keystrokesFadeMs", "Fade Delay (ms)", 0.0F, 500.0F));
+				options.add(ConfigOption.header("Animation"));
+				options.add(ConfigOption.toggle("keystrokesAnimate", "Animate"));
+				options.add(ConfigOption.cycle("keystrokesAnimation", "Animation"));
+				options.add(ConfigOption.slider("keystrokesAnimDuration", "Duration (s)", 0.1F, 1.0F));
+				options.add(ConfigOption.cycle("keystrokesEasing", "Timing"));
+				options.add(ConfigOption.toggle("keystrokesAnimateColor", "Animate Color"));
+				options.add(ConfigOption.color("keystrokesAnimStartColor", "Start Color"));
+				options.add(ConfigOption.color("keystrokesAnimEndColor", "End Color"));
+				options.add(ConfigOption.header("Colors"));
 				options.add(ConfigOption.color("keystrokesBackgroundColor", "Background"));
 				options.add(ConfigOption.color("keystrokesBackgroundPressedColor", "Pressed Background"));
 				options.add(ConfigOption.color("keystrokesTextColor", "Text"));
@@ -1881,6 +1906,14 @@ public final class OpticModScreen extends Screen {
 			case HIT_PREDICT:
 				options.add(ConfigOption.header("Visual only. Clicks stay vanilla."));
 				break;
+			case PVP_TWEAKS:
+				options.add(ConfigOption.header("Overlays"));
+				options.add(ConfigOption.toggle("pvpLowFire", "Low Fire"));
+				options.add(ConfigOption.toggle("pvpNoPumpkin", "No Pumpkin Overlay"));
+				options.add(ConfigOption.toggle("pvpClearWater", "Clear Water"));
+				options.add(ConfigOption.toggle("pvpNoVignette", "No Vignette"));
+				options.add(ConfigOption.toggle("pvpNoPortal", "No Portal Overlay"));
+				break;
 			case SKINS_3D:
 				options.add(ConfigOption.header("Layers"));
 				options.add(ConfigOption.toggle("skins3dHead", "Hat"));
@@ -1951,10 +1984,17 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.toggle("tabHidePing", "Hide Ping"));
 				options.add(ConfigOption.toggle("tabHidePingOver500", "Hide Ping Over 500"));
 				options.add(ConfigOption.toggle("tabPingNumbers", "Ping As Number"));
+				options.add(ConfigOption.toggle("tabPingNumberShadow", "Ping Number Shadow"));
 				options.add(ConfigOption.toggle("tabDynamicPing", "Dynamic Ping Color"));
+				options.add(ConfigOption.color("tabPingLowColor", "Low Ping"));
+				options.add(ConfigOption.color("tabPingMediumColor", "Medium Ping"));
+				options.add(ConfigOption.color("tabPingHighColor", "High Ping"));
+				options.add(ConfigOption.color("tabPingExtremeColor", "Extreme Ping"));
 				options.add(ConfigOption.color("tabPingColor", "Ping Color"));
 				options.add(ConfigOption.header("Colors"));
 				options.add(ConfigOption.color("tabBackgroundColor", "Background"));
+				options.add(ConfigOption.toggle("tabPingRow", "Colored Rows"));
+				options.add(ConfigOption.color("tabRowsColor", "Rows Color"));
 				break;
 			case TITLES:
 				options.add(ConfigOption.header("Overlay"));

@@ -38,6 +38,45 @@ public abstract class MinecraftClientMixin {
 
 	@Shadow public abstract void setScreen(Screen screen);
 
+	@Shadow private boolean fullscreen;
+
+	@Shadow
+	private void onResolutionChanged(int width, int height) {
+	}
+
+	@Shadow
+	private void resizeFramebuffer() {
+	}
+
+	/**
+	 * Windowed mode: keep the game exactly the size of the window. 1.7 resizes its buffer
+	 * before leaving fullscreen and only checks for drag-resizes, so the window could end up a
+	 * different size than the picture (or larger than the screen) and parts were cut off.
+	 */
+	@Unique
+	private void optic$fitWindow(MinecraftClient client) {
+		if (fullscreen || OpticBorderless.isApplied() || !Display.isCreated()) return;
+		try {
+			org.lwjgl.opengl.DisplayMode desktop = Display.getDesktopDisplayMode();
+			int w = Display.getWidth();
+			int h = Display.getHeight();
+			if (desktop != null && (w > desktop.getWidth() || h > desktop.getHeight() - 60)) {
+				int fw = Math.round(desktop.getWidth() * 0.85F);
+				int fh = Math.round(desktop.getHeight() * 0.85F);
+				Display.setDisplayMode(new org.lwjgl.opengl.DisplayMode(fw, fh));
+				Display.setLocation((desktop.getWidth() - fw) / 2, (desktop.getHeight() - fh) / 2);
+				w = Display.getWidth();
+				h = Display.getHeight();
+			}
+			if (w <= 0 || h <= 0 || (w == client.width && h == client.height)) return;
+			client.width = w;
+			client.height = h;
+			if (currentScreen != null) onResolutionChanged(w, h);
+			resizeFramebuffer();
+		} catch (Throwable ignored) {
+		}
+	}
+
 	@Unique private static boolean optic$started;
 	@Unique private boolean optic$rightShiftDown;
 
@@ -137,6 +176,8 @@ public abstract class MinecraftClientMixin {
 		optic$rightShiftDown = rightShift;
 		MinecraftClient client = (MinecraftClient) (Object) this;
 		OpticRawInput.tickClientThread();
+		optic$fitWindow(client);
+		gg.optic.client.hud.OpticHudAnchor.tick(client);
 		if (!(currentScreen instanceof OpticModScreen)) optic$rawWheelFallback(client);
 		boolean itemInfo = OpticClient.get().config().itemInfo;
 		if (options.heldItemTooltips != itemInfo) options.heldItemTooltips = itemInfo;

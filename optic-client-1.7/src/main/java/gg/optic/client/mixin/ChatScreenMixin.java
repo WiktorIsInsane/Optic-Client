@@ -1,16 +1,34 @@
 package gg.optic.client.mixin;
 
+import gg.optic.client.OpticChatCopy;
 import gg.optic.client.OpticClient;
 import gg.optic.client.OpticConfig;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.screen.ChatScreen;
+import net.minecraft.client.gui.screen.Screen;
+import org.lwjgl.input.Keyboard;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Chat module's Background Opacity also applies to the bar you type in. */
+/** Chat screen: Copy Chat Messages (Ctrl+C) and the Chat mod's opacity on the input bar. */
 @Mixin(ChatScreen.class)
 public abstract class ChatScreenMixin {
+	/** Copy Chat Messages: Ctrl+C with the mouse over a message copies that whole message. */
+	@Inject(method = "keyPressed(CI)V", at = @At("HEAD"), cancellable = true, require = 0)
+	private void optic$copyMessage(char character, int keyCode, CallbackInfo ci) {
+		if (keyCode != Keyboard.KEY_C || !Screen.hasControlDown()) return;
+		if (!OpticClient.get().config().copyChatMessages) {
+			System.out.println("[Optic] Copy chat: setting is off");
+			return;
+		}
+		if (OpticChatCopy.copyHovered(MinecraftClient.getInstance())) ci.cancel();
+	}
+
+	/** Chat module's Background Opacity also applies to the bar you type in. */
 	@Redirect(
 		method = "render(IIF)V",
 		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/ChatScreen;fill(IIIII)V"),

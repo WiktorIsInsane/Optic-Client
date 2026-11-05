@@ -146,9 +146,13 @@ public final class OpticTab {
 		return Integer.toString(Math.max(0, ping));
 	}
 
+	/** Tab's own ping colors: under 65 low, under 120 medium, under 250 high, else extreme. */
 	public static int pingColor(OpticConfig c, int ping) {
-		if (!c.tabDynamicPing) return c.tabPingColor;
-		return OpticPing.colorFor(c, ping);
+		if (!c.tabDynamicPing || ping < 0) return c.tabPingColor;
+		if (ping < 65) return c.tabPingLowColor;
+		if (ping < 120) return c.tabPingMediumColor;
+		if (ping < 250) return c.tabPingHighColor;
+		return c.tabPingExtremeColor;
 	}
 
 	/** 1.8.9 icon row: 0 = full bars ... 4 = one bar, 5 = no connection. */
@@ -244,7 +248,8 @@ public final class OpticTab {
 			int row = i % rows;
 			int x = left + col * colW + col * 5;
 			int y = top + row * 9;
-			DrawableHelper.fill(x, y, x + colW, y + 8, 0x20FFFFFF);
+			// Row strip: vanilla light tint, or the Rows Color when Colored Rows is on.
+			DrawableHelper.fill(x, y, x + colW, y + 8, c.tabPingRow ? OpticHud.withAlpha(c.tabRowsColor, 0x20) : 0x20FFFFFF);
 			GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 			GlStateManager.enableAlphaTest();
 			GlStateManager.enableBlend();
@@ -316,6 +321,6 @@ public final class OpticTab {
 		if (label.length() == 0) return;
 		int color = 0xFF000000 | (pingColor(c, ping) & 0xFFFFFF);
 		int lx = x + colW - 1 - client.textRenderer.getStringWidth(label);
-		client.textRenderer.draw(label, lx, y, color, c.tabNameShadow);
+		client.textRenderer.draw(label, lx, y, color, c.tabPingNumberShadow);
 	}
 }
