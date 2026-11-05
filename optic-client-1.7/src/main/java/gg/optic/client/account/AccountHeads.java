@@ -6,7 +6,11 @@ import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.client.texture.Texture;
 import net.minecraft.util.Identifier;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import javax.imageio.ImageIO;
+import java.nio.charset.StandardCharsets;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -41,6 +45,25 @@ public final class AccountHeads {
 		return load(client, uuid, null, true);
 	}
 
+	/** Whether that skin (same arguments as {@link #skin}) uses slim 3px arms; false until loaded. */
+	public static boolean slim(String uuid, String name) {
+		String id = name != null && !name.isEmpty() ? name : (uuid == null ? "" : uuid.replace("-", "").toLowerCase());
+		return Boolean.TRUE.equals(SLIM.get("skin_" + id));
+	}
+
+	private static final Map<String, Boolean> SLIM = new java.util.concurrent.ConcurrentHashMap<String, Boolean>();
+	/** Arm model Mojang reported for a lookup ("who" lowercased), when it came from Mojang. */
+	private static final Map<String, Boolean> MOJANG_SLIM = new java.util.concurrent.ConcurrentHashMap<String, Boolean>();
+
+	/** Slim or not for a username once its Mojang lookup finished, else null. */
+	public static Boolean slimIfKnown(String name) {
+		if (name == null || name.isEmpty()) return null;
+		Boolean done = SLIM.get("skin_" + name);
+		if (done != null) return done;
+		// No custom skin: Mojang answered, but there was nothing to download.
+		return MOJANG_SLIM.get(name.toLowerCase());
+	}
+
 	private static Identifier load(final MinecraftClient client, String uuid, String name, final boolean whole) {
 		String id = uuid != null && !uuid.isEmpty() ? uuid.replace("-", "").toLowerCase() : null;
 		if (id == null && name != null && !name.isEmpty()) id = name;
@@ -62,6 +85,11 @@ public final class AccountHeads {
 						if (image == null) {
 							System.err.println("[Optic] No skin found for " + key);
 							return;
+						}
+						if (whole) {
+							Boolean reported = MOJANG_SLIM.get(who.toLowerCase());
+							// Only Mojang knows the arm model; mc-heads fallbacks count as classic.
+							SLIM.put(key, reported != null ? reported : Boolean.FALSE);
 						}
 						final BufferedImage ready = image;
 						client.execute(new Callable<Object>() {
@@ -124,22 +152,82 @@ public final class AccountHeads {
 		return out;
 	}
 
+	/** Mojang first (always current), mc-heads.net as a fallback (its name lookups can be stale). */
 	private static BufferedImage download(String who) {
 		try {
-			return fetch(who);
+			BufferedImage skin = fetchMojang(who);
+			if (skin != null) return skin;
+		} catch (Exception e) {
+			System.err.println("[Optic] Mojang skin lookup failed for " + who + ": " + e);
+		}
+		try {
+			return readImage("https://mc-heads.net/skin/" + who);
 		} catch (Exception e) {
 			System.err.println("[Optic] Skin download failed for " + who + ": " + e);
 			return null;
 		}
 	}
 
-	private static BufferedImage fetch(String who) throws Exception {
-		URL url = new URL("https://mc-heads.net/skin/" + who);
-		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+	/** Name or uuid -> profile -> skin texture. Records whether it is a slim-arm skin. */
+	private static BufferedImage fetchMojang(String who) throws Exception {
+		String uuid = who.replace("-", "");
+		if (!uuid.matches("[0-9a-fA-F]{32}")) {
+			String body = readText("https://api.mojang.com/users/profiles/minecraft/" + who);
+			if (body == null) return null;
+			uuid = new JsonParser().parse(body).getAsJsonObject().get("id").getAsString();
+		}
+		String profile = readText("https://sessionserver.mojang.com/session/minecraft/profile/" + uuid);
+		if (profile == null) return null;
+		JsonObject root = new JsonParser().parse(profile).getAsJsonObject();
+		for (com.google.gson.JsonElement el : root.getAsJsonArray("properties")) {
+			JsonObject prop = el.getAsJsonObject();
+			if (!"textures".equals(prop.get("name").getAsString())) continue;
+			String decoded = new String(java.util.Base64.getDecoder().decode(prop.get("value").getAsString()), StandardCharsets.UTF_8);
+			JsonObject textures = new JsonParser().parse(decoded).getAsJsonObject().getAsJsonObject("textures");
+			if (textures == null || !textures.has("SKIN")) {
+				// No custom skin: the default for this account.
+				MOJANG_SLIM.put(who.toLowerCase(), Boolean.FALSE);
+				return null;
+			}
+			JsonObject skin = textures.getAsJsonObject("SKIN");
+			boolean slim = skin.has("metadata") && skin.getAsJsonObject("metadata").has("model")
+				&& "slim".equals(skin.getAsJsonObject("metadata").get("model").getAsString());
+			MOJANG_SLIM.put(who.toLowerCase(), Boolean.valueOf(slim));
+			return readImage(skin.get("url").getAsString().replace("http://", "https://"));
+		}
+		return null;
+	}
+
+	private static HttpURLConnection open(String address) throws Exception {
+		HttpURLConnection conn = (HttpURLConnection) new URL(address).openConnection();
 		conn.setConnectTimeout(4000);
 		conn.setReadTimeout(4000);
 		conn.setRequestProperty("User-Agent", "OpticClient/1.0");
-		conn.connect();
+		return conn;
+	}
+
+	/** Body text, or null when the server has nothing for it (e.g. unknown name). */
+	private static String readText(String address) throws Exception {
+		HttpURLConnection conn = open(address);
+		try {
+			if (conn.getResponseCode() != 200) return null;
+			InputStream in = conn.getInputStream();
+			try {
+				java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+				byte[] buf = new byte[4096];
+				int n;
+				while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+				return new String(out.toByteArray(), StandardCharsets.UTF_8);
+			} finally {
+				in.close();
+			}
+		} finally {
+			conn.disconnect();
+		}
+	}
+
+	private static BufferedImage readImage(String address) throws Exception {
+		HttpURLConnection conn = open(address);
 		try {
 			InputStream in = conn.getInputStream();
 			try {

@@ -202,14 +202,15 @@ function CosmeticGrid({ category }: { category: CosmeticCategory }) {
   return (
     <div className="min-h-0 flex-1 overflow-auto px-6 pb-6">
       <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-        {[{ id: '', name: 'None' }, ...items].map((item) => (
-          <li key={item.id || 'none'}>
+        {items.map((item) => (
+          <li key={item.id}>
             <button
               type="button"
               className={`flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-left text-sm ${
                 item.id === on ? 'bg-white/10 ring-1 ring-[var(--accent-play)]/50' : 'bg-white/5 hover:bg-white/10'
               }`}
-              onClick={() => equip(item.id)}
+              // Click to equip; click the equipped one again to take it off.
+              onClick={() => equip(item.id === on ? '' : item.id)}
             >
               <span className="truncate">{item.name}</span>
               {item.id === on ? <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--accent-play)' }} /> : null}

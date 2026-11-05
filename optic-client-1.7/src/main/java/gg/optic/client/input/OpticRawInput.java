@@ -271,7 +271,8 @@ public final class OpticRawInput {
 		}
 	}
 
-	private static long findHwnd() throws Exception {
+	/** The LWJGL window handle (also used by borderless fullscreen). */
+	public static long findHwnd() throws Exception {
 		try {
 			Method getHandle = Display.class.getMethod("getHandle");
 			Object result = getHandle.invoke(null);

@@ -9,6 +9,7 @@ import gg.optic.client.account.SharedAccount;
 import gg.optic.client.account.SharedAccounts;
 import gg.optic.client.cosmetics.OpticCosmetics;
 import gg.optic.client.cosmetics.SharedCosmetics;
+import gg.optic.client.render.OpticSlimArms;
 import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -44,11 +45,15 @@ public final class OpticCosmeticsScreen extends Screen {
 	/** Brighter than the theme's muted grey so idle text still reads over the game. */
 	private static final int IDLE = 0xFFC9CED8;
 	private static final int WHITE = 0xFFFFFFFF;
-	private static final int SHADOW = 0x99000000;
+	private static final int SHADOW = 0xE6000000;
 
 	private static final int TILE_H = 76;
 	private static final int TILE_MIN_W = 66;
 	private static final int TILE = 0x0FFFFFFF;
+	private static final int FRAME = 0xFF000000;
+	/** Light grey wash inside the frame: still see-through, just a bit easier to read. */
+	private static final int BACKDROP = 0x40303236;
+	private static final int FRAME_PAD = 10;
 
 	private static int tab;
 	private static float yaw = 25.0F;
@@ -109,6 +114,9 @@ public final class OpticCosmeticsScreen extends Screen {
 		if (client.world == null) OpticMenuChrome.drawWallpaper(client, width, height);
 		OpticFrame.begin(client);
 		try {
+			// Thin frame around the whole menu; inside stays see-through.
+			OpticUiDraw.fillExact(client, boxX - FRAME_PAD, boxY - FRAME_PAD, boxW + FRAME_PAD * 2, boxH + FRAME_PAD * 2, OpticTheme.RADIUS, BACKDROP);
+			OpticUiDraw.outlineExact(client, boxX - FRAME_PAD, boxY - FRAME_PAD, boxW + FRAME_PAD * 2, boxH + FRAME_PAD * 2, OpticTheme.RADIUS, FRAME);
 			drawHeader(mouseX, mouseY);
 			drawTabs(mouseX, mouseY);
 			drawList(mouseX, mouseY);
@@ -159,7 +167,7 @@ public final class OpticCosmeticsScreen extends Screen {
 		int gap = 6;
 		int cols = Math.max(2, (listW + gap) / (TILE_MIN_W + gap));
 		int cellW = (listW - gap * (cols - 1)) / cols;
-		int total = items.size() + 1;
+		int total = items.size();
 		int rows = (total + cols - 1) / cols;
 		int maxScroll = Math.max(0, rows * (TILE_H + gap) - listH);
 		if (scroll > maxScroll) scroll = maxScroll;
@@ -170,8 +178,8 @@ public final class OpticCosmeticsScreen extends Screen {
 		clip(listX, listY, listW, listH);
 		try {
 			for (int i = 0; i < total; i++) {
-				String id = i == 0 ? "" : items.get(i - 1).id;
-				String name = i == 0 ? "None" : items.get(i - 1).name;
+				String id = items.get(i).id;
+				String name = items.get(i).name;
 				int x = listX + (i % cols) * (cellW + gap);
 				int y = listY + (i / cols) * (TILE_H + gap) - scroll;
 				if (y + TILE_H < listY || y > listY + listH) continue;
@@ -184,16 +192,15 @@ public final class OpticCosmeticsScreen extends Screen {
 				int color = equipped ? OpticTheme.ACCENT : (hot ? WHITE : IDLE);
 				String label = OpticUiFont.widthSharp(client, name, color, SMALL_SIZE) > cellW - 8 ? shorten(name, cellW - 8) : name;
 				int lw = OpticUiFont.widthSharp(client, label, color, SMALL_SIZE);
-				// "None" has nothing to show, so its name sits in the middle of the tile.
-				int labelY = id.isEmpty() ? y + (TILE_H - 8) / 2 : y + TILE_H - 13;
-				text(label, x + (cellW - lw) / 2, labelY, color, SMALL_SIZE);
+				text(label, x + (cellW - lw) / 2, y + TILE_H - 13, color, SMALL_SIZE);
 
 				int artH = TILE_H - 18;
 				if (!id.isEmpty()) {
 					boolean cape = OpticCosmetics.CAPE_OPTIC.equals(id);
 					boolean wings = OpticCosmetics.WINGS_DRAGON.equals(id);
 					// Small model seen from behind, wearing just this item, turning slowly.
-					float size = artH / (wings ? 2.7F : 2.3F);
+					// Same model size on every tile, wings or not.
+					float size = artH / 2.7F;
 					float neckY = y + 4 + (artH - size * 2.0F) / 2.0F + size * 0.5F;
 					float spin = 160.0F + (float) Math.sin(System.currentTimeMillis() / 900.0) * 25.0F;
 					drawModel(x + cellW / 2.0F, neckY, size, spin, spin, 0.0F, cape, wings, !depthCleared);
@@ -203,7 +210,7 @@ public final class OpticCosmeticsScreen extends Screen {
 				rowIds.add(id);
 			}
 			if (items.isEmpty()) {
-				text("Nothing here yet", listX + 2, listY + TILE_H + gap + 6, IDLE, SMALL_SIZE);
+				text("Nothing here yet", listX + 2, listY + 6, IDLE, SMALL_SIZE);
 			}
 		} finally {
 			GL11.glDisable(GL11.GL_SCISSOR_TEST);
@@ -233,7 +240,8 @@ public final class OpticCosmeticsScreen extends Screen {
 		int areaH = boxY + boxH - areaY;
 		float size = Math.min(previewW * 0.42F, areaH / 2.3F);
 		// Wings reach well past the shoulders; shrink the model so they stay in the column.
-		if (wings) size *= 0.88F;
+		// Always sized to fit wings, so trying items on never changes the player's size.
+		size *= 0.88F;
 		float cx = previewX + previewW / 2.0F;
 		// Model space: y=0 is the neck, head goes up 0.5, feet are 1.5 down (units of size).
 		float neckY = areaY + (areaH - size * 2.0F) / 2.0F + size * 0.5F;
@@ -260,6 +268,7 @@ public final class OpticCosmeticsScreen extends Screen {
 	private void drawModel(float cx, float neckY, float size, float bodyYaw, float headYaw, float headPitch,
 			boolean cape, boolean wings, boolean clearDepth) {
 		float t = (System.currentTimeMillis() % 100000L) / 50.0F;
+		OpticSlimArms.apply(model, AccountHeads.slim(skinUuid, skinName));
 		resetPose();
 		model.field_1476.posZ = (float) Math.cos(t * 0.09F) * 0.05F + 0.05F;
 		model.field_1477.posZ = -((float) Math.cos(t * 0.09F) * 0.05F + 0.05F);
@@ -387,7 +396,10 @@ public final class OpticCosmeticsScreen extends Screen {
 		for (int i = 0; i < rowHits.size(); i++) {
 			int[] r = rowHits.get(i);
 			if (inside(mouseX, mouseY, r[0], r[1], r[2], r[3])) {
-				SharedCosmetics.equip(SharedCosmetics.CATEGORIES[tab], rowIds.get(i));
+				// Click to equip; click the equipped one again to take it off.
+				String category = SharedCosmetics.CATEGORIES[tab];
+				String id = rowIds.get(i);
+				SharedCosmetics.equip(category, id.equals(SharedCosmetics.equipped(category)) ? "" : id);
 				return;
 			}
 		}

@@ -63,12 +63,16 @@ public abstract class MinecraftClientMixin implements gg.optic.client.account.Se
 	 */
 	@Unique
 	private void optic$fitWindow(MinecraftClient client) {
-		if (fullscreen || OpticBorderless.isApplied() || !Display.isCreated()) return;
+		if (fullscreen || !Display.isCreated()) return;
 		try {
 			org.lwjgl.opengl.DisplayMode desktop = Display.getDesktopDisplayMode();
 			int w = Display.getWidth();
 			int h = Display.getHeight();
-			if (desktop != null && (w > desktop.getWidth() || h > desktop.getHeight() - 60)) {
+			if (OpticBorderless.isApplied()) {
+				// Borderless covers the monitor; render at that size.
+				w = OpticBorderless.width();
+				h = OpticBorderless.height();
+			} else if (desktop != null && (w > desktop.getWidth() || h > desktop.getHeight() - 60)) {
 				int fw = Math.round(desktop.getWidth() * 0.85F);
 				int fh = Math.round(desktop.getHeight() * 0.85F);
 				Display.setDisplayMode(new org.lwjgl.opengl.DisplayMode(fw, fh));
@@ -123,6 +127,14 @@ public abstract class MinecraftClientMixin implements gg.optic.client.account.Se
 	 * old window first; the next tick attaches it to the new one. Leaving it on a dead window
 	 * froze the game the first time it went fullscreen.
 	 */
+	/** F11: borderless when the Borderless setting is on, real fullscreen when it is off. */
+	@Inject(method = "toggleFullscreen()V", at = @At("HEAD"), cancellable = true)
+	private void optic$borderlessToggle(CallbackInfo ci) {
+		if (OpticBorderless.onToggleFullscreen(OpticClient.get().config().borderlessFullscreen, fullscreen)) {
+			ci.cancel();
+		}
+	}
+
 	@Inject(method = "toggleFullscreen()V", at = @At("HEAD"))
 	private void optic$rawMouseBeforeFullscreen(CallbackInfo ci) {
 		OpticRawInput.onDisplayChanged();

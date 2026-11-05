@@ -53,8 +53,13 @@ public final class OpticSkins3D {
 		{40, 32, 4, 12, 4, -3, -2, -2},
 		{48, 48, 4, 12, 4, -1, -2, -2},
 		{0, 32, 4, 12, 4, -2, 0, -2},
-		{0, 48, 4, 12, 4, -2, 0, -2}
+		{0, 48, 4, 12, 4, -2, 0, -2},
+		// Slim (3px) sleeves, used when OpticSlimArms put slim arms on the model.
+		{40, 32, 3, 12, 4, -2, -2, -2},
+		{48, 48, 3, 12, 4, -1, -2, -2}
 	};
+	private static final int SLIM_RIGHT_SLEEVE = 6;
+	private static final int SLIM_LEFT_SLEEVE = 7;
 
 	/** Parsed (cropped) image -> image it was parsed from, until the texture picks it up. */
 	private static final Map<BufferedImage, BufferedImage> PENDING =
@@ -103,8 +108,9 @@ public final class OpticSkins3D {
 		if (c.skins3dHead) draw(model.head, lists[HAT], scale);
 		if (c.skins3dBody) draw(model.body, lists[JACKET], scale);
 		if (c.skins3dArms) {
-			draw(model.field_1476, lists[RIGHT_SLEEVE], scale);
-			draw(model.field_1477, lists[LEFT_SLEEVE], scale);
+			boolean slim = OpticSlimArms.hasSlim(model);
+			draw(model.field_1476, lists[slim ? SLIM_RIGHT_SLEEVE : RIGHT_SLEEVE], scale);
+			draw(model.field_1477, lists[slim ? SLIM_LEFT_SLEEVE : LEFT_SLEEVE], scale);
 		}
 		if (c.skins3dLegs) {
 			draw(model.field_1478, lists[RIGHT_PANTS], scale);

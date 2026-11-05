@@ -53,6 +53,7 @@
     "ScreenshotUtilsMixin",
     "SelectWorldScreenMixin",
     "SliderWidgetMixin",
+    "TextRendererMixin",
     "TitleScreenMixin",
     "WeatherRendererMixin",
     "WorldMixin",

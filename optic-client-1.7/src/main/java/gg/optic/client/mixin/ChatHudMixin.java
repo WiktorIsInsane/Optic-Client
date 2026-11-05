@@ -36,6 +36,11 @@ public abstract class ChatHudMixin {
 
 	@Inject(method = "addMessage(Lnet/minecraft/text/Text;I)V", at = @At("HEAD"), cancellable = true)
 	private void optic$chatFeatures(Text message, int messageId, CallbackInfo ci) {
+		// Nick Hider: drop Hypixel "Sending to server mini123A..." lines.
+		if (message != null && gg.optic.client.render.OpticNickHider.hideChatLine(message.asUnformattedString())) {
+			ci.cancel();
+			return;
+		}
 		OpticConfig c = OpticClient.get().config();
 		if (!c.chat || message == null) return;
 		if (!c.chatAntiSpam && !c.chatBold) return;

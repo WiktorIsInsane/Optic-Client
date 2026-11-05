@@ -581,7 +581,7 @@ public final class OpticConfig {
 		pvpClearWater = read(values, "pvpClearWater", pvpClearWater);
 		pvpNoVignette = read(values, "pvpNoVignette", pvpNoVignette);
 		pvpNoPortal = read(values, "pvpNoPortal", pvpNoPortal);
-		bossBar = read(values, "bossBar", bossBar);
+		bossBar = false; // Boss Bar mod removed from the menu: always vanilla.
 		bossBarShow = read(values, "bossBarShow", bossBarShow);
 		bossBarShowName = read(values, "bossBarShowName", bossBarShowName);
 		bossBarShowBar = read(values, "bossBarShowBar", bossBarShowBar);
@@ -1455,7 +1455,7 @@ public final class OpticConfig {
 		pvpClearWater = getBool(o, "pvpClearWater", pvpClearWater);
 		pvpNoVignette = getBool(o, "pvpNoVignette", pvpNoVignette);
 		pvpNoPortal = getBool(o, "pvpNoPortal", pvpNoPortal);
-		bossBar = getBool(o, "bossBar", bossBar);
+		bossBar = false; // Boss Bar mod removed.
 		bossBarShow = getBool(o, "bossBarShow", bossBarShow);
 		bossBarShowName = getBool(o, "bossBarShowName", bossBarShowName);
 		bossBarShowBar = getBool(o, "bossBarShowBar", bossBarShowBar);
@@ -2102,6 +2102,7 @@ public final class OpticConfig {
 	}
 
 	private void loadRevamp(Properties values) {
+		loadNickBlur(values);
 		fpsReverseOrder = read(values, "fpsReverseOrder", fpsReverseOrder);
 		cpsReverseText = read(values, "cpsReverseText", cpsReverseText);
 		cpsIgnoreCancelled = read(values, "cpsIgnoreCancelled", cpsIgnoreCancelled);
@@ -2185,7 +2186,7 @@ public final class OpticConfig {
 		tabPingExtremeColor = readColor(values, "tabPingExtremeColor", tabPingExtremeColor);
 		tabHeaderColor = readColor(values, "tabHeaderColor", tabHeaderColor);
 		tabFooterColor = readColor(values, "tabFooterColor", tabFooterColor);
-		titles = read(values, "titles", titles);
+		titles = false; // Titles mod removed from the menu: always vanilla.
 		titlesShowTitle = read(values, "titlesShowTitle", titlesShowTitle);
 		titlesShowSubtitle = read(values, "titlesShowSubtitle", titlesShowSubtitle);
 		titlesTitleColor = readColor(values, "titlesTitleColor", titlesTitleColor);
@@ -2243,6 +2244,7 @@ public final class OpticConfig {
 	}
 
 	private void saveRevamp(Properties values) {
+		saveNickBlur(values);
 		values.setProperty("fpsReverseOrder", Boolean.toString(fpsReverseOrder));
 		values.setProperty("cpsReverseText", Boolean.toString(cpsReverseText));
 		values.setProperty("cpsIgnoreCancelled", Boolean.toString(cpsIgnoreCancelled));
@@ -2381,6 +2383,7 @@ public final class OpticConfig {
 	}
 
 	private void writeRevamp(JsonObject o) {
+		writeNickBlur(o);
 		o.addProperty("fpsReverseOrder", fpsReverseOrder);
 		o.addProperty("cpsReverseText", cpsReverseText);
 		o.addProperty("cpsIgnoreCancelled", cpsIgnoreCancelled);
@@ -2519,6 +2522,7 @@ public final class OpticConfig {
 	}
 
 	private void readRevamp(JsonObject o) {
+		readNickBlur(o);
 		fpsReverseOrder = getBool(o, "fpsReverseOrder", fpsReverseOrder);
 		cpsReverseText = getBool(o, "cpsReverseText", cpsReverseText);
 		cpsIgnoreCancelled = getBool(o, "cpsIgnoreCancelled", cpsIgnoreCancelled);
@@ -2600,7 +2604,7 @@ public final class OpticConfig {
 		tabPingExtremeColor = getColor(o, "tabPingExtremeColor", tabPingExtremeColor);
 		tabHeaderColor = getColor(o, "tabHeaderColor", tabHeaderColor);
 		tabFooterColor = getColor(o, "tabFooterColor", tabFooterColor);
-		titles = getBool(o, "titles", titles);
+		titles = false; // Titles mod removed.
 		titlesShowTitle = getBool(o, "titlesShowTitle", titlesShowTitle);
 		titlesShowSubtitle = getBool(o, "titlesShowSubtitle", titlesShowSubtitle);
 		titlesTitleColor = getColor(o, "titlesTitleColor", titlesTitleColor);
@@ -2658,6 +2662,7 @@ public final class OpticConfig {
 	}
 
 	private void resetRevamp(int moduleId) {
+		resetNickBlur(moduleId);
 		switch (moduleId) {
 			case 11:
 				cpsReverseText = false;
@@ -2848,6 +2853,124 @@ public final class OpticConfig {
 				out.add(Integer.valueOf(Integer.parseInt(part)));
 			} catch (NumberFormatException ignored) {
 			}
+		}
+	}
+
+	// ---- Nick Hider ----
+	public boolean nickHider = false;
+	/** Show your own name as {@link #nickOwnName} everywhere. */
+	public boolean nickHideOwnName = true;
+	public String nickOwnName = "You";
+	/** Show everyone else as Prefix-1, Prefix-2... (or Prefix + Suffix). */
+	public boolean nickHideOthers = false;
+	public String nickPrefix = "Player";
+	public boolean nickCustomSuffix = false;
+	public String nickSuffix = "";
+	/** Hide Hypixel's "Sending to server mini123A..." style lobby messages. */
+	public boolean nickHideLobbyId = false;
+	public boolean nickHideOwnSkin = true;
+	public boolean nickHideOthersSkin = false;
+
+	// ---- Motion Blur ----
+	public boolean motionBlur = false;
+	/** 0 = V1, 1 = V2, 2 = V3. */
+	public int motionBlurType = 2;
+	/** 1-10. */
+	public float motionBlurAmount = 5.0F;
+
+	/** Names: letters, digits and _ only, spaces become _, at most 16 characters. */
+	public static String cleanNick(String value, String fallback) {
+		if (value == null) return fallback;
+		StringBuilder out = new StringBuilder();
+		for (char ch : value.toCharArray()) {
+			if (out.length() >= 16) break;
+			if (ch == ' ') ch = '_';
+			if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_') out.append(ch);
+		}
+		return out.toString();
+	}
+
+	private void loadNickBlur(Properties values) {
+		nickHider = read(values, "nickHider", nickHider);
+		nickHideOwnName = read(values, "nickHideOwnName", nickHideOwnName);
+		String own = values.getProperty("nickOwnName");
+		if (own != null && !cleanNick(own, "").isEmpty()) nickOwnName = cleanNick(own, nickOwnName);
+		nickHideOthers = read(values, "nickHideOthers", nickHideOthers);
+		String prefix = values.getProperty("nickPrefix");
+		if (prefix != null && !cleanNick(prefix, "").isEmpty()) nickPrefix = cleanNick(prefix, nickPrefix);
+		nickCustomSuffix = read(values, "nickCustomSuffix", nickCustomSuffix);
+		String suffix = values.getProperty("nickSuffix");
+		if (suffix != null) nickSuffix = cleanNick(suffix, "");
+		nickHideLobbyId = read(values, "nickHideLobbyId", nickHideLobbyId);
+		nickHideOwnSkin = read(values, "nickHideOwnSkin", nickHideOwnSkin);
+		nickHideOthersSkin = read(values, "nickHideOthersSkin", nickHideOthersSkin);
+		motionBlur = read(values, "motionBlur", motionBlur);
+		motionBlurType = Math.max(0, Math.min(2, readInt(values, "motionBlurType", motionBlurType)));
+		motionBlurAmount = clampFloat(readFloat(values, "motionBlurAmount", motionBlurAmount), 1.0F, 10.0F);
+	}
+
+	private void saveNickBlur(Properties values) {
+		values.setProperty("nickHider", Boolean.toString(nickHider));
+		values.setProperty("nickHideOwnName", Boolean.toString(nickHideOwnName));
+		values.setProperty("nickOwnName", nickOwnName);
+		values.setProperty("nickHideOthers", Boolean.toString(nickHideOthers));
+		values.setProperty("nickPrefix", nickPrefix);
+		values.setProperty("nickCustomSuffix", Boolean.toString(nickCustomSuffix));
+		values.setProperty("nickSuffix", nickSuffix);
+		values.setProperty("nickHideLobbyId", Boolean.toString(nickHideLobbyId));
+		values.setProperty("nickHideOwnSkin", Boolean.toString(nickHideOwnSkin));
+		values.setProperty("nickHideOthersSkin", Boolean.toString(nickHideOthersSkin));
+		values.setProperty("motionBlur", Boolean.toString(motionBlur));
+		values.setProperty("motionBlurType", Integer.toString(motionBlurType));
+		values.setProperty("motionBlurAmount", Float.toString(motionBlurAmount));
+	}
+
+	private void writeNickBlur(JsonObject o) {
+		o.addProperty("nickHider", nickHider);
+		o.addProperty("nickHideOwnName", nickHideOwnName);
+		o.addProperty("nickOwnName", nickOwnName);
+		o.addProperty("nickHideOthers", nickHideOthers);
+		o.addProperty("nickPrefix", nickPrefix);
+		o.addProperty("nickCustomSuffix", nickCustomSuffix);
+		o.addProperty("nickSuffix", nickSuffix);
+		o.addProperty("nickHideLobbyId", nickHideLobbyId);
+		o.addProperty("nickHideOwnSkin", nickHideOwnSkin);
+		o.addProperty("nickHideOthersSkin", nickHideOthersSkin);
+		o.addProperty("motionBlur", motionBlur);
+		o.addProperty("motionBlurType", motionBlurType);
+		o.addProperty("motionBlurAmount", motionBlurAmount);
+	}
+
+	private void readNickBlur(JsonObject o) {
+		nickHider = getBool(o, "nickHider", nickHider);
+		nickHideOwnName = getBool(o, "nickHideOwnName", nickHideOwnName);
+		if (o.has("nickOwnName") && !cleanNick(o.get("nickOwnName").getAsString(), "").isEmpty()) nickOwnName = cleanNick(o.get("nickOwnName").getAsString(), nickOwnName);
+		nickHideOthers = getBool(o, "nickHideOthers", nickHideOthers);
+		if (o.has("nickPrefix") && !cleanNick(o.get("nickPrefix").getAsString(), "").isEmpty()) nickPrefix = cleanNick(o.get("nickPrefix").getAsString(), nickPrefix);
+		nickCustomSuffix = getBool(o, "nickCustomSuffix", nickCustomSuffix);
+		if (o.has("nickSuffix")) nickSuffix = cleanNick(o.get("nickSuffix").getAsString(), "");
+		nickHideLobbyId = getBool(o, "nickHideLobbyId", nickHideLobbyId);
+		nickHideOwnSkin = getBool(o, "nickHideOwnSkin", nickHideOwnSkin);
+		nickHideOthersSkin = getBool(o, "nickHideOthersSkin", nickHideOthersSkin);
+		motionBlur = getBool(o, "motionBlur", motionBlur);
+		motionBlurType = Math.max(0, Math.min(2, getInt(o, "motionBlurType", motionBlurType)));
+		motionBlurAmount = clampFloat(getFloat(o, "motionBlurAmount", motionBlurAmount), 1.0F, 10.0F);
+	}
+
+	private void resetNickBlur(int moduleId) {
+		if (moduleId == gg.optic.client.gui.OpticModScreen.MODULE_NICK_HIDER) {
+			nickHideOwnName = true;
+			nickOwnName = "You";
+			nickHideOthers = false;
+			nickPrefix = "Player";
+			nickCustomSuffix = false;
+			nickSuffix = "";
+			nickHideLobbyId = false;
+			nickHideOwnSkin = true;
+			nickHideOthersSkin = false;
+		} else if (moduleId == gg.optic.client.gui.OpticModScreen.MODULE_MOTION_BLUR) {
+			motionBlurType = 2;
+			motionBlurAmount = 5.0F;
 		}
 	}
 }

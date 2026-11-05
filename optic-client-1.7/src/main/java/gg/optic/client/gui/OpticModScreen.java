@@ -64,6 +64,8 @@ public final class OpticModScreen extends Screen {
 	public static final int MODULE_SKINS_3D = 38;
 	public static final int MODULE_PVP_TWEAKS = 39;
 	public static final int MODULE_BOSS_BAR = 40;
+	public static final int MODULE_NICK_HIDER = 41;
+	public static final int MODULE_MOTION_BLUR = 42;
 
 	private static final int FPS = MODULE_FPS;
 	private static final int CPS = MODULE_CPS;
@@ -96,23 +98,35 @@ public final class OpticModScreen extends Screen {
 	private static final int SKINS_3D = MODULE_SKINS_3D;
 	private static final int PVP_TWEAKS = MODULE_PVP_TWEAKS;
 	private static final int BOSS_BAR = MODULE_BOSS_BAR;
+	private static final int NICK_HIDER = MODULE_NICK_HIDER;
+	private static final int MOTION_BLUR = MODULE_MOTION_BLUR;
 
 	// Colors and sizes live in OpticTheme so the look can be tuned in one place.
 	private static final int ACCENT = OpticTheme.ACCENT;
 	private static final int ACCENT_SOFT = OpticTheme.ACCENT_SOFT;
 	private static final int ACCENT_DIM = OpticTheme.ACCENT_DIM;
-	private static final int PANEL = OpticTheme.PANEL;
-	private static final int TOPBAR = OpticTheme.TOPBAR;
-	private static final int CARD = OpticTheme.CARD;
-	private static final int CARD_HOVER = OpticTheme.CARD_HOVER;
-	private static final int CARD_ON = OpticTheme.CARD_ON;
-	private static final int BORDER = OpticTheme.BORDER;
-	private static final int BORDER_SOFT = OpticTheme.BORDER_SOFT;
-	private static final int MUTED = OpticTheme.MUTED;
+	// Cosmetics-menu look: a light see-through grey body, black lines, nothing solid.
+	private static final int PANEL = 0x40303236;
+	private static final int TOPBAR = 0x00000000;
+	// Boxes inside the menu: dark and mostly solid, so they stand out from the see-through body.
+	private static final int CARD = 0x8C3A3D44;
+	private static final int CARD_HOVER = 0xA6474B54;
+	private static final int CARD_ON = CARD;
+	private static final int BORDER = 0xFF4A4E57;
+	private static final int BORDER_SOFT = 0xFF4A4E57;
+	// Secondary text, kept bright enough to read over the game.
+	private static final int MUTED = 0xFFC9CED8;
 	private static final int OPTION_ROW = 0x00000000;
-	private static final int SIDEBAR = OpticTheme.SIDEBAR;
-	private static final int TAB_IDLE = OpticTheme.TAB_IDLE;
-	private static final int TAB_OUTLINE = OpticTheme.BORDER;
+	private static final int SIDEBAR = 0x00000000;
+	private static final int TAB_IDLE = 0x8C3A3D44;
+	private static final int TAB_OUTLINE = BORDER;
+	/** Activated mods and on switches: same green as an equipped item in Cosmetics. */
+	private static final int LIME = OpticTheme.ACCENT;
+	private static final int LIME_EDGE = OpticTheme.ACCENT;
+	/** Divider lines: grey, one real pixel thick. */
+	private static final int DIVIDER = 0xFF555962;
+	/** Selected top tab and selected sidebar row: less see-through than everything else. */
+	private static final int TAB_ACTIVE = 0xB3474B54;
 	private static final int STAR_ON = OpticTheme.ACCENT;
 	private static final int STAR_OFF = OpticTheme.ACCENT;
 	private static final int SCRIM = OpticTheme.SCRIM;
@@ -145,7 +159,7 @@ public final class OpticModScreen extends Screen {
 	private static final int HEADER_LOGO = 28;
 	private static final int COLOR_POPUP_W = 228;
 	private static final int COLOR_POPUP_H = 150;
-	private static final int TOGGLE_ON = 0xFF5CFF8A;
+	private static final int TOGGLE_ON = LIME;
 	private static final int TOGGLE_OFF = 0xFF2A2A32;
 
 	private int editX;
@@ -223,6 +237,8 @@ public final class OpticModScreen extends Screen {
 	private int modsTabX;
 	private int settingsTabX;
 	private int profilesTabX;
+	private int cosmeticsTabX;
+	private int cosmeticsTabW;
 	private int tabY;
 	private int modsTabW;
 	private int settingsTabW;
@@ -269,8 +285,8 @@ public final class OpticModScreen extends Screen {
 		modules.add(new ModuleCard(NAMETAGS, "Nametags", "Opacity, shadow, and toggles", "\uD83C\uDFF7"));
 		modules.add(new ModuleCard(SKINS_3D, "3D Skins", "Skin outer layer in 3D", "\uD83D\uDC64"));
 		modules.add(new ModuleCard(PVP_TWEAKS, "PotPvP", "Low fire, clear water, overlays", "\uD83D\uDD25"));
-		modules.add(new ModuleCard(BOSS_BAR, "Boss Bar", "Hide, move or resize the boss bar", "\uD83D\uDC80"));
-		modules.add(new ModuleCard(TITLES, "Titles", "Title text and window title bar", "\uD83D\uDCDD"));
+		modules.add(new ModuleCard(NICK_HIDER, "Nick Hider", "Hide names and skins on screen", "🎭"));
+		modules.add(new ModuleCard(MOTION_BLUR, "Motion Blur", "Smooth trails when you move", "🌀"));
 		modules.add(new ModuleCard(PARTICLES, "Particles", "Client-side hit particles", "\u2728"));
 		modules.add(new ModuleCard(SCOREBOARD, "Scoreboard", "Sidebar scoreboard style", "\uD83D\uDCCB"));
 		modules.add(new ModuleCard(TIME_CHANGER, "Time Changer", "Freeze time and sky type", "\uD83C\uDF19"));
@@ -392,6 +408,8 @@ public final class OpticModScreen extends Screen {
 			case SKINS_3D: return c.skins3d;
 			case PVP_TWEAKS: return c.pvpTweaks;
 			case BOSS_BAR: return c.bossBar;
+			case NICK_HIDER: return c.nickHider;
+			case MOTION_BLUR: return c.motionBlur;
 			case HIT_PREDICT: return c.hitPredict;
 			case FOV: return c.fovMod;
 			case FREE_LOOK: return c.freeLook;
@@ -532,6 +550,8 @@ public final class OpticModScreen extends Screen {
 			case SKINS_3D: c.skins3d = !c.skins3d; break;
 			case PVP_TWEAKS: c.pvpTweaks = !c.pvpTweaks; break;
 			case BOSS_BAR: c.bossBar = !c.bossBar; break;
+			case NICK_HIDER: c.nickHider = !c.nickHider; break;
+			case MOTION_BLUR: c.motionBlur = !c.motionBlur; break;
 			case HIT_PREDICT: c.hitPredict = !c.hitPredict; break;
 			case FOV: c.fovMod = !c.fovMod; break;
 			case FREE_LOOK: c.freeLook = !c.freeLook; break;
@@ -593,13 +613,11 @@ public final class OpticModScreen extends Screen {
 				dragConfigScroll(mouseY);
 			}
 		}
-		// In a world: a light blur instead of the dark backdrop, so changes (block overlay,
-		// crosshair, HUD...) are visible live behind the menu.
-		boolean blurred = client.world != null && OpticMenuBlur.applyLight(client);
-		if (!blurred) renderBackground();
+		// Same as Cosmetics: in a world the game shows through untouched (so changes to the
+		// block overlay, crosshair, HUD... are visible live); on the title screen, its wallpaper.
+		if (client.world == null) OpticMenuChrome.drawWallpaper(client, width, height);
 		OpticFrame.begin(client);
 		try {
-			fill(0, 0, width, height, blurred ? 0x18000000 : SCRIM);
 			drawPanel();
 			drawHeader(mouseX, mouseY);
 			if (mainTab == MainTab.SETTINGS) {
@@ -611,7 +629,7 @@ public final class OpticModScreen extends Screen {
 			}
 		} finally {
 			// Panel border last, on top of header and sidebars, so the edge is one clean line.
-			outlineExact(panelX, panelY, panelW, panelH, RADIUS, BORDER);
+			outlineExact(panelX, panelY, panelW, panelH, RADIUS, 0xFF000000);
 			// Open dropdown list sits above everything, including the panel edge.
 			drawDropdownList(mouseX, mouseY);
 			OpticFrame.end();
@@ -628,24 +646,101 @@ public final class OpticModScreen extends Screen {
 
 	/** Option keys shown as a dropdown instead of click-to-cycle. */
 	private static boolean isDropdown(String key) {
-		return "weatherMode".equals(key);
+		return "weatherMode".equals(key) || "motionBlurType".equals(key);
 	}
 
 	private static String[] dropdownValues(String key) {
 		if ("weatherMode".equals(key)) return new String[] { "Clear", "Rain", "Snow", "Storm" };
+		if ("motionBlurType".equals(key)) return gg.optic.client.render.OpticMotionBlur.TYPES;
 		return new String[0];
 	}
 
 	private static int dropdownIndex(String key) {
 		OpticConfig c = OpticClient.get().config();
 		if ("weatherMode".equals(key)) return c.weatherMode;
+		if ("motionBlurType".equals(key)) return c.motionBlurType;
 		return 0;
 	}
 
 	private static void setDropdown(String key, int index) {
 		OpticConfig c = OpticClient.get().config();
 		if ("weatherMode".equals(key)) c.weatherMode = Math.max(0, Math.min(3, index));
+		if ("motionBlurType".equals(key)) c.motionBlurType = Math.max(0, Math.min(2, index));
 		c.save();
+	}
+
+	// ---- Text fields (Nick Hider names) ----
+
+	/** Key of the text option being typed into, or null. */
+	private String editingText;
+
+	private static String getText(String key) {
+		OpticConfig c = OpticClient.get().config();
+		if ("nickOwnName".equals(key)) return c.nickOwnName;
+		if ("nickPrefix".equals(key)) return c.nickPrefix;
+		if ("nickSuffix".equals(key)) return c.nickSuffix;
+		return "";
+	}
+
+	private static void setText(String key, String value) {
+		OpticConfig c = OpticClient.get().config();
+		String v = OpticConfig.cleanNick(value, "");
+		if ("nickOwnName".equals(key)) c.nickOwnName = v;
+		else if ("nickPrefix".equals(key)) c.nickPrefix = v;
+		else if ("nickSuffix".equals(key)) c.nickSuffix = v;
+		c.save();
+	}
+
+	/** Leaving a name box: names that can't be empty go back to their default. */
+	private void finishText() {
+		if (editingText == null) return;
+		String key = editingText;
+		editingText = null;
+		if (getText(key).isEmpty()) {
+			if ("nickOwnName".equals(key)) setText(key, "You");
+			else if ("nickPrefix".equals(key)) setText(key, "Player");
+		}
+	}
+
+	/** @return true when a name box is focused and took the key. */
+	private boolean textKey(char character, int keyCode) {
+		if (editingText == null) return false;
+		if (keyCode == Keyboard.KEY_ESCAPE || keyCode == Keyboard.KEY_RETURN || keyCode == Keyboard.KEY_NUMPADENTER) {
+			finishText();
+			return true;
+		}
+		String value = getText(editingText);
+		if (keyCode == Keyboard.KEY_BACK) {
+			if (!value.isEmpty()) setText(editingText, value.substring(0, value.length() - 1));
+			return true;
+		}
+		// Letters, digits and _ only (space types _), 16 max, like Minecraft names.
+		char ch = character == ' ' ? '_' : character;
+		boolean ok = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_';
+		if (ok && value.length() < 16) setText(editingText, value + ch);
+		return true;
+	}
+
+	private void drawTextBox(ConfigOption option, int x, int y, int w, int h, int mouseX, int mouseY) {
+		String value = getText(option.key);
+		boolean editing = option.key.equals(editingText);
+		int boxW = 104;
+		int boxH = 16;
+		int boxX = x + w - boxW;
+		int boxY = y + (h - boxH) / 2;
+		boolean hover = inside(mouseX, mouseY, boxX, boxY, boxW, boxH);
+		fillExact(boxX, boxY, boxW, boxH, RADIUS_SM, editing || hover ? CARD_HOVER : TAB_IDLE);
+		outlineExact(boxX, boxY, boxW, boxH, RADIUS_SM, editing ? LIME_EDGE : BORDER);
+		boolean caret = editing && (System.currentTimeMillis() / 500L) % 2L == 0L;
+		String shown = value.isEmpty() && !editing ? "-" : value;
+		int th = OpticUiFont.heightSized(client, "Ag", 0xFFFFFFFF, 10.0F);
+		int ty = boxY + (boxH - th) / 2;
+		shadowed(shown, boxX + 6, ty, value.isEmpty() ? 0xFFC9CED8 : 0xFFFFFFFF, 10.0F);
+		if (caret) {
+			int cx = boxX + 6 + (value.isEmpty() ? 0 : OpticUiFont.widthSized(client, value, 0xFFFFFFFF, 10.0F)) + 1;
+			fill(cx, boxY + 3, cx + 1, boxY + boxH - 3, ACCENT);
+		}
+		optionHits.add(OptionHit.text(option.key, boxX, boxY, boxW, boxH));
 	}
 
 	/** The closed box: current value and a chevron, right-aligned in the row. */
@@ -662,10 +757,10 @@ public final class OpticModScreen extends Screen {
 		boolean open = option.key.equals(openDropdown);
 		boolean hover = inside(mouseX, mouseY, boxX, boxY, boxW, boxH);
 		fillExact(boxX, boxY, boxW, boxH, RADIUS_SM, hover || open ? CARD_HOVER : TAB_IDLE);
-		outlineExact(boxX, boxY, boxW, boxH, RADIUS_SM, open ? OpticTheme.BORDER_ON : BORDER);
+		outlineExact(boxX, boxY, boxW, boxH, RADIUS_SM, open ? LIME_EDGE : BORDER);
 		int th = OpticUiFont.heightSized(client, value, 0xFFFFFFFF, 10.0F);
-		OpticUiFont.drawSized(client, value, boxX + 7, boxY + (boxH - th) / 2, 0xFFFFFFFF, 10.0F);
-		OpticUiFont.drawLineIconCentered(client, "chevron-down", boxX + boxW - 9, boxY + boxH / 2, 9.0F, open ? ACCENT : 0xFFB4B4BE);
+		shadowed(value, boxX + 7, boxY + (boxH - th) / 2, 0xFFFFFFFF, 10.0F);
+		OpticUiFont.drawLineIconCentered(client, "chevron-down", boxX + boxW - 9, boxY + boxH / 2, 9.0F, open ? ACCENT : 0xFFDCE0E6);
 		if (open) dropdownAnchor = new int[] { boxX, boxY, boxW, boxH };
 		optionHits.add(OptionHit.cycle(option.key, boxX, boxY, boxW, boxH));
 	}
@@ -689,7 +784,7 @@ public final class OpticModScreen extends Screen {
 			if (hover) fillExact(x + 2, ry, w - 4, DROP_ROW_H, RADIUS_SM, ACCENT_SOFT);
 			int color = i == index ? ACCENT : (hover ? 0xFFFFFFFF : 0xFFC9CED8);
 			int th = OpticUiFont.heightSized(client, values[i], color, 10.0F);
-			OpticUiFont.drawSized(client, values[i], x + 7, ry + (DROP_ROW_H - th) / 2, color, 10.0F);
+			shadowed(values[i], x + 7, ry + (DROP_ROW_H - th) / 2, color, 10.0F);
 		}
 	}
 
@@ -722,6 +817,7 @@ public final class OpticModScreen extends Screen {
 		fillExact(panelX, bodyTop, sideW, panelY + panelH - bodyTop, RADIUS, SIDEBAR);
 		fill(panelX + RADIUS, bodyTop, panelX + sideW, panelY + panelH, SIDEBAR);
 		fill(panelX, bodyTop, panelX + sideW, panelY + panelH - RADIUS, SIDEBAR);
+		vLine(panelX + sideW, bodyTop, panelY + panelH);
 
 		int sideX = panelX + 8;
 		int sideY = bodyTop + 12;
@@ -736,7 +832,7 @@ public final class OpticModScreen extends Screen {
 
 		if (profileFieldOpen && profileNameField != null) {
 			String label = renamingProfile != null ? "Rename:" : (profileSearchMode ? "Search:" : "Name:");
-			OpticUiFont.drawSized(client, label, gridX, gridY, MUTED, 8.5F);
+			shadowed(label, gridX, gridY, MUTED, 8.5F);
 			int fw = Math.min(160, gridW - 120);
 			ensureProfileField(gridX + 42, gridY - 2, fw);
 			drawSmoothField(profileNameField, gridX + 42, gridY - 2, fw, 18, null);
@@ -771,7 +867,7 @@ public final class OpticModScreen extends Screen {
 		profileScroll = Math.max(0, Math.min(profileScroll, maxScroll));
 
 		if (profiles.isEmpty()) {
-			OpticUiFont.drawSized(client, "No profiles yet — click New Profile", gridX, gridY + 8, MUTED, 9.0F);
+			shadowed("No profiles yet — click New Profile", gridX, gridY + 8, MUTED, 9.0F);
 		}
 
 		for (int i = 0; i < profiles.size(); i++) {
@@ -797,16 +893,16 @@ public final class OpticModScreen extends Screen {
 		String footer = active == null || active.isEmpty()
 			? "Default profile is selected"
 			: "Active: " + active + " · saved in the profiles folder";
-		OpticUiFont.drawSized(client, footer, gridX, panelY + panelH - 18, MUTED, 8.0F);
+		shadowed(footer, gridX, panelY + panelH - 18, MUTED, 8.0F);
 		if (!profileStatus.isEmpty()) {
-			OpticUiFont.drawSized(client, profileStatus, gridX + 220, panelY + panelH - 18, ACCENT, 8.0F);
+			shadowed(profileStatus, gridX + 220, panelY + panelH - 18, ACCENT, 8.0F);
 		}
 	}
 
 	private int drawProfileSide(int x, int y, int w, String label, ProfileSide side, int mouseX, int mouseY) {
 		boolean hover = inside(mouseX, mouseY, x, y, w, 18);
 		if (hover) fillRound(x - 2, y - 1, w + 4, 18, RADIUS_SM, ACCENT_SOFT);
-		OpticUiFont.drawSized(client, label, x, y + 4, hover ? 0xFFFFFFFF : MUTED, 9.0F);
+		shadowed(label, x, y + 4, hover ? 0xFFFFFFFF : MUTED, 9.0F);
 		profileHits.add(ProfileHit.side(side, x, y, w, 18));
 		return y + 22;
 	}
@@ -818,19 +914,19 @@ public final class OpticModScreen extends Screen {
 		fillExact(x, y, w, h, RADIUS, hover ? CARD_HOVER : CARD);
 		outlineExact(x, y, w, h, RADIUS, selectedProfile || hover ? ACCENT : BORDER_SOFT);
 
-		OpticUiFont.drawCenteredSized(client, name, x + w / 2, y + 10, 0xFFFFFFFF, 10.0F);
+		shadowedCentered(name, x + w / 2, y + 10, 0xFFFFFFFF, 10.0F);
 
 		int iconBox = 48;
 		int ix = x + (w - iconBox) / 2;
 		int iy = y + 32;
 		fillExact(ix, iy, iconBox, iconBox, RADIUS_SM, 0xFF15181C);
-		outlineExact(ix, iy, iconBox, iconBox, RADIUS_SM, OpticTheme.BORDER_ON);
+		outlineExact(ix, iy, iconBox, iconBox, RADIUS_SM, LIME_EDGE);
 		Identifier logo = OpticTextures.logo(client);
 		if (logo != null) {
 		OpticSmooth.bindMip(client, logo);
 		DrawableHelper.drawTexture(ix + 8, iy + 8, 0.0F, 0.0F, 32, 32, 32.0F, 32.0F);
 		} else {
-			OpticUiFont.drawCenteredSized(client, "O", ix + iconBox / 2, iy + 16, ACCENT, 16.0F);
+			shadowedCentered("O", ix + iconBox / 2, iy + 16, ACCENT, 16.0F);
 		}
 
 		float emojiSize = 10.0F;
@@ -862,7 +958,7 @@ public final class OpticModScreen extends Screen {
 		boolean danger = action == ProfileHit.Action.DELETE;
 		int hot = danger ? 0xFFFF5C6A : ACCENT;
 		// Badlion-style square action button with a crisp line icon, fitted to the button.
-		fillExact(x, y, hitSize, hitSize, RADIUS_SM, hover ? OpticTheme.CARD_HOVER : 0xFF15171C);
+		fillExact(x, y, hitSize, hitSize, RADIUS_SM, hover ? CARD_HOVER : 0xFF15171C);
 		outlineExact(x, y, hitSize, hitSize, RADIUS_SM, hover ? hot : OpticTheme.BORDER);
 		String icon;
 		if (action == ProfileHit.Action.RENAME) icon = "pencil";
@@ -890,7 +986,7 @@ public final class OpticModScreen extends Screen {
 		// Same smooth fill + outline as the mod cards and buttons.
 		fillExact(editX, editY, editW, editH, RADIUS_SM, hover ? ACCENT : ACCENT_SOFT);
 		outlineExact(editX, editY, editW, editH, RADIUS_SM, ACCENT);
-		OpticUiFont.drawCenteredSized(client, "EDIT HUD", editX + editW / 2, editY + 6, hover ? OpticTheme.ON_ACCENT : OpticTheme.TEXT, 8.5F);
+		shadowedCenteredMid("EDIT HUD", editX + editW / 2, editY, editH, hover ? OpticTheme.ON_ACCENT : OpticTheme.TEXT, 8.5F);
 	}
 
 	/** Settings tab: same sidebar as the Mods tab, below the header, so nothing above moves. */
@@ -899,9 +995,9 @@ public final class OpticModScreen extends Screen {
 		fillExact(panelX, bodyTop, sidebarW, panelY + panelH - bodyTop, RADIUS, SIDEBAR);
 		fill(panelX + RADIUS, bodyTop, panelX + sidebarW, panelY + panelH, SIDEBAR);
 		fill(panelX, bodyTop, panelX + sidebarW, panelY + panelH - RADIUS, SIDEBAR);
-		fill(panelX + sidebarW - 1, bodyTop, panelX + sidebarW, panelY + panelH - RADIUS, BORDER_SOFT);
+		vLine(panelX + sidebarW, bodyTop, panelY + panelH);
 
-		OpticUiFont.drawSized(client, "SETTINGS", panelX + 12, bodyTop + 12, OpticTheme.FAINT, 7.5F);
+		shadowed("SETTINGS", panelX + 12, bodyTop + 12, 0xFFAEB4BF, 7.5F);
 		drawSettingsCategory("General", SettingsCategory.GENERAL, panelX + 8, settingsCatY(), sidebarW - 16, filterRowH, mouseX, mouseY);
 		drawSettingsCategory("Performance", SettingsCategory.PERFORMANCE, panelX + 8, settingsCatY() + filterRowH + 4, sidebarW - 16, filterRowH, mouseX, mouseY);
 
@@ -916,11 +1012,11 @@ public final class OpticModScreen extends Screen {
 		boolean active = settingsCategory == cat;
 		boolean hover = inside(mouseX, mouseY, x, y, w, h);
 		if (active) {
-			fillRound(x, y, w, h, RADIUS_SM, ACCENT_SOFT);
+			fillExact(x, y, w, h, RADIUS_SM, TAB_ACTIVE);
 		} else if (hover) {
-			fillRound(x, y, w, h, RADIUS_SM, OpticTheme.CARD_HOVER);
+			fillExact(x, y, w, h, RADIUS_SM, CARD_HOVER);
 		}
-		OpticUiFont.drawSized(client, label, x + 10, y + 6, active || hover ? OpticTheme.TEXT : MUTED, 10.0F);
+		shadowedMid(label, x + 10, y, h, active || hover ? OpticTheme.TEXT : MUTED, 10.0F);
 	}
 
 	/** Same spot as the first filter row on the Mods tab. */
@@ -938,7 +1034,7 @@ public final class OpticModScreen extends Screen {
 		int contentW = panelW - sidebarW - 28;
 		int contentBottom = panelY + panelH - 40;
 		String page = settingsCategory == SettingsCategory.PERFORMANCE ? "Performance" : "General";
-		OpticUiFont.drawSized(client, page, contentX, contentY + 1, 0xFFFFFFFF, 12.0F);
+		shadowed(page, contentX, contentY + 1, 0xFFFFFFFF, 12.0F);
 		int settingsSearchWidth = Math.min(160, Math.max(72, contentW / 2));
 		int settingsSearchLeft = contentX + contentW - settingsSearchWidth;
 		ensureSettingsSearch(settingsSearchLeft, contentY, settingsSearchWidth);
@@ -992,7 +1088,7 @@ public final class OpticModScreen extends Screen {
 		}
 
 		if (!OpticRawInput.isSupported()) {
-			OpticUiFont.drawSized(client, "Raw mouse input is Windows-only.", contentX, panelY + panelH - 36, 0xFFAA6666, 8.0F);
+			shadowed("Raw mouse input is Windows-only.", contentX, panelY + panelH - 36, 0xFFAA6666, 8.0F);
 		}
 	}
 
@@ -1013,7 +1109,7 @@ public final class OpticModScreen extends Screen {
 	private int drawSettingsHeader(int x, int y, String label) {
 		if (!settingsSearchText().isEmpty()) return y;
 		if (y >= panelY + 58 && y < panelY + panelH - 44) {
-			OpticUiFont.drawSized(client, label, x, y, MUTED, 8.5F);
+			shadowed(label, x, y, MUTED, 8.5F);
 		}
 		return y + 14;
 	}
@@ -1046,7 +1142,7 @@ public final class OpticModScreen extends Screen {
 		if (y + rowH > clipTop && y < clipBottom) {
 			boolean hover = inside(mouseX, mouseY, x, y, w, rowH);
 			if (hover) fill(x - 4, y, x + w + 4, y + rowH, 0x181A1E22);
-			OpticUiFont.drawSized(client, label, x, y + 6, 0xFFFFFFFF, 10.0F);
+			shadowedMid(label, x, y, rowH, 0xFFFFFFFF, 10.0F);
 			int toggleW = 36;
 			int toggleH = 14;
 			int toggleX = x + w - toggleW;
@@ -1072,7 +1168,7 @@ public final class OpticModScreen extends Screen {
 		if (y + rowH <= settingsClipTop || y >= settingsClipBottom) return y + rowH + 6;
 		boolean hover = inside(mouseX, mouseY, x, y, w, rowH) && mouseY >= settingsClipTop && mouseY < settingsClipBottom;
 		if (hover) fill(x - 4, y, x + w + 4, y + rowH, 0x181A1E22);
-		OpticUiFont.drawSized(client, label, x, y + 8, 0xFFFFFFFF, 11.0F);
+		shadowedMid(label, x, y, rowH, 0xFFFFFFFF, 11.0F);
 
 		int toggleW = 38;
 		int toggleH = 16;
@@ -1085,9 +1181,71 @@ public final class OpticModScreen extends Screen {
 		return y + rowH + 6;
 	}
 
+	/** Menu text with the same soft drop shadow as the Cosmetics menu, so it reads over the game. */
+	private void shadowed(String text, int x, int y, int argb, float size) {
+		int alpha = (argb >>> 24) & 0xFF;
+		if (alpha > 0) OpticUiFont.drawSized(client, text, x + 1, y + 1, shadowColor(alpha), size);
+		OpticUiFont.drawSized(client, text, x, y, argb, size);
+	}
+
+	/** One-screen-pixel lines (a GUI pixel is 2-4 screen pixels, which read as thick bars). */
+	private float hairline() {
+		return 1.0F / Math.max(1, new Window(client, client.width, client.height).getScaleFactor());
+	}
+
+	private void vLine(int x, int y1, int y2) {
+		hairQuad(x, y1, x + hairline(), y2, DIVIDER);
+	}
+
+	private void hLine(int x1, int x2, int y) {
+		hairQuad(x1, y, x2, y + hairline(), DIVIDER);
+	}
+
+	private static void hairQuad(float x1, float y1, float x2, float y2, int argb) {
+		GL11.glDisable(GL11.GL_TEXTURE_2D);
+		GL11.glEnable(GL11.GL_BLEND);
+		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+		GL11.glColor4f(((argb >> 16) & 0xFF) / 255.0F, ((argb >> 8) & 0xFF) / 255.0F, (argb & 0xFF) / 255.0F, ((argb >>> 24) & 0xFF) / 255.0F);
+		GL11.glBegin(GL11.GL_QUADS);
+		GL11.glVertex2f(x1, y2);
+		GL11.glVertex2f(x2, y2);
+		GL11.glVertex2f(x2, y1);
+		GL11.glVertex2f(x1, y1);
+		GL11.glEnd();
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+		GL11.glEnable(GL11.GL_TEXTURE_2D);
+	}
+
+	/** Text vertically centred in a box (measured, not a fixed offset), so it sits in the middle of its hover box. */
+	private void shadowedMid(String text, int x, int boxY, int boxH, int argb, float size) {
+		int th = OpticUiFont.heightSized(client, text, argb, size);
+		shadowed(text, x, boxY + (boxH - th) / 2, argb, size);
+	}
+
+	private void shadowedCenteredMid(String text, int centerX, int boxY, int boxH, int argb, float size) {
+		int th = OpticUiFont.heightSized(client, text, argb, size);
+		shadowedCentered(text, centerX, boxY + (boxH - th) / 2, argb, size);
+	}
+
+	/** Near-black shadow, as see-through as the text itself. */
+	private static int shadowColor(int textAlpha) {
+		return (textAlpha * 0xE6 / 255) << 24;
+	}
+
+	private void shadowedCentered(String text, int centerX, int y, int argb, float size) {
+		int alpha = (argb >>> 24) & 0xFF;
+		if (alpha > 0) OpticUiFont.drawCenteredSized(client, text, centerX + 1, y + 1, shadowColor(alpha), size);
+		OpticUiFont.drawCenteredSized(client, text, centerX, y, argb, size);
+	}
+
+	private void crispShadowed(net.minecraft.client.MinecraftClient c, String text, int centerX, int centerY, int argb, float size) {
+		int alpha = (argb >>> 24) & 0xFF;
+		if (alpha > 0) OpticUiFont.drawCrispCentered(c, text, centerX + 1, centerY + 1, shadowColor(alpha), size);
+		OpticUiFont.drawCrispCentered(c, text, centerX, centerY, argb, size);
+	}
+
 	private void drawPanel() {
-		// Soft drop shadow + frosted glass body (Lunar-style).
-		OpticTheme.shadow(client, panelX, panelY, panelW, panelH, RADIUS);
+		// Light see-through grey body; the black frame is drawn last (see render).
 		fillExact(panelX, panelY, panelW, panelH, RADIUS, PANEL);
 	}
 
@@ -1095,58 +1253,58 @@ public final class OpticModScreen extends Screen {
 		int headerBottom = panelY + 48;
 		fillExact(panelX, panelY, panelW, headerBottom - panelY, RADIUS, TOPBAR);
 		fill(panelX, headerBottom - RADIUS, panelX + panelW, headerBottom, TOPBAR);
-		// Accent rule under the header, fading green -> teal -> out (CheatBreaker-style).
-		fill(panelX, headerBottom - 1, panelX + panelW, headerBottom, BORDER_SOFT);
-		OpticTheme.accentLine(panelX, headerBottom - 1, panelW, 1);
+		// Plain black line under the header.
+		hLine(panelX, panelX + panelW, headerBottom - 1);
 
 		// Same header on every tab: logo and tabs never move when switching.
 		int brandX = panelX + 12;
 		drawHeaderLogo(brandX);
-		OpticUiFont.drawSized(client, "OPTIC", brandX + 32, panelY + 12, OpticTheme.TEXT, 13.0F);
-		OpticUiFont.drawSized(client, "CLIENT · 1.7.10", brandX + 32, panelY + 27, ACCENT, 7.5F);
+		shadowed("OPTIC", brandX + 32, panelY + 12, OpticTheme.TEXT, 13.0F);
+		shadowed("CLIENT · 1.7.10", brandX + 32, panelY + 27, ACCENT, 7.5F);
 
 		this.tabY = panelY + 12;
 		modsTabX = brandX + 128;
 		modsTabW = 56;
 		settingsTabX = modsTabX + modsTabW + 8;
 		settingsTabW = 68;
-		profilesTabX = settingsTabX + settingsTabW + 8;
+		cosmeticsTabX = settingsTabX + settingsTabW + 8;
+		cosmeticsTabW = 78;
+		profilesTabX = cosmeticsTabX + cosmeticsTabW + 8;
 		profilesTabW = 66;
 
 		drawPillTab("Mods", modsTabX, tabY, modsTabW, 24, mainTab == MainTab.MODS, mouseX, mouseY);
 		drawPillTab("Settings", settingsTabX, tabY, settingsTabW, 24, mainTab == MainTab.SETTINGS, mouseX, mouseY);
+		// Cosmetics opens its own screen, so it is never the active tab here.
+		drawPillTab("Cosmetics", cosmeticsTabX, tabY, cosmeticsTabW, 24, false, mouseX, mouseY);
 		drawPillTab("Profiles", profilesTabX, tabY, profilesTabW, 24, mainTab == MainTab.PROFILES, mouseX, mouseY);
 
 		if (selected != null && mainTab == MainTab.MODS) {
 			String tab = selected.name;
 			int detailX = profilesTabX + profilesTabW + 14;
-			OpticUiFont.drawSized(client, tab, detailX, tabY + 7, MUTED, 10.0F);
+			shadowed(tab, detailX, tabY + 7, MUTED, 10.0F);
 		}
 
-		boolean closeHover = inside(mouseX, mouseY, closeX, closeY, 16, 16);
-		if (closeHover) fill(closeX - 3, closeY - 3, closeX + 19, closeY + 19, ACCENT_SOFT);
-		OpticUiFont.drawCenteredSized(
-			client,
-			"\u00d7",
-			closeX + 8,
-			closeY,
-			closeHover ? 0xFFFFFFFF : 0xFF9AA29A,
-			17.0F
-		);
+		// Close: a drawn X, centred exactly in the 22px hover box (a font glyph sat off-centre).
+		boolean closeHover = inside(mouseX, mouseY, closeX - 3, closeY - 3, 22, 22);
+		int closeCx = closeX + 8;
+		int closeCy = closeY + 8;
+		if (closeHover) fillExact(closeCx - 11, closeCy - 11, 22, 22, RADIUS_SM, CARD_HOVER);
+		OpticUiFont.drawLineIconCentered(client, "close", closeCx + 1, closeCy + 1, 13.0F, shadowColor(0xFF));
+		OpticUiFont.drawLineIconCentered(client, "close", closeCx, closeCy, 13.0F, closeHover ? 0xFFFFFFFF : 0xFFDCE0E6);
 	}
 
 	private void drawPillTab(String label, int x, int y, int w, int h, boolean active, int mouseX, int mouseY) {
 		boolean hover = inside(mouseX, mouseY, x, y, w, h);
-		// Active: soft accent glass with an accent underline. Idle: quiet, brightens on hover.
+		// Active (Settings, Profiles...): a more solid box with an accent underline. Idle: quiet, box on hover.
 		if (active) {
-			fillExact(x, y, w, h, RADIUS_SM, ACCENT_SOFT);
-			outlineExact(x, y, w, h, RADIUS_SM, OpticTheme.BORDER_ON);
+			fillExact(x, y, w, h, RADIUS_SM, TAB_ACTIVE);
+			outlineExact(x, y, w, h, RADIUS_SM, LIME_EDGE);
 			fill(x + 8, y + h - 2, x + w - 8, y + h - 1, ACCENT);
 		} else if (hover) {
-			fillExact(x, y, w, h, RADIUS_SM, OpticTheme.CARD_HOVER);
+			fillExact(x, y, w, h, RADIUS_SM, CARD_HOVER);
 			outlineExact(x, y, w, h, RADIUS_SM, BORDER);
 		}
-		OpticUiFont.drawCrispCentered(
+		crispShadowed(
 			client,
 			label,
 			x + w / 2,
@@ -1160,7 +1318,7 @@ public final class OpticModScreen extends Screen {
 		Identifier logo = OpticTextures.logo(client);
 		int y = panelY + (44 - HEADER_LOGO) / 2;
 		if (logo == null) {
-			OpticUiFont.drawSized(client, "OPTIC", x, panelY + 14, ACCENT, 14.0F);
+			shadowed("OPTIC", x, panelY + 14, ACCENT, 14.0F);
 			return;
 		}
 		OpticSmooth.bindMip(client, logo);
@@ -1174,9 +1332,10 @@ public final class OpticModScreen extends Screen {
 		fillExact(panelX, bodyTop, sidebarW, sideH, RADIUS, SIDEBAR);
 		fill(panelX + RADIUS, bodyTop, panelX + sidebarW, panelY + panelH, SIDEBAR);
 		fill(panelX, bodyTop, panelX + sidebarW, panelY + panelH - RADIUS, SIDEBAR);
-		fill(panelX + sidebarW - 1, bodyTop, panelX + sidebarW, panelY + panelH - RADIUS, BORDER_SOFT);
+		// One thin grey line where the sidebar ends (the sidebar itself is see-through).
+		vLine(panelX + sidebarW, bodyTop, panelY + panelH);
 
-		OpticUiFont.drawSized(client, "FILTER", panelX + 12, bodyTop + 12, OpticTheme.FAINT, 7.5F);
+		shadowed("FILTER", panelX + 12, bodyTop + 12, 0xFFAEB4BF, 7.5F);
 		filterRowW = sidebarW - 16;
 		filterAllX = panelX + 8;
 		filterAllY = bodyTop + 30;
@@ -1239,7 +1398,7 @@ public final class OpticModScreen extends Screen {
 				: modFilter == ModFilter.FAVORITES
 					? "No favorite mods yet — click the star on a card"
 					: "No mods in this filter";
-			OpticUiFont.drawSized(client, empty, modsGridX, modsGridY + 8, MUTED, 9.0F);
+			shadowed(empty, modsGridX, modsGridY + 8, MUTED, 9.0F);
 		}
 
 		for (int i = 0; i < visible.size(); i++) {
@@ -1340,9 +1499,9 @@ public final class OpticModScreen extends Screen {
 		boolean hover = inside(mouseX, mouseY, x, y, w, h);
 		// Active row: soft accent fill. Hover: faint lift.
 		if (active) {
-			fillRound(x, y, w, h, RADIUS_SM, ACCENT_SOFT);
+			fillExact(x, y, w, h, RADIUS_SM, TAB_ACTIVE);
 		} else if (hover) {
-			fillRound(x, y, w, h, RADIUS_SM, OpticTheme.CARD_HOVER);
+			fillExact(x, y, w, h, RADIUS_SM, CARD_HOVER);
 		}
 		int ink = active ? OpticTheme.TEXT : (hover ? OpticTheme.TEXT : MUTED);
 		int iconInk = active ? ACCENT : ink;
@@ -1353,15 +1512,15 @@ public final class OpticModScreen extends Screen {
 		} else {
 			OpticUiFont.drawGridCentered(client, x + 14, y + h / 2, 10.0F, iconInk);
 		}
-		OpticUiFont.drawSized(client, label, x + 24, y + 6, ink, 10.0F);
+		shadowedMid(label, x + 24, y, h, ink, 10.0F);
 	}
 
 	private CardBounds drawCard(ModuleCard module, int x, int y, int w, int h, boolean hover) {
 		boolean on = enabled(module.id);
 		boolean fav = OpticClient.get().config().isFavoriteModule(module.id);
-		// Glass card; enabled mods get a green tint and a green outline.
-		fillExact(x, y, w, h, RADIUS, hover ? CARD_HOVER : (on ? CARD_ON : CARD));
-		outlineExact(x, y, w, h, RADIUS, hover ? ACCENT : (on ? OpticTheme.BORDER_ON : BORDER_SOFT));
+		// Same as Cosmetics: one grey card for on and off; on just gets the green outline.
+		fillExact(x, y, w, h, RADIUS, on ? CARD_ON : (hover ? CARD_HOVER : CARD));
+		outlineExact(x, y, w, h, RADIUS, on ? (hover ? LIME : LIME_EDGE) : (hover ? 0xFF8A8F99 : BORDER_SOFT));
 
 		float titleSize = w < 80 ? 8.5F : 9.5F;
 		int titleLimit = Math.max(8, w - 10);
@@ -1373,7 +1532,7 @@ public final class OpticModScreen extends Screen {
 				titleSize = Math.max(5.0F, titleSize * titleLimit / (float) fitted);
 			}
 		}
-		OpticUiFont.drawCenteredSized(client, module.name, x + w / 2, y + 7, 0xFFFFFFFF, titleSize);
+		shadowedCentered(module.name, x + w / 2, y + 7, 0xFFFFFFFF, titleSize);
 
 		// Icons are baked as fitted squares; center them between the title and the toggle.
 		float emojiSize = Math.min(22.0F, Math.max(16.0F, w * 0.26F));
@@ -1395,10 +1554,10 @@ public final class OpticModScreen extends Screen {
 		return new CardBounds(module.id, x, y, w, h, toggleX, toggleY, toggleW, toggleH, starHitX - 2, starHitY - 2, starSize + 4, starSize + 4);
 	}
 
-	/** 0 = off, 1 = on, per toggle; eased toward the real state each frame. */
-	private static final java.util.Map<String, Float> TOGGLE_ANIM = new java.util.HashMap<String, Float>();
-	private static long toggleAnimFrame;
-	private static float toggleAnimStep;
+	/** Per toggle: {progress 0 (off) .. 1 (on), last frame time in ns}. Each has its own clock. */
+	private static final java.util.Map<String, double[]> TOGGLE_ANIM = new java.util.HashMap<String, double[]>();
+	/** Seconds for a full flip. */
+	private static final double TOGGLE_FLIP_SECONDS = 0.14D;
 
 	/**
 	 * Pill switch with a knob that slides and a colour that fades when it flips. Uses the exact
@@ -1408,17 +1567,20 @@ public final class OpticModScreen extends Screen {
 	 */
 	private void drawToggle(String key, int x, int y, int w, int h, boolean on) {
 		long now = System.nanoTime();
-		if (now != toggleAnimFrame) {
-			float dt = toggleAnimFrame == 0L ? 0.0F : Math.min(0.1F, (now - toggleAnimFrame) / 1.0E9F);
-			toggleAnimFrame = now;
-			toggleAnimStep = 1.0F - (float) Math.exp(-dt * 16.0F);
+		double target = on ? 1.0D : 0.0D;
+		double[] state = TOGGLE_ANIM.get(key);
+		if (state == null) {
+			// First time this toggle is drawn: show it where it already is.
+			state = new double[] { target, now };
+			TOGGLE_ANIM.put(key, state);
 		}
-		Float stored = TOGGLE_ANIM.get(key);
-		float p = stored == null ? (on ? 1.0F : 0.0F) : stored.floatValue();
-		float target = on ? 1.0F : 0.0F;
-		p += (target - p) * toggleAnimStep;
-		if (Math.abs(target - p) < 0.002F) p = target;
-		TOGGLE_ANIM.put(key, p);
+		// Time since this toggle last drew (capped, so a toggle off screen for a while doesn't jump).
+		double dt = Math.min(0.05D, (now - (long) state[1]) / 1.0E9D);
+		state[1] = now;
+		double step = dt / TOGGLE_FLIP_SECONDS;
+		state[0] = state[0] < target ? Math.min(target, state[0] + step) : Math.max(target, state[0] - step);
+		float p = (float) state[0];
+		// Ease in and out: quick but not abrupt.
 		float eased = p * p * (3.0F - 2.0F * p);
 
 		fillExact(x, y, w, h, h / 2, OpticTheme.lerp(TOGGLE_OFF, TOGGLE_ON, eased));
@@ -1447,8 +1609,8 @@ public final class OpticModScreen extends Screen {
 		backX = areaX;
 		backY = areaY;
 		boolean backHover = inside(mouseX, mouseY, backX, backY, backW, backH);
-		fillRound(backX, backY, backW, backH, RADIUS_SM, backHover ? ACCENT_SOFT : TAB_IDLE);
-		outlineRound(backX, backY, backW, backH, RADIUS_SM, backHover ? ACCENT : BORDER);
+		fillExact(backX, backY, backW, backH, RADIUS_SM, backHover ? ACCENT_SOFT : TAB_IDLE);
+		outlineExact(backX, backY, backW, backH, RADIUS_SM, backHover ? ACCENT : BORDER);
 		OpticUiFont.drawLineIconCentered(client, "back", backX + backW / 2, backY + backH / 2, 12.0F, 0xFFFFFFFF);
 
 		boolean on = enabled(selected.id);
@@ -1461,12 +1623,12 @@ public final class OpticModScreen extends Screen {
 
 		int textX = backX + backW + 8;
 		int textLimit = toggleX - 8;
-		OpticUiFont.drawSized(client, selected.name, textX, areaY + 1, 0xFFFFFFFF, 12.0F);
+		shadowed(selected.name, textX, areaY + 1, 0xFFFFFFFF, 12.0F);
 		int nameW = OpticUiFont.widthSized(client, selected.name, 0xFFFFFFFF, 12.0F);
 		int sepX = textX + nameW + 6;
 		if (sepX + 8 < textLimit) {
-			OpticUiFont.drawSized(client, "|", sepX, areaY + 1, MUTED, 12.0F);
-			OpticUiFont.drawSized(client, selected.description, sepX + 8, areaY + 2, MUTED, 10.0F);
+			shadowed("|", sepX, areaY + 1, MUTED, 12.0F);
+			shadowed(selected.description, sepX + 8, areaY + 2, MUTED, 10.0F);
 		}
 
 		int rowX = areaX;
@@ -1533,12 +1695,12 @@ public final class OpticModScreen extends Screen {
 		}
 
 		if (options.isEmpty()) {
-			OpticUiFont.drawSized(client, "No extra options for this mod.", rowX + 30, contentTop + 2, MUTED, 10.0F);
+			shadowed("No extra options for this mod.", rowX + 30, contentTop + 2, MUTED, 10.0F);
 		}
 
 		int resetY = areaY + areaH - 12;
 		boolean resetHover = inside(mouseX, mouseY, rowX, resetY - 2, 40, 14);
-		OpticUiFont.drawSized(client, "Reset", rowX, resetY, resetHover ? ACCENT : MUTED, 9.0F);
+		shadowed("Reset", rowX, resetY, resetHover ? ACCENT : MUTED, 9.0F);
 		optionHits.add(OptionHit.reset(selected.id, rowX, resetY - 2, 40, 14));
 
 		if (openColorKey != null) {
@@ -1547,8 +1709,8 @@ public final class OpticModScreen extends Screen {
 	}
 
 	private void drawSectionHeader(int x, int y, String label) {
-		OpticUiFont.drawSized(client, "\u25BC", x, y + 1, ACCENT, 8.0F);
-		OpticUiFont.drawSized(client, label, x + 12, y + 1, 0xFFFFFFFF, 11.0F);
+		shadowed("\u25BC", x, y + 1, ACCENT, 8.0F);
+		shadowed(label, x + 12, y + 1, 0xFFFFFFFF, 11.0F);
 	}
 
 	private static int optionStride(ConfigOption option) {
@@ -1583,35 +1745,38 @@ public final class OpticModScreen extends Screen {
 			int toggleX = x;
 			int toggleY = y + 2;
 			drawBlcToggle(option.key, toggleX, toggleY, value);
-			OpticUiFont.drawSized(client, option.label, toggleX + 34, y + 4, 0xFFFFFFFF, 11.0F);
+			shadowed(option.label, toggleX + 34, y + 4, 0xFFFFFFFF, 11.0F);
 			optionHits.add(OptionHit.bool(option.key, x, y, w, h));
 		} else if (option.type == OptionType.KEY) {
 			Integer bound = OpticRevampOptions.getKey(OpticClient.get().config(), option.key);
 			int code = bound == null ? OpticClient.get().config().freeLookKeyCode : bound.intValue();
 			String value = bindingKey != null && bindingKey.equals(option.key) ? "Press a key" : OpticFreeLook.keyName(code);
-			OpticUiFont.drawSized(client, option.label, x, y + 4, 0xFFFFFFFF, 11.0F);
+			shadowed(option.label, x, y + 4, 0xFFFFFFFF, 11.0F);
 			int valueW = OpticUiFont.widthSized(client, value, 0xFFFFFFFF, 11.0F);
-			int valueColor = bindingKey != null && bindingKey.equals(option.key) ? ACCENT : 0xFFB4B4BE;
-			OpticUiFont.drawSized(client, value, x + w - valueW, y + 4, valueColor, 11.0F);
+			int valueColor = bindingKey != null && bindingKey.equals(option.key) ? ACCENT : 0xFFDCE0E6;
+			shadowed(value, x + w - valueW, y + 4, valueColor, 11.0F);
 			optionHits.add(OptionHit.key(option.key, x, y, w, h));
+		} else if (option.type == OptionType.TEXT) {
+			shadowed(option.label, x, y + 4, 0xFFFFFFFF, 11.0F);
+			drawTextBox(option, x, y, w, h, mouseX, mouseY);
 		} else if (option.type == OptionType.CYCLE && isDropdown(option.key)) {
-			OpticUiFont.drawSized(client, option.label, x, y + 4, 0xFFFFFFFF, 11.0F);
+			shadowed(option.label, x, y + 4, 0xFFFFFFFF, 11.0F);
 			drawDropdownBox(option, x, y, w, h, mouseX, mouseY);
 		} else if (option.type == OptionType.CYCLE) {
 			String value = getCycleLabel(option.key);
-			OpticUiFont.drawSized(client, option.label, x, y + 4, 0xFFFFFFFF, 11.0F);
+			shadowed(option.label, x, y + 4, 0xFFFFFFFF, 11.0F);
 			int valueW = OpticUiFont.widthSized(client, value, 0xFFFFFFFF, 11.0F);
-			OpticUiFont.drawSized(client, value, x + w - valueW, y + 4, 0xFFB4B4BE, 11.0F);
+			shadowed(value, x + w - valueW, y + 4, 0xFFDCE0E6, 11.0F);
 			optionHits.add(OptionHit.cycle(option.key, x, y, w, h));
 		} else if (option.type == OptionType.SLIDER) {
 			float value = getFloat(option.key);
 			float span = option.max - option.min;
 			float t = span == 0.0F ? 0.0F : (value - option.min) / span;
 			t = Math.max(0.0F, Math.min(1.0F, t));
-			OpticUiFont.drawSized(client, option.label, x, y, 0xFFFFFFFF, 11.0F);
+			shadowed(option.label, x, y, 0xFFFFFFFF, 11.0F);
 			String number = formatFloat(value);
 			int numberW = OpticUiFont.widthSized(client, number, 0xFFFFFFFF, 10.0F);
-			OpticUiFont.drawSized(client, number, x + w - numberW, y, 0xFFB4B4BE, 10.0F);
+			shadowed(number, x + w - numberW, y, 0xFFDCE0E6, 10.0F);
 			int trackY = y + 16;
 			int trackH = 4;
 			fillRound(x, trackY, w, trackH, 2, 0xFF2C3038);
@@ -1625,7 +1790,7 @@ public final class OpticModScreen extends Screen {
 			optionHits.add(OptionHit.slider(option.key, x, trackY - 6, w, 16, option.min, option.max));
 		} else if (option.type == OptionType.COLOR) {
 			int selectedColor = getColor(option.key);
-			OpticUiFont.drawSized(client, option.label, x, y + 4, 0xFFFFFFFF, 11.0F);
+			shadowed(option.label, x, y + 4, 0xFFFFFFFF, 11.0F);
 			int sq = 14;
 			int sqX = x + w - sq;
 			int sqY = y + (h - sq) / 2;
@@ -1730,9 +1895,9 @@ public final class OpticModScreen extends Screen {
 		fill(colX, svY, colX + colW / 2, svY + 24, 0xFF000000 | pickOriginal);
 		fill(colX + colW / 2, svY, colX + colW, svY + 24, 0xFF000000 | current);
 		outline(colX - 1, svY - 1, colW + 2, 26, OpticTheme.BORDER);
-		OpticUiFont.drawSized(client, "OLD", colX + 2, svY + 27, OpticTheme.FAINT, 6.5F);
-		int newW = OpticUiFont.widthSized(client, "NEW", OpticTheme.FAINT, 6.5F);
-		OpticUiFont.drawSized(client, "NEW", colX + colW - newW - 2, svY + 27, OpticTheme.FAINT, 6.5F);
+		shadowed("OLD", colX + 2, svY + 27, 0xFFAEB4BF, 6.5F);
+		int newW = OpticUiFont.widthSized(client, "NEW", 0xFFAEB4BF, 6.5F);
+		shadowed("NEW", colX + colW - newW - 2, svY + 27, 0xFFAEB4BF, 6.5F);
 
 		int hexY = svY + 40;
 		fillRound(colX, hexY, colW, 16, RADIUS_SM, 0xFF0B0C0F);
@@ -1740,17 +1905,17 @@ public final class OpticModScreen extends Screen {
 		String hex = hexEditing
 			? "#" + hexBuffer + ((System.currentTimeMillis() / 500L) % 2L == 0L ? "_" : "")
 			: String.format("#%06X", current);
-		OpticUiFont.drawSized(client, hex, colX + 5, hexY + 4, hexEditing ? OpticTheme.TEXT : MUTED, 8.0F);
+		shadowed(hex, colX + 5, hexY + 4, hexEditing ? OpticTheme.TEXT : MUTED, 8.0F);
 
 		int rgbY = hexY + 24;
 		String[] names = { "R", "G", "B" };
 		int[] parts = { (current >> 16) & 0xFF, (current >> 8) & 0xFF, current & 0xFF };
 		for (int i = 0; i < 3; i++) {
 			int ry = rgbY + i * 11;
-			OpticUiFont.drawSized(client, names[i], colX + 1, ry, OpticTheme.FAINT, 7.5F);
+			shadowed(names[i], colX + 1, ry, 0xFFAEB4BF, 7.5F);
 			String v = Integer.toString(parts[i]);
 			int vw = OpticUiFont.widthSized(client, v, OpticTheme.TEXT, 7.5F);
-			OpticUiFont.drawSized(client, v, colX + colW - vw - 1, ry, OpticTheme.TEXT, 7.5F);
+			shadowed(v, colX + colW - vw - 1, ry, OpticTheme.TEXT, 7.5F);
 		}
 
 		// Quick swatches along the bottom.
@@ -2030,6 +2195,28 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.header("General"));
 				options.add(ConfigOption.cycle("weatherMode", "Weather"));
 				break;
+			case NICK_HIDER: {
+				OpticConfig nc = OpticClient.get().config();
+				options.add(ConfigOption.header("Name Options"));
+				options.add(ConfigOption.toggle("nickHideOwnName", "Hide Own Name"));
+				if (nc.nickHideOwnName) options.add(ConfigOption.text("nickOwnName", "Own Name"));
+				options.add(ConfigOption.toggle("nickHideOthers", "Hide Others' Names"));
+				if (nc.nickHideOthers) {
+					options.add(ConfigOption.text("nickPrefix", "Prefix"));
+					options.add(ConfigOption.toggle("nickCustomSuffix", "Custom Suffix"));
+					if (nc.nickCustomSuffix) options.add(ConfigOption.text("nickSuffix", "Suffix"));
+				}
+				options.add(ConfigOption.toggle("nickHideLobbyId", "Hide Lobby ID"));
+				options.add(ConfigOption.header("Skin Options"));
+				options.add(ConfigOption.toggle("nickHideOwnSkin", "Hide Own Skin"));
+				options.add(ConfigOption.toggle("nickHideOthersSkin", "Hide Others' Skins"));
+				break;
+			}
+			case MOTION_BLUR:
+				options.add(ConfigOption.header("General"));
+				options.add(ConfigOption.cycle("motionBlurType", "Type"));
+				options.add(ConfigOption.slider("motionBlurAmount", "Amount", 1.0F, 10.0F));
+				break;
 			case FOV:
 				options.add(ConfigOption.header("General"));
 				options.add(ConfigOption.slider("fov", "FOV", 30.0F, 150.0F));
@@ -2214,6 +2401,12 @@ public final class OpticModScreen extends Screen {
 
 	private boolean getBool(String key) {
 		OpticConfig c = OpticClient.get().config();
+		if ("nickHideOwnName".equals(key)) return c.nickHideOwnName;
+		if ("nickHideOthers".equals(key)) return c.nickHideOthers;
+		if ("nickCustomSuffix".equals(key)) return c.nickCustomSuffix;
+		if ("nickHideLobbyId".equals(key)) return c.nickHideLobbyId;
+		if ("nickHideOwnSkin".equals(key)) return c.nickHideOwnSkin;
+		if ("nickHideOthersSkin".equals(key)) return c.nickHideOthersSkin;
 		Boolean extra = OpticRevampOptions.getBool(c, key);
 		if (extra != null) return extra.booleanValue();
 		if ("fpsTextShadow".equals(key)) return c.fpsTextShadow;
@@ -2308,6 +2501,16 @@ public final class OpticModScreen extends Screen {
 
 	private void setBool(String key, boolean value) {
 		OpticConfig c = OpticClient.get().config();
+		if (key.startsWith("nick")) {
+			if ("nickHideOwnName".equals(key)) c.nickHideOwnName = value;
+			else if ("nickHideOthers".equals(key)) c.nickHideOthers = value;
+			else if ("nickCustomSuffix".equals(key)) c.nickCustomSuffix = value;
+			else if ("nickHideLobbyId".equals(key)) c.nickHideLobbyId = value;
+			else if ("nickHideOwnSkin".equals(key)) c.nickHideOwnSkin = value;
+			else if ("nickHideOthersSkin".equals(key)) c.nickHideOthersSkin = value;
+			c.save();
+			return;
+		}
 		if (OpticRevampOptions.setBool(c, key, value)) {
 			c.save();
 			return;
@@ -2571,6 +2774,7 @@ public final class OpticModScreen extends Screen {
 		OpticConfig c = OpticClient.get().config();
 		Float extra = OpticRevampOptions.getFloat(c, key);
 		if (extra != null) return extra.floatValue();
+		if ("motionBlurAmount".equals(key)) return c.motionBlurAmount;
 		if ("fullbrightGamma".equals(key)) return c.fullbrightGamma;
 		if ("skins3dDistance".equals(key)) return c.skins3dDistance;
 		if ("particleMultiplier".equals(key)) return c.particleMultiplier;
@@ -2599,7 +2803,11 @@ public final class OpticModScreen extends Screen {
 			c.save();
 			return;
 		}
-		if ("skins3dDistance".equals(key)) {
+		if ("motionBlurAmount".equals(key)) {
+			// Whole steps 1-10, like the original.
+			c.motionBlurAmount = Math.max(1.0F, Math.min(10.0F, Math.round(value)));
+			c.save();
+		} else if ("skins3dDistance".equals(key)) {
 			c.skins3dDistance = Math.max(4.0F, Math.min(64.0F, value));
 			c.save();
 		} else if ("fullbrightGamma".equals(key)) {
@@ -2715,6 +2923,8 @@ public final class OpticModScreen extends Screen {
 			return;
 		}
 		if (clickDropdown(mouseX, mouseY)) return;
+		// Clicking anywhere ends typing in a name box (the click still does its own thing).
+		finishText();
 		if (button != 0) return;
 		if (inside(mouseX, mouseY, closeX - 3, closeY - 3, 22, 22)) {
 			client.setScreen(null);
@@ -2730,6 +2940,11 @@ public final class OpticModScreen extends Screen {
 			mainTab = MainTab.SETTINGS;
 			selected = null;
 			openColorKey = null;
+			return;
+		}
+		if (inside(mouseX, mouseY, cosmeticsTabX, tabY, cosmeticsTabW, 24)) {
+			// Closing Cosmetics comes back to this menu.
+			client.setScreen(new OpticCosmeticsScreen(this));
 			return;
 		}
 		if (inside(mouseX, mouseY, profilesTabX, tabY, profilesTabW, 24)) {
@@ -2909,6 +3124,10 @@ public final class OpticModScreen extends Screen {
 					bindingKey = hit.key;
 					return;
 				}
+				if (hit.kind == HitKind.TEXT) {
+					editingText = hit.key;
+					return;
+				}
 				if (hit.kind == HitKind.CYCLE) {
 					if (isDropdown(hit.key)) {
 						openDropdown = hit.key;
@@ -2969,6 +3188,7 @@ public final class OpticModScreen extends Screen {
 
 	@Override
 	protected void keyPressed(char character, int keyCode) {
+		if (textKey(character, keyCode)) return;
 		if (openColorKey != null && hexKey(character, keyCode)) return;
 		if (bindingKey != null) {
 			if (keyCode != Keyboard.KEY_ESCAPE && keyCode != Keyboard.KEY_RSHIFT && keyCode != Keyboard.KEY_NONE) {
@@ -3217,7 +3437,7 @@ public final class OpticModScreen extends Screen {
 		GL11.glEnable(GL11.GL_SCISSOR_TEST);
 		GL11.glScissor(clipX * sf, client.height - (clipY + clipH) * sf, clipW * sf, clipH * sf);
 		if (!shown.isEmpty()) {
-			OpticUiFont.drawSized(client, shown, x + 4 - scroll, textY, color, size);
+			shadowed(shown, x + 4 - scroll, textY, color, size);
 		}
 		if (field.isFocused() && (System.currentTimeMillis() / 530L) % 2L == 0L) {
 			String before = placeholderOn ? "" : text.substring(0, cursorIndex);
@@ -3451,7 +3671,8 @@ public final class OpticModScreen extends Screen {
 		SLIDER,
 		COLOR,
 		KEY,
-		HEADER
+		HEADER,
+		TEXT
 	}
 
 	private enum HitKind {
@@ -3468,7 +3689,8 @@ public final class OpticModScreen extends Screen {
 		COLOR_SV,
 		COLOR_HUE,
 		COLOR_PRESET,
-		COLOR_HEX
+		COLOR_HEX,
+		TEXT
 	}
 
 	private enum ColorDragMode {
@@ -3519,6 +3741,10 @@ public final class OpticModScreen extends Screen {
 
 		static ConfigOption header(String label) {
 			return new ConfigOption(OptionType.HEADER, "", label, 0.0F, 0.0F);
+		}
+
+		static ConfigOption text(String key, String label) {
+			return new ConfigOption(OptionType.TEXT, key, label, 0.0F, 0.0F);
 		}
 	}
 
@@ -3587,6 +3813,10 @@ public final class OpticModScreen extends Screen {
 
 		static OptionHit key(String key, int x, int y, int w, int h) {
 			return new OptionHit(HitKind.KEY, -1, key, x, y, w, h, 0.0F, 0.0F, 0, 0, 0, 0.0F, 0.0F, 0.0F);
+		}
+
+		static OptionHit text(String key, int x, int y, int w, int h) {
+			return new OptionHit(HitKind.TEXT, -1, key, x, y, w, h, 0.0F, 0.0F, 0, 0, 0, 0.0F, 0.0F, 0.0F);
 		}
 
 		static OptionHit cycle(String key, int x, int y, int w, int h) {

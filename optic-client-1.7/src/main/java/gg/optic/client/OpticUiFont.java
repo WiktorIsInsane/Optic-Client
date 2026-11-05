@@ -41,6 +41,8 @@ public final class OpticUiFont {
 	}
 
 	public static void drawSized(MinecraftClient client, String text, int x, int y, int argb, float guiSize) {
+		// Nick Hider: Optic nametags draw names through here, not the vanilla font.
+		text = gg.optic.client.render.OpticNickHider.transform(text);
 		Label label = label(client, text, argb, guiSize);
 		if (label != null) label.draw(client, x, y);
 	}
@@ -73,6 +75,7 @@ public final class OpticUiFont {
 	}
 
 	public static int widthSized(MinecraftClient client, String text, int argb, float guiSize) {
+		text = gg.optic.client.render.OpticNickHider.transform(text);
 		Label label = label(client, text, argb, guiSize);
 		return label == null ? 0 : label.drawW;
 	}
@@ -598,6 +601,10 @@ public final class OpticUiFont {
 				head.lineTo(s * 0.24F, s * 0.5F);
 				head.lineTo(s * 0.46F, s * 0.72F);
 				g.draw(head);
+			} else if ("close".equals(kind)) {
+				// X, symmetric around the cell centre.
+				g.draw(new java.awt.geom.Line2D.Float(s * 0.28F, s * 0.28F, s * 0.72F, s * 0.72F));
+				g.draw(new java.awt.geom.Line2D.Float(s * 0.72F, s * 0.28F, s * 0.28F, s * 0.72F));
 			} else if ("chevron-down".equals(kind)) {
 				java.awt.geom.Path2D.Float v = new java.awt.geom.Path2D.Float();
 				v.moveTo(s * 0.26F, s * 0.38F);
