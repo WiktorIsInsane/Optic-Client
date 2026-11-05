@@ -350,8 +350,8 @@ public final class OpticUiFont {
 			g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 			Color color = new Color(argb, true);
 			g.setColor(color);
-			float pad = cell * 0.16F;
-			float thick = cell * 0.075F;
+			float pad = cell * 0.13F;
+			float thick = cell * 0.085F;
 			drawSword(g, pad, cell - pad, cell - pad, pad, thick);
 			drawSword(g, cell - pad, cell - pad, pad, pad, thick);
 			g.dispose();
@@ -363,7 +363,10 @@ public final class OpticUiFont {
 		}
 	}
 
-	/** Handle at (x0, y0), tip at (x1, y1). */
+	/**
+	 * One sword, handle end at (x0, y0) and tip at (x1, y1): round pommel, grip, crossguard,
+	 * then a straight blade with parallel edges that tapers to a point.
+	 */
 	private static void drawSword(Graphics2D g, float x0, float y0, float x1, float y1, float thick) {
 		float dx = x1 - x0;
 		float dy = y1 - y0;
@@ -373,29 +376,80 @@ public final class OpticUiFont {
 		float uy = dy / len;
 		float px = -uy;
 		float py = ux;
-		float gx = x0 + ux * len * 0.30F;
-		float gy = y0 + uy * len * 0.30F;
-		float bladeX = x0 + ux * len * 0.36F;
-		float bladeY = y0 + uy * len * 0.36F;
-		float tipX = x1;
-		float tipY = y1;
 
-		g.setStroke(new java.awt.BasicStroke(thick * 0.48F, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
+		// Pommel.
+		float pr = thick * 0.55F;
+		g.fill(new java.awt.geom.Ellipse2D.Float(x0 - pr, y0 - pr, pr * 2.0F, pr * 2.0F));
+
+		// Grip.
+		float gx = x0 + ux * len * 0.27F;
+		float gy = y0 + uy * len * 0.27F;
+		g.setStroke(new java.awt.BasicStroke(thick * 0.55F, java.awt.BasicStroke.CAP_BUTT, java.awt.BasicStroke.JOIN_ROUND));
 		g.draw(new java.awt.geom.Line2D.Float(x0, y0, gx, gy));
 
-		float guard = thick * 1.55F;
-		g.setStroke(new java.awt.BasicStroke(thick * 0.62F, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
+		// Crossguard.
+		float guard = thick * 1.9F;
+		g.setStroke(new java.awt.BasicStroke(thick * 0.6F, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
 		g.draw(new java.awt.geom.Line2D.Float(gx - px * guard, gy - py * guard, gx + px * guard, gy + py * guard));
 
+		// Blade: straight edges to 84% of the length, then a point.
+		float half = thick * 0.4F;
+		float bx = x0 + ux * len * 0.30F;
+		float by = y0 + uy * len * 0.30F;
+		float sx = x0 + ux * len * 0.84F;
+		float sy = y0 + uy * len * 0.84F;
 		java.awt.geom.Path2D.Float blade = new java.awt.geom.Path2D.Float();
-		float half = thick * 0.42F;
-		float baseX = bladeX;
-		float baseY = bladeY;
-		blade.moveTo(baseX + px * half, baseY + py * half);
-		blade.lineTo(baseX - px * half, baseY - py * half);
-		blade.lineTo(tipX, tipY);
+		blade.moveTo(bx + px * half, by + py * half);
+		blade.lineTo(sx + px * half, sy + py * half);
+		blade.lineTo(x1, y1);
+		blade.lineTo(sx - px * half, sy - py * half);
+		blade.lineTo(bx - px * half, by - py * half);
 		blade.closePath();
 		g.fill(blade);
+	}
+
+	/** "All" icon: a 2x2 grid of rounded tiles, centered like the star and swords. */
+	public static void drawGridCentered(MinecraftClient client, int centerX, int centerY, float guiSize, int argb) {
+		ensureScale(client);
+		String key = "grid|" + bakedScale + "|" + guiSize + "|" + Integer.toHexString(argb);
+		Label label = CACHE.get(key);
+		if (label == null) {
+			label = bakeGrid(client, bakedScale, guiSize, argb, "optic_grid_" + CACHE.size());
+			if (label != null) CACHE.put(key, label);
+		}
+		if (label == null) return;
+		label.draw(client, centerX - label.drawW / 2, centerY - label.drawH / 2);
+	}
+
+	private static Label bakeGrid(MinecraftClient client, int sf, float guiSize, int argb, String name) {
+		try {
+			int draw = Math.max(8, Math.round(guiSize));
+			int bakeSf = Math.max(8, sf * 4);
+			int cell = Math.max(128, draw * bakeSf);
+			BufferedImage image = new BufferedImage(cell, cell, BufferedImage.TYPE_INT_ARGB);
+			Graphics2D g = image.createGraphics();
+			g.setTransform(IDENTITY);
+			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+			g.setColor(new Color(argb, true));
+			float pad = cell * 0.16F;
+			float gap = cell * 0.1F;
+			float tile = (cell - pad * 2.0F - gap) / 2.0F;
+			float arc = tile * 0.45F;
+			for (int r = 0; r < 2; r++) {
+				for (int c = 0; c < 2; c++) {
+					float tx = pad + c * (tile + gap);
+					float ty = pad + r * (tile + gap);
+					g.fill(new java.awt.geom.RoundRectangle2D.Float(tx, ty, tile, tile, arc, arc));
+				}
+			}
+			g.dispose();
+			Identifier id = upload(client, image, name);
+			return new Label(id, cell, cell, draw, draw);
+		} catch (Exception e) {
+			System.err.println("[Optic] Grid icon bake failed: " + e.getMessage());
+			return null;
+		}
 	}
 
 	private static Label starLabel(MinecraftClient client, float guiSize, int argb, boolean filled) {

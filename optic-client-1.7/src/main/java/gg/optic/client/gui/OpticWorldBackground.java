@@ -6,6 +6,7 @@ import gg.optic.client.mixin.OpticScreenAccess;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.screen.TitleScreen;
+import net.minecraft.client.render.DiffuseLighting;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.client.util.Window;
 
@@ -27,6 +28,12 @@ public final class OpticWorldBackground {
 		if (now - lastDrawNs < 12_000_000L) return;
 		lastDrawNs = now;
 		if (client == null || width < 1 || height < 1) return;
+		// 1.7's tooltip (e.g. hovering a server's ping) leaves item lighting on; with it on the
+		// background and its tint come out almost black. Start from unlit GUI state.
+		DiffuseLighting.disable();
+		GlStateManager.disableLighting();
+		GlStateManager.disableRescaleNormal();
+		GlStateManager.disableDepthTest();
 		if (!failed) {
 			try {
 				drawWorld(client, width, height, now);
@@ -73,6 +80,7 @@ public final class OpticWorldBackground {
 		GlStateManager.translate(0.0F, 0.0F, -2000.0F);
 		GlStateManager.colorMask(true, true, true, true);
 		GlStateManager.depthMask(true);
+		GlStateManager.disableLighting();
 		GlStateManager.enableTexture();
 		GlStateManager.enableBlend();
 		GlStateManager.blendFuncSeparate(770, 771, 1, 0);

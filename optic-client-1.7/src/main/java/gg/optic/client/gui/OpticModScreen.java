@@ -772,8 +772,9 @@ public final class OpticModScreen extends Screen {
 	private void drawEditGuiButton(int mouseX, int mouseY) {
 		boolean hover = inside(mouseX, mouseY, editX, editY, editW, editH);
 		// Call-to-action: accent outline, fills solid accent on hover.
-		fillRound(editX, editY, editW, editH, RADIUS_SM, hover ? ACCENT : ACCENT_SOFT);
-		outlineRound(editX, editY, editW, editH, RADIUS_SM, ACCENT);
+		// Same smooth fill + outline as the mod cards and buttons.
+		fillExact(editX, editY, editW, editH, RADIUS_SM, hover ? ACCENT : ACCENT_SOFT);
+		outlineExact(editX, editY, editW, editH, RADIUS_SM, ACCENT);
 		OpticUiFont.drawCenteredSized(client, "EDIT HUD", editX + editW / 2, editY + 6, hover ? OpticTheme.ON_ACCENT : OpticTheme.TEXT, 8.5F);
 	}
 
@@ -787,6 +788,7 @@ public final class OpticModScreen extends Screen {
 
 		OpticUiFont.drawSized(client, "SETTINGS", panelX + 12, bodyTop + 12, OpticTheme.FAINT, 7.5F);
 		drawSettingsCategory("General", SettingsCategory.GENERAL, panelX + 8, settingsCatY(), sidebarW - 16, filterRowH, mouseX, mouseY);
+		drawSettingsCategory("Performance", SettingsCategory.PERFORMANCE, panelX + 8, settingsCatY() + filterRowH + 4, sidebarW - 16, filterRowH, mouseX, mouseY);
 
 		editX = panelX + 8;
 		editY = panelY + panelH - 34;
@@ -814,6 +816,7 @@ public final class OpticModScreen extends Screen {
 	private void drawSettingsList(int mouseX, int mouseY) {
 		settingHits.clear();
 		settingHits.add(new SettingHit("cat:GENERAL", panelX + 8, settingsCatY(), sidebarW - 16, filterRowH));
+		settingHits.add(new SettingHit("cat:PERFORMANCE", panelX + 8, settingsCatY() + filterRowH + 4, sidebarW - 16, filterRowH));
 
 		int contentX = panelX + sidebarW + 16;
 		int contentY = panelY + 58;
@@ -887,13 +890,8 @@ public final class OpticModScreen extends Screen {
 	}
 
 	private void drawPerformanceSettings(int contentX, int contentY, int contentW, int contentBottom, int mouseX, int mouseY) {
-		OpticConfig c = OpticClient.get().config();
+		// Empty for now; performance options will go here.
 		settingsScroll = 0;
-		int rowY = contentY;
-		rowY = drawSettingsHeader(contentX, rowY, "Performance");
-		rowY = drawSettingToggleClipped("FPS Optimizer", c.fpsOptimizer, "fpsOptimizer", contentX, rowY, contentW, contentY, contentBottom, mouseX, mouseY);
-		rowY = drawSettingToggleClipped("Optic Snap", c.opticSnap, "opticSnap", contentX, rowY, contentW, contentY, contentBottom, mouseX, mouseY);
-		drawSettingToggleClipped("Optimized entity culling", c.entityCulling, "entityCulling", contentX, rowY, contentW, contentY, contentBottom, mouseX, mouseY);
 	}
 
 	private int drawSettingsHeader(int x, int y, String label) {
@@ -1236,7 +1234,7 @@ public final class OpticModScreen extends Screen {
 		} else if (filter == ModFilter.PVP) {
 			OpticUiFont.drawSwordsCentered(client, x + 14, y + h / 2, 11.0F, iconInk);
 		} else {
-			OpticUiFont.drawSized(client, "\u2630", x + 8, y + 6, iconInk, 10.0F);
+			OpticUiFont.drawGridCentered(client, x + 14, y + h / 2, 10.0F, iconInk);
 		}
 		OpticUiFont.drawSized(client, label, x + 24, y + 6, ink, 10.0F);
 	}

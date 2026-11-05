@@ -42,6 +42,7 @@
     "ScreenBackgroundMixin",
     "SelectWorldScreenMixin",
     "TitleScreenMixin",
+    "WeatherRendererMixin",
     "WorldMixin",
     "WorldRendererMixin"
   ],

@@ -12,7 +12,10 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.scoreboard.ScoreboardObjective;
 import net.minecraft.scoreboard.Team;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import gg.optic.client.account.AccountHeads;
+import org.lwjgl.opengl.GL11;
 import org.lwjgl.input.Keyboard;
 
 import java.util.ArrayList;
@@ -163,14 +166,34 @@ public final class OpticTab {
 		return scoreboard.getPlayerScore(entry.field_1679, objective).getScore();
 	}
 
+	/**
+	 * Real player name behind a tab entry: servers often send it with color codes or a prefix
+	 * ("[VIP] Name"), so strip formatting and take the last word.
+	 */
+	public static String plainName(class_482 entry) {
+		String plain = Formatting.strip(entry.field_1679);
+		if (plain == null) return "";
+		plain = plain.trim();
+		int space = plain.lastIndexOf(' ');
+		return space >= 0 ? plain.substring(space + 1) : plain;
+	}
+
+	private static boolean validName(String name) {
+		return name != null && name.matches("[A-Za-z0-9_]{1,16}");
+	}
+
 	/** 1.7 tab entries carry no skin; use the player's skin when they are loaded nearby. */
 	public static Identifier skin(MinecraftClient client, class_482 entry) {
-		PlayerEntity player = client.world == null ? null : client.world.getPlayerByName(entry.field_1679);
+		PlayerEntity player = null;
+		if (client.world != null) {
+			player = client.world.getPlayerByName(entry.field_1679);
+			if (player == null) player = client.world.getPlayerByName(plainName(entry));
+		}
 		if (player instanceof AbstractClientPlayerEntity) {
 			Identifier skin = ((AbstractClientPlayerEntity) player).getSkinId();
 			if (skin != null) return skin;
 		}
-		return AbstractClientPlayerEntity.STEVE_TEXTURE;
+		return null;
 	}
 
 	/** Layout follows 1.8.9's PlayerListHud.render. */
@@ -253,13 +276,31 @@ public final class OpticTab {
 		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 	}
 
+	/**
+	 * Face + hat: the loaded skin of a nearby player, else their face from mc-heads.net (by
+	 * name, cached), else Steve. Skin UVs follow the bound texture's real height, so a pack's
+	 * 64x64 Steve is not read as 64x32 (that was the "corrupted Steve").
+	 */
 	private static void drawHead(MinecraftClient client, class_482 entry, int x, int y) {
-		client.getTextureManager().bindTexture(skin(client, entry));
 		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 		GlStateManager.enableBlend();
-		// 1.7 skins are 64x32.
-		DrawableHelper.drawTexture(x, y, 8.0F, 8.0F, 8, 8, 64.0F, 32.0F);
-		DrawableHelper.drawTexture(x, y, 40.0F, 8.0F, 8, 8, 64.0F, 32.0F);
+		Identifier skin = skin(client, entry);
+		if (skin == null) {
+			String name = plainName(entry);
+			Identifier face = validName(name) ? AccountHeads.get(client, name) : null;
+			if (face != null) {
+				client.getTextureManager().bindTexture(face);
+				DrawableHelper.drawTexture(x, y, 0.0F, 0.0F, 128, 128, 8, 8, 128.0F, 128.0F);
+				return;
+			}
+			skin = AbstractClientPlayerEntity.STEVE_TEXTURE;
+		}
+		client.getTextureManager().bindTexture(skin);
+		int texW = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_WIDTH);
+		int texH = GL11.glGetTexLevelParameteri(GL11.GL_TEXTURE_2D, 0, GL11.GL_TEXTURE_HEIGHT);
+		float height = texW > 0 && texH > 0 ? 64.0F * texH / texW : 32.0F;
+		DrawableHelper.drawTexture(x, y, 8.0F, 8.0F, 8, 8, 64.0F, height);
+		DrawableHelper.drawTexture(x, y, 40.0F, 8.0F, 8, 8, 64.0F, height);
 	}
 
 	private static void drawPing(MinecraftClient client, OpticConfig c, class_482 entry, int x, int colW, int y) {
