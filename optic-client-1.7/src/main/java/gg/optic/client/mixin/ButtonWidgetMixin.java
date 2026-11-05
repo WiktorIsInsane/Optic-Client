@@ -3,6 +3,7 @@ package gg.optic.client.mixin;
 import gg.optic.client.OpticUiDraw;
 import gg.optic.client.OpticUiFont;
 import gg.optic.client.gui.OfflineSignInScreen;
+import gg.optic.client.gui.OpticTheme;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.screen.GameMenuScreen;
@@ -20,7 +21,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ButtonWidget.class)
 public abstract class ButtonWidgetMixin extends DrawableHelper {
 	private static final float LABEL_SIZE = 9.0F;
-	private static final int ACCENT = 0xFF5CFF8A;
+	private static final int ACCENT = OpticTheme.ACCENT;
 
 	@Shadow public int x;
 	@Shadow public int y;
@@ -46,23 +47,28 @@ public abstract class ButtonWidgetMixin extends DrawableHelper {
 		}
 
 		hovered = mouseX >= x && mouseY >= y && mouseX < x + width && mouseY < y + height;
-		boolean play = id == 1 || id == 2 || id == 11 || id == 12;
-		if (title && !play) {
+		boolean menuButton = id == 1 || id == 2 || id == 11 || id == 12 || id == 0 || id == 900;
+		if (title && !menuButton) {
 			ci.cancel();
 			return;
 		}
 
-		int fill = !active ? 0xFF101012 : hovered ? 0xFF1C2A22 : 0xFF121216;
-		OpticUiDraw.fillExact(client, x, y, width, height, 6, fill);
-		OpticUiDraw.outlineExact(client, x, y, width, height, 6, hovered && active ? ACCENT : 0x555CFF8A);
+		// Frosted glass button (OpticTheme): accent edge + outline on hover, muted when disabled.
+		boolean hot = hovered && active;
+		int fill = !active ? OpticTheme.BUTTON_OFF : hot ? OpticTheme.BUTTON_HOVER : OpticTheme.BUTTON;
+		OpticUiDraw.fillExact(client, x, y, width, height, 5, fill);
+		DrawableHelper.fill(x + 5, y + 1, x + width - 5, y + 2, OpticTheme.HIGHLIGHT);
+		OpticUiDraw.outlineExact(client, x, y, width, height, 5, hot ? ACCENT : OpticTheme.BORDER);
+		if (hot) OpticTheme.accentEdge(x, y, height, true);
 
 		String label = message == null ? "" : message;
 		if (title && id == 1) label = "Singleplayer";
 		else if (title && id == 2) label = "Multiplayer";
+		else if (title && id == 0) label = "Options";
 		float size = browser || pause ? 8.0F : LABEL_SIZE;
 		if (!browser && !pause) label = label.toUpperCase();
 		if (!label.isEmpty()) {
-			int color = !active ? 0xFF6A7A6A : ACCENT;
+			int color = !active ? OpticTheme.FAINT : hot ? ACCENT : OpticTheme.TEXT;
 			int textW = OpticUiFont.widthSharp(client, label, color, size);
 			int textH = OpticUiFont.heightSharp(client, label, color, size);
 			OpticUiFont.drawSharp(client, label, x + (width - textW) / 2, y + (height - textH) / 2, color, size);

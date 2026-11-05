@@ -164,6 +164,15 @@ public abstract class InGameHudMixin extends DrawableHelper {
 		optic$beginHotbarTransform();
 	}
 
+	/**
+	 * Item Info (the held item's name over the hotbar) moves, scales and rotates with the
+	 * hotbar too. When the status icons flip under the bar, it goes under them.
+	 */
+	@Inject(method = "render(FZII)V", at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;push(Ljava/lang/String;)V", args = "ldc=toolHighlight", shift = At.Shift.AFTER), require = 0)
+	private void optic$itemInfoBegin(float tickDelta, boolean screenOpen, int mouseX, int mouseY, CallbackInfo ci) {
+		optic$beginHotbarTransform(ITEM_INFO_FLIP);
+	}
+
 	/** Each of those sections ends with a profiler pop; close the transform there. */
 	@Inject(method = "render(FZII)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiler/Profiler;pop()V"), require = 0)
 	private void optic$sectionEnd(float tickDelta, boolean screenOpen, int mouseX, int mouseY, CallbackInfo ci) {
@@ -172,6 +181,11 @@ public abstract class InGameHudMixin extends DrawableHelper {
 
 	@Unique
 	private void optic$beginHotbarTransform() {
+		optic$beginHotbarTransform(STATUS_FLIP);
+	}
+
+	@Unique
+	private void optic$beginHotbarTransform(int flipShift) {
 		if (optic$statusMoved) return;
 		OpticConfig c = OpticClient.get().config();
 		if (!c.hotbar) return;
@@ -188,7 +202,7 @@ public abstract class InGameHudMixin extends DrawableHelper {
 		// to the top, or rotated against an edge), put them on the other side of the bar.
 		if (optic$overflow(STATUS_ABOVE_TOP, baseX, baseY, scale, rot, window)
 			> optic$overflow(STATUS_ABOVE_TOP + STATUS_FLIP, baseX, baseY, scale, rot, window)) {
-			GlStateManager.translate(0.0F, STATUS_FLIP, 0.0F);
+			GlStateManager.translate(0.0F, flipShift, 0.0F);
 		}
 		// Vanilla's hotbar origin becomes Optic's hotbar origin.
 		GlStateManager.translate(-(window.getWidth() / 2 - 91), -(window.getHeight() - 22), 0.0F);
@@ -200,6 +214,8 @@ public abstract class InGameHudMixin extends DrawableHelper {
 	@Unique private static final int STATUS_H = 27;
 	/** Moves that block to just under the bar: -27 + 40 = 13, below the 22px bar. */
 	@Unique private static final int STATUS_FLIP = 40;
+	/** Item name sits at local y -37; under the flipped status block (13..40) it goes to 42. */
+	@Unique private static final int ITEM_INFO_FLIP = 79;
 
 	/** How far (in screen pixels) the status block starting at local y would stick out of the screen. */
 	@Unique

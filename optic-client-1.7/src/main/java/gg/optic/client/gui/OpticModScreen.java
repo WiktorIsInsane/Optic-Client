@@ -93,27 +93,27 @@ public final class OpticModScreen extends Screen {
 	private static final int POTIONS = MODULE_POTIONS;
 	private static final int SKINS_3D = MODULE_SKINS_3D;
 
-	// Optic launcher theme: near-black panels + green accent (#5cff8a).
-	private static final int ACCENT = 0xFF5CFF8A;
-	private static final int ACCENT_SOFT = 0x335CFF8A;
-	private static final int ACCENT_DIM = 0xFF2FD66A;
-	private static final int PANEL = 0xE80E0E12;
-	private static final int TOPBAR = 0xF0141418;
-	private static final int CARD = 0xC0121218;
-	private static final int CARD_HOVER = 0xD01A1A22;
-	private static final int CARD_ON = 0xC0141C16;
-	private static final int BORDER = 0x221A1A22;
-	private static final int BORDER_SOFT = 0x1814141C;
-	private static final int MUTED = 0xFF9A9AA8;
+	// Colors and sizes live in OpticTheme so the look can be tuned in one place.
+	private static final int ACCENT = OpticTheme.ACCENT;
+	private static final int ACCENT_SOFT = OpticTheme.ACCENT_SOFT;
+	private static final int ACCENT_DIM = OpticTheme.ACCENT_DIM;
+	private static final int PANEL = OpticTheme.PANEL;
+	private static final int TOPBAR = OpticTheme.TOPBAR;
+	private static final int CARD = OpticTheme.CARD;
+	private static final int CARD_HOVER = OpticTheme.CARD_HOVER;
+	private static final int CARD_ON = OpticTheme.CARD_ON;
+	private static final int BORDER = OpticTheme.BORDER;
+	private static final int BORDER_SOFT = OpticTheme.BORDER_SOFT;
+	private static final int MUTED = OpticTheme.MUTED;
 	private static final int OPTION_ROW = 0x00000000;
-	private static final int SIDEBAR = 0xF00B0B0E;
-	private static final int TAB_IDLE = 0xFF141418;
-	private static final int TAB_OUTLINE = 0x221A1A22;
-	private static final int STAR_ON = 0xFF5CFF8A;
-	private static final int STAR_OFF = 0xFF5CFF8A;
-	private static final int SCRIM = 0xB008080A;
-	private static final int RADIUS = 6;
-	private static final int RADIUS_SM = 4;
+	private static final int SIDEBAR = OpticTheme.SIDEBAR;
+	private static final int TAB_IDLE = OpticTheme.TAB_IDLE;
+	private static final int TAB_OUTLINE = OpticTheme.BORDER;
+	private static final int STAR_ON = OpticTheme.ACCENT;
+	private static final int STAR_OFF = OpticTheme.ACCENT;
+	private static final int SCRIM = OpticTheme.SCRIM;
+	private static final int RADIUS = OpticTheme.RADIUS;
+	private static final int RADIUS_SM = OpticTheme.RADIUS_SM;
 
 	private final List<ModuleCard> modules = new ArrayList<ModuleCard>();
 	private final List<CardBounds> cardBounds = new ArrayList<CardBounds>();
@@ -771,16 +771,17 @@ public final class OpticModScreen extends Screen {
 
 	private void drawEditGuiButton(int mouseX, int mouseY) {
 		boolean hover = inside(mouseX, mouseY, editX, editY, editW, editH);
-		fillRound(editX, editY, editW, editH, RADIUS_SM, hover ? ACCENT_SOFT : CARD);
-		outlineRound(editX, editY, editW, editH, RADIUS_SM, hover ? ACCENT : BORDER_SOFT);
-		OpticUiFont.drawCenteredSized(client, "Edit GUI", editX + editW / 2, editY + 6, 0xFFFFFFFF, 9.0F);
+		// Call-to-action: accent outline, fills solid accent on hover.
+		fillRound(editX, editY, editW, editH, RADIUS_SM, hover ? ACCENT : ACCENT_SOFT);
+		outlineRound(editX, editY, editW, editH, RADIUS_SM, ACCENT);
+		OpticUiFont.drawCenteredSized(client, "EDIT HUD", editX + editW / 2, editY + 6, hover ? OpticTheme.ON_ACCENT : OpticTheme.TEXT, 8.5F);
 	}
 
 	private void drawSettingsShell(int mouseX, int mouseY) {
 		fill(panelX, panelY, panelX + sidebarW, panelY + panelH, SIDEBAR);
 		fill(panelX + sidebarW, panelY + 48, panelX + panelW, panelY + panelH, 0x00000000);
 
-		OpticUiFont.drawSized(client, "Overview", panelX + 12, panelY + 16, MUTED, 8.0F);
+		OpticUiFont.drawSized(client, "OVERVIEW", panelX + 12, panelY + 16, OpticTheme.FAINT, 7.5F);
 		int catY = panelY + 40;
 		drawSettingsCategory("General", SettingsCategory.GENERAL, panelX + 6, catY, sidebarW - 12, 22, mouseX, mouseY);
 		catY += 26;
@@ -792,8 +793,13 @@ public final class OpticModScreen extends Screen {
 	private void drawSettingsCategory(String label, SettingsCategory cat, int x, int y, int w, int h, int mouseX, int mouseY) {
 		boolean active = settingsCategory == cat;
 		boolean hover = inside(mouseX, mouseY, x, y, w, h);
-		if (active || hover) fillRound(x, y, w, h, RADIUS_SM, active ? ACCENT : ACCENT_SOFT);
-		OpticUiFont.drawSized(client, label, x + 8, y + 6, active || hover ? 0xFFFFFFFF : MUTED, 10.0F);
+		if (active) {
+			fillRound(x, y, w, h, RADIUS_SM, ACCENT_SOFT);
+			OpticTheme.accentEdge(x, y, h, true);
+		} else if (hover) {
+			fillRound(x, y, w, h, RADIUS_SM, OpticTheme.CARD_HOVER);
+		}
+		OpticUiFont.drawSized(client, label, x + 10, y + 6, active || hover ? OpticTheme.TEXT : MUTED, 10.0F);
 	}
 
 	private void drawSettingsList(int mouseX, int mouseY) {
@@ -828,7 +834,7 @@ public final class OpticModScreen extends Screen {
 		clipGui(contentX - 4, listTop, contentW + 8, Math.max(1, listBottom - listTop));
 		int rowY = listTop - settingsScroll;
 		if (settingsSearchText().isEmpty()) {
-			OpticUiFont.drawSized(client, "Movement", contentX, rowY, MUTED, 8.5F);
+			OpticUiFont.drawSized(client, "MOVEMENT", contentX, rowY, OpticTheme.FAINT, 7.5F);
 			rowY += 16;
 		}
 		rowY = drawSettingToggle("Raw Mouse Input", gc.rawMouseInput, "rawMouseInput", contentX, rowY, listW, mouseX, mouseY);
@@ -836,11 +842,10 @@ public final class OpticModScreen extends Screen {
 		rowY = drawSettingToggle("Disable Hotbar Scroll", gc.disableMouseScrollWheel, "disableMouseScrollWheel", contentX, rowY, listW, mouseX, mouseY);
 		if (settingsSearchText().isEmpty()) {
 			rowY += 10;
-			OpticUiFont.drawSized(client, "General", contentX, rowY, MUTED, 8.5F);
+			OpticUiFont.drawSized(client, "GENERAL", contentX, rowY, OpticTheme.FAINT, 7.5F);
 			rowY += 16;
 		}
 		rowY = drawSettingToggle("Borderless Fullscreen", gc.borderlessFullscreen, "borderlessFullscreen", contentX, rowY, listW, mouseX, mouseY);
-		rowY = drawSettingToggle("Item Info", gc.itemInfo, "itemInfo", contentX, rowY, listW, mouseX, mouseY);
 		rowY = drawSettingToggle("Disable Achievements", gc.disableAchievements, "disableAchievements", contentX, rowY, listW, mouseX, mouseY);
 		GL11.glDisable(GL11.GL_SCISSOR_TEST);
 		settingsClipTop = Integer.MIN_VALUE;
@@ -967,9 +972,8 @@ public final class OpticModScreen extends Screen {
 	}
 
 	private void drawPanel() {
-		// Soft drop shadow (Lunar-style glass stack).
-		fillRound(panelX + 4, panelY + 6, panelW, panelH, RADIUS, 0x55000000);
-		fillRound(panelX + 2, panelY + 3, panelW, panelH, RADIUS, 0x33000000);
+		// Soft drop shadow + frosted glass body (Lunar-style).
+		OpticTheme.shadow(client, panelX, panelY, panelW, panelH, RADIUS);
 		fillRound(panelX, panelY, panelW, panelH, RADIUS, PANEL);
 		outlineRound(panelX, panelY, panelW, panelH, RADIUS, BORDER);
 	}
@@ -978,11 +982,15 @@ public final class OpticModScreen extends Screen {
 		int headerBottom = panelY + 48;
 		fillRound(panelX, panelY, panelW, headerBottom - panelY, RADIUS, TOPBAR);
 		fill(panelX, headerBottom - RADIUS, panelX + panelW, headerBottom, TOPBAR);
+		fill(panelX + RADIUS, panelY + 1, panelX + panelW - RADIUS, panelY + 2, OpticTheme.HIGHLIGHT);
+		// Accent rule under the header, fading green -> teal -> out (CheatBreaker-style).
 		fill(panelX, headerBottom - 1, panelX + panelW, headerBottom, BORDER_SOFT);
+		OpticTheme.accentLine(panelX, headerBottom - 1, panelW, 1);
 
 		int brandX = mainTab == MainTab.SETTINGS ? panelX + sidebarW + 12 : panelX + 12;
 		drawHeaderLogo(brandX);
-		OpticUiFont.drawSized(client, "OPTIC CLIENT", brandX + 32, panelY + 16, 0xFFFFFFFF, 12.0F);
+		OpticUiFont.drawSized(client, "OPTIC", brandX + 32, panelY + 12, OpticTheme.TEXT, 13.0F);
+		OpticUiFont.drawSized(client, "CLIENT · 1.7.10", brandX + 32, panelY + 27, ACCENT, 7.5F);
 
 		this.tabY = panelY + 12;
 		modsTabX = brandX + 128;
@@ -1016,18 +1024,21 @@ public final class OpticModScreen extends Screen {
 
 	private void drawPillTab(String label, int x, int y, int w, int h, boolean active, int mouseX, int mouseY) {
 		boolean hover = inside(mouseX, mouseY, x, y, w, h);
+		// Active: soft accent glass with an accent underline. Idle: quiet, brightens on hover.
 		if (active) {
-			fillExact(x, y, w, h, RADIUS_SM, ACCENT);
-		} else {
-			fillExact(x, y, w, h, RADIUS_SM, hover ? ACCENT_SOFT : TAB_IDLE);
-			outlineExact(x, y, w, h, RADIUS_SM, hover ? ACCENT : 0xFF3A403C);
+			fillExact(x, y, w, h, RADIUS_SM, ACCENT_SOFT);
+			outlineExact(x, y, w, h, RADIUS_SM, 0x805CFF8A);
+			fill(x + 8, y + h - 2, x + w - 8, y + h - 1, ACCENT);
+		} else if (hover) {
+			fillExact(x, y, w, h, RADIUS_SM, OpticTheme.CARD_HOVER);
+			outlineExact(x, y, w, h, RADIUS_SM, BORDER);
 		}
 		OpticUiFont.drawCrispCentered(
 			client,
 			label,
 			x + w / 2,
 			y + h / 2,
-			active ? 0xFF07110A : (hover ? 0xFFFFFFFF : MUTED),
+			active ? OpticTheme.TEXT : (hover ? OpticTheme.TEXT : MUTED),
 			11.0F
 		);
 	}
@@ -1050,8 +1061,9 @@ public final class OpticModScreen extends Screen {
 		fillRound(panelX, bodyTop, sidebarW, sideH, RADIUS, SIDEBAR);
 		fill(panelX + RADIUS, bodyTop, panelX + sidebarW, panelY + panelH, SIDEBAR);
 		fill(panelX, bodyTop, panelX + sidebarW, panelY + panelH - RADIUS, SIDEBAR);
+		fill(panelX + sidebarW - 1, bodyTop, panelX + sidebarW, panelY + panelH - RADIUS, BORDER_SOFT);
 
-		OpticUiFont.drawSized(client, "Filter", panelX + 12, bodyTop + 12, MUTED, 8.0F);
+		OpticUiFont.drawSized(client, "FILTER", panelX + 12, bodyTop + 12, OpticTheme.FAINT, 7.5F);
 		filterRowW = sidebarW - 16;
 		filterAllX = panelX + 8;
 		filterAllY = bodyTop + 30;
@@ -1211,35 +1223,34 @@ public final class OpticModScreen extends Screen {
 	private void drawFilterRow(String label, ModFilter filter, int x, int y, int w, int h, int mouseX, int mouseY) {
 		boolean active = modFilter == filter;
 		boolean hover = inside(mouseX, mouseY, x, y, w, h);
-		if (active || hover) fillRound(x, y, w, h, RADIUS_SM, active ? ACCENT : ACCENT_SOFT);
+		// Active row: soft accent fill + accent edge (CheatBreaker-style). Hover: faint lift.
+		if (active) {
+			fillRound(x, y, w, h, RADIUS_SM, ACCENT_SOFT);
+			OpticTheme.accentEdge(x, y, h, true);
+		} else if (hover) {
+			fillRound(x, y, w, h, RADIUS_SM, OpticTheme.CARD_HOVER);
+		}
+		int ink = active ? OpticTheme.TEXT : (hover ? OpticTheme.TEXT : MUTED);
+		int iconInk = active ? ACCENT : ink;
 		if (filter == ModFilter.FAVORITES) {
 			drawFavoriteStar(x + 14, y + h / 2, 11.0F, true, active || hover);
 		} else if (filter == ModFilter.PVP) {
-			OpticUiFont.drawSwordsCentered(
-				client,
-				x + 14,
-				y + h / 2,
-				11.0F,
-				active ? 0xFF07110A : (hover ? 0xFFFFFFFF : MUTED)
-			);
+			OpticUiFont.drawSwordsCentered(client, x + 14, y + h / 2, 11.0F, iconInk);
 		} else {
-			OpticUiFont.drawSized(client, "\u2630", x + 8, y + 6, active ? 0xFF07110A : (hover ? 0xFFFFFFFF : MUTED), 10.0F);
+			OpticUiFont.drawSized(client, "\u2630", x + 8, y + 6, iconInk, 10.0F);
 		}
-		OpticUiFont.drawSized(
-			client,
-			label,
-			x + 24,
-			y + 6,
-			active ? 0xFF07110A : (hover ? 0xFFFFFFFF : MUTED),
-			10.0F
-		);
+		OpticUiFont.drawSized(client, label, x + 24, y + 6, ink, 10.0F);
 	}
 
 	private CardBounds drawCard(ModuleCard module, int x, int y, int w, int h, boolean hover) {
 		boolean on = enabled(module.id);
 		boolean fav = OpticClient.get().config().isFavoriteModule(module.id);
+		// Glass card; enabled mods get a green tint, a soft glow and an accent edge.
+		if (on) fillExact(x - 1, y - 1, w + 2, h + 2, RADIUS + 1, OpticTheme.ACCENT_GLOW);
 		fillExact(x, y, w, h, RADIUS, hover ? CARD_HOVER : (on ? CARD_ON : CARD));
-		outlineExact(x, y, w, h, RADIUS, hover ? ACCENT : BORDER_SOFT);
+		fill(x + RADIUS, y + 1, x + w - RADIUS, y + 2, OpticTheme.HIGHLIGHT);
+		outlineExact(x, y, w, h, RADIUS, hover ? ACCENT : (on ? 0x445CFF8A : BORDER_SOFT));
+		if (on) OpticTheme.accentEdge(x, y + 4, h - 8, hover);
 
 		float titleSize = w < 80 ? 8.5F : 9.5F;
 		int titleLimit = Math.max(8, w - 10);
@@ -1750,6 +1761,7 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.toggle("hotbarShowHearts", "Hearts & Armor"));
 				options.add(ConfigOption.toggle("hotbarShowHunger", "Hunger & Air"));
 				options.add(ConfigOption.toggle("hotbarShowXp", "XP Bar & Level"));
+				options.add(ConfigOption.toggle("itemInfo", "Item Info"));
 				break;
 			case TIME_CHANGER:
 				options.add(ConfigOption.header("General"));
@@ -1977,6 +1989,7 @@ public final class OpticModScreen extends Screen {
 		if ("zoomScroll".equals(key)) return c.zoomScroll;
 		if ("freeLookToggle".equals(key)) return c.freeLookToggle;
 		if ("hitboxHideLook".equals(key)) return c.hitboxHideLook;
+		if ("itemInfo".equals(key)) return c.itemInfo;
 		if ("hotbarShowSlots".equals(key)) return c.hotbarShowSlots;
 		if ("hotbarShowHearts".equals(key)) return c.hotbarShowHearts;
 		if ("hotbarShowHunger".equals(key)) return c.hotbarShowHunger;
@@ -2072,6 +2085,10 @@ public final class OpticModScreen extends Screen {
 		else if ("zoomScroll".equals(key)) c.zoomScroll = value;
 		else if ("freeLookToggle".equals(key)) c.freeLookToggle = value;
 		else if ("hitboxHideLook".equals(key)) c.hitboxHideLook = value;
+		else if ("itemInfo".equals(key)) {
+			c.itemInfo = value;
+			if (client != null && client.options != null) client.options.heldItemTooltips = value;
+		}
 		else if ("hotbarShowSlots".equals(key)) c.hotbarShowSlots = value;
 		else if ("hotbarShowHearts".equals(key)) c.hotbarShowHearts = value;
 		else if ("hotbarShowHunger".equals(key)) c.hotbarShowHunger = value;

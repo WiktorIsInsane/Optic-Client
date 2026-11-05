@@ -19,7 +19,7 @@ import java.awt.image.BufferedImage;
 
 /** Same layout as the reference menu, drawn in the Optic green theme at high resolution. */
 public final class OpticMenuChrome {
-	private static final int ACCENT = 0xFF5CFF8A;
+	private static final int ACCENT = OpticTheme.ACCENT;
 	/** See-through black used by the center menu card. */
 	public static final int BOX = 0x80000000;
 	public static final int BOX_HOT = 0xA0000000;
@@ -39,14 +39,19 @@ public final class OpticMenuChrome {
 	}
 
 	public static final class Layout {
+		/** Centered column: logo, wordmark, then the buttons. */
 		public int cardX;
 		public int cardY;
 		public int cardW;
 		public int cardH;
+		public int logoY;
+		public int logoSize;
+		public int wordY;
 		public int btnX;
 		public int btnY;
 		public int btnW;
 		public int btnH;
+		public int btnGap;
 		public int closeX;
 		public int closeY;
 		public int closeS;
@@ -54,14 +59,22 @@ public final class OpticMenuChrome {
 
 	public static Layout layout(MinecraftClient client, int screenW, int screenH) {
 		Layout layout = new Layout();
-		layout.cardW = 148;
-		layout.cardH = 128;
+		layout.logoSize = screenH < 260 ? 44 : 56;
+		layout.btnW = 200;
+		layout.btnH = 20;
+		layout.btnGap = 5;
+		// Logo + wordmark + subtitle (40px) + 3 button rows.
+		int header = layout.logoSize + 40;
+		int total = header + 3 * layout.btnH + 2 * layout.btnGap;
+		int top = Math.max(BAR_Y + BAR_H + 6, (screenH - total) / 2 - 6);
+		layout.cardW = layout.btnW;
+		layout.cardH = total;
 		layout.cardX = (screenW - layout.cardW) / 2;
-		layout.cardY = (screenH - layout.cardH) / 2 - 8;
-		layout.btnW = 116;
-		layout.btnH = 16;
-		layout.btnX = layout.cardX + (layout.cardW - layout.btnW) / 2;
-		layout.btnY = layout.cardY + 76;
+		layout.cardY = top;
+		layout.logoY = top;
+		layout.wordY = top + layout.logoSize + 6;
+		layout.btnX = layout.cardX;
+		layout.btnY = top + header;
 
 		layout.closeS = BAR_H;
 		layout.closeX = screenW - BAR_EDGE - layout.closeS;
@@ -69,37 +82,83 @@ public final class OpticMenuChrome {
 		return layout;
 	}
 
+	/**
+	 * Backdrop over the blurred panorama: a light dark wash, a darker band at the bottom
+	 * (Lunar-style vignette) and a faint accent tint behind the logo.
+	 */
 	public static void drawCard(MinecraftClient client, Layout layout) {
-		OpticUiDraw.fillExact(client, layout.cardX, layout.cardY, layout.cardW, layout.cardH, 10, BOX);
+		int w = client.currentScreen != null ? client.currentScreen.width : 0;
+		int h = client.currentScreen != null ? client.currentScreen.height : 0;
+		if (w <= 0 || h <= 0) return;
+		DrawableHelper.fill(0, 0, w, h, 0x38050608);
+		gradient(0, h / 2, w, h, 0x00000000, 0x9A000000);
+		gradient(0, 0, w, Math.max(1, layout.logoY), 0x55000000, 0x00000000);
+		int glow = layout.logoSize + 40;
+		OpticUiDraw.fillExact(client, (w - glow) / 2, layout.logoY - 20, glow, glow, glow / 2, 0x105CFF8A);
 	}
 
+	/** Logo, "OPTIC" wordmark and a small accent subtitle with a gradient rule. */
 	public static void drawCenterLogo(MinecraftClient client, Layout layout) {
-		int size = 52;
-		int headerH = Math.max(size, layout.btnY - layout.cardY);
-		int x = layout.cardX + (layout.cardW - size) / 2;
-		int y = layout.cardY + (headerH - size) / 2;
-		drawLogo(client, x, y, size);
+		int w = client.currentScreen != null ? client.currentScreen.width : layout.cardX * 2 + layout.cardW;
+		drawLogo(client, (w - layout.logoSize) / 2, layout.logoY, layout.logoSize);
+		String word = "OPTIC";
+		float size = 16.0F;
+		int ww = OpticUiFont.widthSharp(client, word, OpticTheme.TEXT, size);
+		OpticUiFont.drawSharp(client, word, (w - ww) / 2, layout.wordY, OpticTheme.TEXT, size);
+		String sub = "CLIENT  \u00b7  1.7.10";
+		float subSize = 7.5F;
+		int sw = OpticUiFont.widthSharp(client, sub, ACCENT, subSize);
+		OpticUiFont.drawSharp(client, sub, (w - sw) / 2, layout.wordY + 19, ACCENT, subSize);
+		int rule = 64;
+		OpticTheme.accentLine(w / 2, layout.wordY + 31, rule / 2, 1);
+		mirroredAccentLine(w / 2 - rule / 2, layout.wordY + 31, rule / 2);
 	}
 
 	public static void drawTopBar(MinecraftClient client, Layout layout, int mouseX, int mouseY) {
 		boolean closeHot = inside(mouseX, mouseY, layout.closeX, layout.closeY, layout.closeS, layout.closeS);
-		OpticUiDraw.fillExact(client, layout.closeX, layout.closeY, layout.closeS, layout.closeS, 6, closeHot ? GLASS_20_HOT : GLASS_20);
+		OpticUiDraw.fillExact(client, layout.closeX, layout.closeY, layout.closeS, layout.closeS, 6, closeHot ? 0xCC3A1216 : GLASS_20);
+		if (closeHot) OpticUiDraw.outlineExact(client, layout.closeX, layout.closeY, layout.closeS, layout.closeS, 6, 0xFFFF5C6A);
 		int glyph = layout.closeS - 10;
 		int pad = (layout.closeS - glyph) / 2;
 		drawIcon(client, closeIcon(client), layout.closeX + pad, layout.closeY + pad, glyph, 0xFFFFFFFF);
 	}
 
 	public static void drawFooter(MinecraftClient client, int screenW, int screenH, Layout layout, int mouseX, int mouseY) {
-		String version = "Optic (" + OpticClient.VERSION + ")";
-		float footer = 9.0F;
-		int y = screenH - OpticUiFont.heightSharp(client, version, ACCENT, footer) - 4;
-		OpticUiFont.drawSharp(client, version, 4, y, ACCENT, footer);
+		float footer = 8.0F;
+		String brand = "OPTIC";
+		String version = "  " + OpticClient.VERSION + " \u00b7 1.7.10";
+		int y = screenH - OpticUiFont.heightSharp(client, brand, ACCENT, footer) - 5;
+		OpticUiFont.drawSharp(client, brand, 6, y, ACCENT, footer);
+		int bw = OpticUiFont.widthSharp(client, brand, ACCENT, footer);
+		OpticUiFont.drawSharp(client, version, 6 + bw, y, OpticTheme.MUTED, footer);
 
 		String copyright = "Copyright Mojang AB. Do not distribute!";
-		int cw = OpticUiFont.widthSharp(client, copyright, 0xFFE4E4EA, footer);
-		OpticUiFont.drawSharp(client, copyright, Math.max(4, screenW - cw - 4), y, 0xFFE4E4EA, footer);
+		int cw = OpticUiFont.widthSharp(client, copyright, OpticTheme.FAINT, footer);
+		OpticUiFont.drawSharp(client, copyright, Math.max(6, screenW - cw - 6), y, OpticTheme.FAINT, footer);
 	}
 
+	/** accentLine drawn right-to-left, so a centered rule fades out on both sides. */
+	private static void mirroredAccentLine(int x, int y, int w) {
+		int steps = Math.max(1, Math.min(32, w / 3));
+		for (int i = 0; i < steps; i++) {
+			int x1 = x + w - w * (i + 1) / steps;
+			int x2 = x + w - w * i / steps;
+			float t = i / (float) Math.max(1, steps - 1);
+			int rgb = OpticTheme.lerp(ACCENT, OpticTheme.ACCENT_2, Math.min(1.0F, t * 1.6F)) & 0xFFFFFF;
+			int alpha = Math.round(255 * (t < 0.6F ? 1.0F : 1.0F - (t - 0.6F) / 0.4F));
+			DrawableHelper.fill(x1, y, x2, y + 1, (Math.max(0, alpha) << 24) | rgb);
+		}
+	}
+
+	/** Vertical gradient (top color -> bottom color). */
+	private static void gradient(int x1, int y1, int x2, int y2, int top, int bottom) {
+		int steps = Math.max(1, Math.min(64, (y2 - y1) / 2));
+		for (int i = 0; i < steps; i++) {
+			int a = y1 + (y2 - y1) * i / steps;
+			int b = y1 + (y2 - y1) * (i + 1) / steps;
+			DrawableHelper.fill(x1, a, x2, b, OpticTheme.lerp(top, bottom, i / (float) Math.max(1, steps - 1)));
+		}
+	}
 	public static boolean inside(int mx, int my, int x, int y, int w, int h) {
 		return mx >= x && my >= y && mx < x + w && my < y + h;
 	}

@@ -314,6 +314,7 @@ public final class OpticHudEditorScreen extends Screen {
 			snapGuideY = false;
 			refreshBounds();
 		}
+		keepOnScreen();
 
 		OpticFrame.begin(client);
 		try {
@@ -382,8 +383,8 @@ public final class OpticHudEditorScreen extends Screen {
 				int nx = clamp(mouseX - dragOffX, 0, width - 20);
 				int ny = clamp(mouseY - dragOffY, 0, height - 20);
 				int[] snapped = snapOrigin(nx, ny, dragging.w, dragging.h);
-				nx = snapped[0];
-				ny = snapped[1];
+				nx = clamp(snapped[0], 0, Math.max(0, width - Math.max(1, dragging.w - 4)));
+				ny = clamp(snapped[1], 0, Math.max(0, height - Math.max(1, dragging.h - 4)));
 				int dx = nx - groupStartX;
 				int dy = ny - groupStartY;
 				c.keystrokesX += dx;
@@ -394,8 +395,10 @@ public final class OpticHudEditorScreen extends Screen {
 				snapGuideX = false;
 				snapGuideY = false;
 				float scale = Math.max(0.01F, c.keystrokesScale);
-				int screenX = clamp(mouseX - dragOffX, 0, width - 10);
-				int screenY = clamp(mouseY - dragOffY, 0, height - 10);
+				int keyW = OpticHudLayout.keyW(c, dragKeyIndex);
+				int keyH = OpticHudLayout.keyH(c, dragKeyIndex);
+				int screenX = clamp(mouseX - dragOffX, 0, Math.max(0, width - keyW));
+				int screenY = clamp(mouseY - dragOffY, 0, Math.max(0, height - keyH));
 				float ox = (screenX - c.keystrokesX) / scale;
 				float oy = (screenY - c.keystrokesY) / scale;
 				c.setKeyOff(dragKeyIndex, ox, oy);
@@ -405,7 +408,36 @@ public final class OpticHudEditorScreen extends Screen {
 		int nx = clamp(mouseX - dragOffX, 0, width - 10);
 		int ny = clamp(mouseY - dragOffY, 0, height - 10);
 		int[] snapped = snapOrigin(nx, ny, dragging.w, dragging.h);
-		setPos(dragging.id, snapped[0], snapped[1]);
+		// The whole widget stays on screen, not just its corner.
+		int cw = Math.max(1, dragging.w - 4);
+		int ch = Math.max(1, dragging.h - 4);
+		setPos(dragging.id, clamp(snapped[0], 0, Math.max(0, width - cw)), clamp(snapped[1], 0, Math.max(0, height - ch)));
+	}
+
+	/**
+	 * Pushes any widget that sticks out of the screen back inside (after a resize, a scale
+	 * change in the mod menu, or a smaller window). Items already on screen are left alone.
+	 */
+	private void keepOnScreen() {
+		OpticConfig c = OpticClient.get().config();
+		boolean moved = false;
+		for (HudItem item : items) {
+			int left = item.x + 2;
+			int top = item.y + 2;
+			int cw = Math.max(1, item.w - 4);
+			int ch = Math.max(1, item.h - 4);
+			int dx = left < 0 ? -left : (left + cw > width ? Math.max(-left, width - cw - left) : 0);
+			int dy = top < 0 ? -top : (top + ch > height ? Math.max(-top, height - ch - top) : 0);
+			if (dx == 0 && dy == 0) continue;
+			if ("KEYSTROKES".equals(item.id)) {
+				c.keystrokesX += dx;
+				c.keystrokesY += dy;
+			} else {
+				setPos(item.id, left + dx, top + dy);
+			}
+			moved = true;
+		}
+		if (moved) refreshBounds();
 	}
 
 	/** Locks the widget center onto the screen's horizontal, vertical, or both midlines. */

@@ -5,6 +5,7 @@ import gg.optic.client.OpticTextures;
 import gg.optic.client.gui.AccountMenuOverlay;
 import gg.optic.client.gui.OpticMenuBlur;
 import gg.optic.client.gui.OpticMenuChrome;
+import gg.optic.client.gui.OpticModScreen;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.screen.Screen;
@@ -46,6 +47,13 @@ public abstract class TitleScreenMixin extends Screen {
 		}
 	}
 
+	@Inject(method = "buttonClicked(Lnet/minecraft/client/gui/widget/ButtonWidget;)V", at = @At("HEAD"), cancellable = true)
+	private void optic$modsButton(ButtonWidget button, CallbackInfo ci) {
+		if (button.id != MODS_BUTTON) return;
+		client.setScreen(new OpticModScreen());
+		ci.cancel();
+	}
+
 	@Inject(method = "keyPressed(CI)V", at = @At("HEAD"), cancellable = true)
 	private void optic$accountKey(char typed, int key, CallbackInfo ci) {
 		if (optic$accounts.keyPressed(client, typed, key)) {
@@ -65,18 +73,42 @@ public abstract class TitleScreenMixin extends Screen {
 		}
 	}
 
+	/** Opens the Optic mod menu from the main menu. */
+	@Unique private static final int MODS_BUTTON = 900;
+
 	private void layoutMenu() {
 		OpticMenuChrome.Layout layout = optic$layout();
+		@SuppressWarnings("unchecked")
+		java.util.List<ButtonWidget> list = (java.util.List<ButtonWidget>) buttons;
+		boolean hasMods = false;
+		for (ButtonWidget button : list) if (button.id == MODS_BUTTON) hasMods = true;
+		if (!hasMods) list.add(new ButtonWidget(MODS_BUTTON, 0, 0, 98, 20, "Mods"));
+
+		// Rows: Singleplayer, Multiplayer (full width), then Options | Mods side by side.
+		int half = (layout.btnW - layout.btnGap) / 2;
 		int playIndex = 0;
-		for (Object item : buttons) {
-			ButtonWidget button = (ButtonWidget) item;
+		for (ButtonWidget button : list) {
 			if (button.id == 1 || button.id == 2 || button.id == 11 || button.id == 12) {
 				optic$setButtonSize(button, layout.btnW, layout.btnH);
 				button.x = layout.btnX;
-				button.y = layout.btnY + playIndex * (layout.btnH + 4);
+				button.y = layout.btnY + playIndex * (layout.btnH + layout.btnGap);
 				playIndex++;
+			}
+		}
+		int lastRow = layout.btnY + Math.max(2, playIndex) * (layout.btnH + layout.btnGap);
+		for (ButtonWidget button : list) {
+			if (button.id == 1 || button.id == 2 || button.id == 11 || button.id == 12) {
+				continue;
 			} else if (button.id == 0) {
-				button.visible = false;
+				button.visible = true;
+				optic$setButtonSize(button, half, layout.btnH);
+				button.x = layout.btnX;
+				button.y = lastRow;
+			} else if (button.id == MODS_BUTTON) {
+				button.visible = true;
+				optic$setButtonSize(button, layout.btnW - half - layout.btnGap, layout.btnH);
+				button.x = layout.btnX + half + layout.btnGap;
+				button.y = lastRow;
 			} else if (button.id == 4) {
 				button.visible = true;
 				optic$setButtonSize(button, layout.closeS, layout.closeS);
@@ -124,7 +156,6 @@ public abstract class TitleScreenMixin extends Screen {
 	)
 	private void optic$blurBackground(int mouseX, int mouseY, float delta, CallbackInfo ci) {
 		OpticMenuBlur.apply(client);
-		DrawableHelper.fill(0, 0, width, height, 0x4A06140C);
 		OpticMenuChrome.drawCard(client, optic$layout());
 	}
 
