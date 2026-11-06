@@ -163,3 +163,44 @@ export function applyPvpFeelProfile(gameDir: string, dataDir: string): void {
 
   fs.writeFileSync(marker, FEEL_VERSION, 'utf8')
 }
+
+const LATENCY_VERSION = '1'
+const LATENCY_MARKER = 'latency.version'
+
+/** OptiFine 1.7.10: shortest path from input to screen, fewest stutters. */
+const LEGACY_OPTIFINE_LATENCY: Record<string, string> = {
+  // Optic's Low Latency Mode does the frame flush; OptiFine's Smooth FPS would do it twice.
+  ofSmoothFps: 'false',
+  ofSmoothWorld: 'false',
+  // One less full-screen copy per frame.
+  ofFastRender: 'true',
+  ofFastMath: 'true',
+  // Rebuild one chunk per frame, never more: no frame-time spikes when chunks load.
+  ofChunkUpdates: '1',
+  ofChunkUpdatesDynamic: 'false',
+  ofLagometer: 'false',
+  ofAaLevel: '0'
+}
+
+/** Vanilla 1.7.10: VSync adds up to a frame of delay; VBOs cut draw calls. */
+const LEGACY_VANILLA_LATENCY: Record<string, string> = {
+  enableVsync: 'false',
+  useVbo: 'true',
+  fboEnable: 'true'
+}
+
+/**
+ * Low-latency defaults for the 1.7.10 folder, applied once per version (later changes made
+ * in game are kept).
+ */
+export function applyLegacyLatencyProfile(gameDir: string): void {
+  const marker = path.join(gameDir, LATENCY_MARKER)
+  if (fs.existsSync(marker) && fs.readFileSync(marker, 'utf8').trim() === LATENCY_VERSION) return
+  for (const name of ['optionsof.txt', 'options.txt']) {
+    const file = path.join(gameDir, name)
+    if (!fs.existsSync(file)) fs.writeFileSync(file, '', 'utf8')
+  }
+  patchKeyFile(path.join(gameDir, 'optionsof.txt'), LEGACY_OPTIFINE_LATENCY, false)
+  patchKeyFile(path.join(gameDir, 'options.txt'), LEGACY_VANILLA_LATENCY, false)
+  fs.writeFileSync(marker, LATENCY_VERSION, 'utf8')
+}

@@ -478,6 +478,16 @@ public final class OpticModScreen extends Screen {
 			c.save();
 			return;
 		}
+		if ("lowLatencyMode".equals(key)) {
+			c.lowLatencyMode = !c.lowLatencyMode;
+			c.save();
+			return;
+		}
+		if ("preciseFrameLimiter".equals(key)) {
+			c.preciseFrameLimiter = !c.preciseFrameLimiter;
+			c.save();
+			return;
+		}
 		if ("minimalBobbing".equals(key)) {
 			c.minimalBobbing = !c.minimalBobbing;
 			c.save();
@@ -1118,8 +1128,17 @@ public final class OpticModScreen extends Screen {
 	}
 
 	private void drawPerformanceSettings(int contentX, int contentY, int contentW, int contentBottom, int mouseX, int mouseY) {
-		// Empty for now; performance options will go here.
 		settingsScroll = 0;
+		settingsClipTop = contentY;
+		settingsClipBottom = contentBottom;
+		OpticConfig pc = OpticClient.get().config();
+		int listW = contentW - 8;
+		int rowY = contentY;
+		rowY = drawSettingToggle("Low Latency Mode", pc.lowLatencyMode, "lowLatencyMode", contentX, rowY, listW, mouseX, mouseY);
+		shadowed("One frame in flight: the screen follows your mouse sooner (may cost a little FPS).", contentX, rowY - 4, 0xFFAEB4BF, 7.5F);
+		rowY += 12;
+		rowY = drawSettingToggle("Precise Frame Limiter", pc.preciseFrameLimiter, "preciseFrameLimiter", contentX, rowY, listW, mouseX, mouseY);
+		shadowed("Every frame the same length at your Max Framerate, for smoother frame pacing.", contentX, rowY - 4, 0xFFAEB4BF, 7.5F);
 	}
 
 	private int drawSettingsHeader(int x, int y, String label) {

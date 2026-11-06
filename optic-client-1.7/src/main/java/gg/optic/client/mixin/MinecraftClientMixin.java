@@ -169,6 +169,22 @@ public abstract class MinecraftClientMixin implements gg.optic.client.account.Se
 	private void optic$keepFullscreenOnTabOut(MinecraftClient client) {
 	}
 
+	/** Precise Frame Limiter: even frame times at the FPS cap (see OpticLatency). */
+	@Redirect(
+		method = "runGameLoop()V",
+		at = @At(value = "INVOKE", target = "Lorg/lwjgl/opengl/Display;sync(I)V", remap = false),
+		require = 0
+	)
+	private void optic$frameLimiter(int fps) {
+		gg.optic.client.OpticLatency.sync(fps);
+	}
+
+	/** Low Latency Mode: no frames queued up behind the one on screen. */
+	@Inject(method = "method_6648()V", at = @At("TAIL"), require = 0)
+	private void optic$afterSwap(CallbackInfo ci) {
+		gg.optic.client.OpticLatency.afterSwap();
+	}
+
 	/** Zoom scroll and Disable Hotbar Scroll read the wheel before the hotbar does. */
 	@Redirect(method = "tick()V", at = @At(value = "INVOKE", target = "Lorg/lwjgl/input/Mouse;getEventDWheel()I", remap = false))
 	private int optic$scrollWheel() {

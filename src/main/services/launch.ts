@@ -1,6 +1,7 @@
 import { execFile, execFileSync, spawn, type ChildProcess } from 'node:child_process'
 import fs from 'node:fs'
 import net from 'node:net'
+import os from 'node:os'
 import path from 'node:path'
 import { parseArgs, presetArgs } from '../../shared/jvm'
 import { IpcChannel } from '../../shared/ipc'
@@ -20,7 +21,7 @@ import { ensureJava } from './java'
 import { ensureTemurin8 } from './clientSync'
 import { extractNatives } from './natives'
 import { startLocalServices } from './fakeServices'
-import { applyPvpFeelProfile } from './pvpFeel'
+import { applyLegacyLatencyProfile, applyPvpFeelProfile } from './pvpFeel'
 import { applyOpticPack } from './opticPack'
 
 const VANILLA_LIBS = [
@@ -250,70 +251,86 @@ function graal8Java(runtime: string): string {
 }
 
 /**
- * 1.7.10 on GraalVM EE 8 (9800X3D: 8 cores). Every flag here was checked to start cleanly
- * on GraalVM EE 21.3.15; unknown -Dgraal options make it refuse to start.
- * - G1 with a 10 ms pause target, a large young gen and quick tenuring: Minecraft's
- *   garbage dies young, so collections stay short and rare.
- * - Fixed GC thread counts, no biased locking and no guaranteed safepoint: fewer and
- *   steadier all-thread pauses.
- * - Graal Enterprise compiler loaded at startup (EagerJVMCI) instead of mid-fight.
+ * Java 8 flags for 1.7.10, sized to the PC that launches it (not one machine's tuning).
+ * Goals: even frame times, lowest input/view latency, no GC hitches mid-fight.
+ * - Heap: fixed (Xms = Xmx) and pre-touched, so Java never grows it or page-faults mid-game.
+ *   1.7 PvP needs 2-3 GB; a bigger heap only makes each collection longer.
+ * - G1 with an 8 ms pause target and a big young gen: Minecraft's garbage dies young, so
+ *   collections stay short. GC threads = cores - 2 (2-8), leaving cores for render + network.
+ * - No biased locking and no periodic safepoint: fewer stop-the-world pauses.
+ * - 1 ms Windows timer for the whole run (ForceTimeHighResolution): the frame limiter's
+ *   sleeps land on time.
+ * - AWT kept off Direct3D: Optic bakes its fonts with AWT, and a D3D device next to OpenGL
+ *   can stall the GPU.
+ * Every flag starts cleanly on GraalVM EE 21.3 (Java 8) and Temurin 8.
  */
-const GRAAL8_ARGS = [
-  '-XX:+UnlockExperimentalVMOptions',
-  '-XX:+UnlockDiagnosticVMOptions',
-  '-XX:+AlwaysActAsServerClassMachine',
-  '-XX:+AlwaysPreTouch',
-  '-XX:+DisableExplicitGC',
-  '-XX:+PerfDisableSharedMem',
-  '-XX:-UseBiasedLocking',
-  '-XX:GuaranteedSafepointInterval=0',
-  '-XX:+UseG1GC',
-  '-XX:MaxGCPauseMillis=10',
-  '-XX:G1HeapRegionSize=16M',
-  '-XX:G1NewSizePercent=30',
-  '-XX:G1MaxNewSizePercent=40',
-  '-XX:G1ReservePercent=20',
-  '-XX:SurvivorRatio=32',
-  '-XX:MaxTenuringThreshold=1',
-  '-XX:G1MixedGCCountTarget=4',
-  '-XX:InitiatingHeapOccupancyPercent=15',
-  '-XX:G1RSetUpdatingPauseTimePercent=5',
-  '-XX:G1SATBBufferEnqueueingThresholdPercent=30',
-  '-XX:G1ConcMarkStepDurationMillis=5.0',
-  '-XX:G1ConcRefinementServiceIntervalMillis=150',
-  '-XX:G1ConcRSHotCardLimit=16',
-  '-XX:GCTimeRatio=99',
-  '-XX:+ParallelRefProcEnabled',
-  '-XX:-UseDynamicNumberOfGCThreads',
-  '-XX:ParallelGCThreads=6',
-  '-XX:ConcGCThreads=2',
-  '-XX:AllocatePrefetchStyle=3',
-  '-XX:+EnableJVMCI',
-  '-XX:+UseJVMCICompiler',
-  '-XX:+EagerJVMCI',
-  '-XX:CICompilerCount=4',
-  '-XX:ReservedCodeCacheSize=350M',
-  '-XX:NmethodSweepActivity=1',
-  '-XX:-DontCompileHugeMethods',
-  '-Dgraal.CompilerConfiguration=enterprise',
-  '-Dgraal.TuneInlinerExploration=1',
-  '-Dgraal.UsePriorityInlining=true',
-  '-Dgraal.Vectorization=true',
-  '-Dgraal.VectorizeSIMD=true',
-  '-Dgraal.VectorizeHashes=true',
-  '-Dgraal.OptDuplication=true',
-  '-Dgraal.LoopInversion=true',
-  '-Dgraal.DetectInvertedLoopsAsCounted=true',
-  '-Dgraal.EnterprisePartialUnroll=true',
-  '-Dgraal.StripMineNonCountedLoops=true',
-  '-Dgraal.SpeculativeGuardMovement=true',
-  '-Dgraal.InfeasiblePathCorrelation=true',
-  '-Djava.net.preferIPv4Stack=true',
-  '-Dio.netty.leakDetectionLevel=disabled'
-]
+function legacyJavaArgs(graal: boolean): string[] {
+  const cores = Math.max(2, os.cpus().length)
+  const gcThreads = Math.max(2, Math.min(8, cores - 2))
+  const concThreads = Math.max(1, Math.round(gcThreads / 4))
+  const jitThreads = Math.max(2, Math.min(4, Math.floor(cores / 2)))
+  const args = [
+    '-XX:+UnlockExperimentalVMOptions',
+    '-XX:+UnlockDiagnosticVMOptions',
+    '-XX:+AlwaysActAsServerClassMachine',
+    '-XX:+AlwaysPreTouch',
+    '-XX:+DisableExplicitGC',
+    '-XX:+PerfDisableSharedMem',
+    '-XX:-UseBiasedLocking',
+    '-XX:GuaranteedSafepointInterval=0',
+    '-XX:+UseG1GC',
+    '-XX:MaxGCPauseMillis=8',
+    '-XX:G1HeapRegionSize=8M',
+    '-XX:G1NewSizePercent=30',
+    '-XX:G1MaxNewSizePercent=50',
+    '-XX:G1ReservePercent=15',
+    '-XX:SurvivorRatio=32',
+    '-XX:MaxTenuringThreshold=1',
+    '-XX:InitiatingHeapOccupancyPercent=20',
+    '-XX:G1MixedGCCountTarget=4',
+    '-XX:G1MixedGCLiveThresholdPercent=90',
+    '-XX:G1RSetUpdatingPauseTimePercent=5',
+    '-XX:+ParallelRefProcEnabled',
+    '-XX:-UseDynamicNumberOfGCThreads',
+    `-XX:ParallelGCThreads=${gcThreads}`,
+    `-XX:ConcGCThreads=${concThreads}`,
+    '-XX:ReservedCodeCacheSize=256M',
+    '-XX:-DontCompileHugeMethods',
+    '-Dsun.java2d.d3d=false',
+    '-Dsun.java2d.noddraw=true',
+    '-Djava.net.preferIPv4Stack=true',
+    '-Dio.netty.leakDetectionLevel=disabled'
+  ]
+  if (process.platform === 'win32') args.push('-XX:+ForceTimeHighResolution')
+  if (graal) {
+    // Graal Enterprise compiler loaded at startup (EagerJVMCI), not in the middle of a fight.
+    args.push(
+      '-XX:+EnableJVMCI',
+      '-XX:+UseJVMCICompiler',
+      '-XX:+EagerJVMCI',
+      `-XX:CICompilerCount=${jitThreads}`,
+      '-Dgraal.CompilerConfiguration=enterprise',
+      '-Dgraal.UsePriorityInlining=true',
+      '-Dgraal.Vectorization=true',
+      '-Dgraal.OptDuplication=true',
+      '-Dgraal.LoopInversion=true',
+      '-Dgraal.EnterprisePartialUnroll=true',
+      '-Dgraal.SpeculativeGuardMovement=true'
+    )
+  } else {
+    // HotSpot C2: deeper inlining helps Minecraft's small methods.
+    args.push('-XX:MaxInlineLevel=15')
+  }
+  return args
+}
 
-/** Fallback for plain Temurin 8: Parallel GC pauses showed up as hitches, so use G1. */
-const TEMURIN8_ARGS = ['-XX:+UseG1GC', '-XX:MaxGCPauseMillis=5', '-XX:+ParallelRefProcEnabled', '-XX:+DisableExplicitGC']
+/** Heap for 1.7.10 from the PC's memory: 2 GB on small machines, 3 GB at most. */
+function legacyHeapMb(): number {
+  const totalGb = os.totalmem() / 1024 / 1024 / 1024
+  if (totalGb >= 15) return 3072
+  if (totalGb >= 7) return 2560
+  return 2048
+}
 
 function forgeJava(runtime: string): string {
   const home = path.join(runtime, '..', '..', 'runtimes', 'temurin-8', 'bin')
@@ -437,6 +454,7 @@ async function buildPlan(prepare: boolean): Promise<Plan> {
     // Own folder: 1.7 and 1.8 options.txt / optionsof.txt differ.
     const gameDir17 = path.join(home, 'game-1.7.10')
     fs.mkdirSync(gameDir17, { recursive: true })
+    applyLegacyLatencyProfile(gameDir17)
     const optifine = optifineJar(runtime, '1.7.10')
     if (!optifine) {
       warnings.push(
@@ -513,11 +531,12 @@ async function buildPlan(prepare: boolean): Promise<Plan> {
     if (prepare && !graal) await ensureTemurin8()
     const javaBin = graal || forgeJava(runtime)
     // 1.7 never needs more than 4 GB; a smaller heap also keeps collections short.
-    const heap17 = Math.min(heapMb, 4096)
+    // Sized to the PC (see legacyHeapMb); the launcher's memory slider is for 1.8.9.
+    const heap17 = legacyHeapMb()
     const args = [
       `-Xms${heap17}M`,
       `-Xmx${heap17}M`,
-      ...(graal ? GRAAL8_ARGS : TEMURIN8_ARGS),
+      ...legacyJavaArgs(Boolean(graal)),
       '-Dlog4j2.formatMsgNoLookups=true',
       `-Djava.library.path=${nativesDir}`,
       `-Dorg.lwjgl.librarypath=${nativesDir}`,

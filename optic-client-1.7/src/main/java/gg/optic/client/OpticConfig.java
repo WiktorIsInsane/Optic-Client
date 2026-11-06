@@ -2913,6 +2913,12 @@ public final class OpticConfig {
 	public boolean nickHideOwnSkin = true;
 	public boolean nickHideOthersSkin = false;
 
+	// ---- Latency (Settings > Performance) ----
+	/** Exact frame cap instead of LWJGL's sleep-based one. */
+	public boolean preciseFrameLimiter = true;
+	/** glFinish after each frame: one frame in flight, lowest input-to-screen delay. */
+	public boolean lowLatencyMode = true;
+
 	// ---- PotPvP pearl cooldown ----
 	public boolean pvpPearlCooldown = true;
 	/** Server pearl cooldown in seconds (1.7 has none; most PotPvP servers use 15). */
@@ -2969,6 +2975,8 @@ public final class OpticConfig {
 		fullbrightFull = read(values, "fullbrightFull", fullbrightFull);
 		fullbrightBoost = clampFloat(readFloat(values, "fullbrightBoost", fullbrightBoost), 1.0F, 10.0F);
 		fullbrightKey = readInt(values, "fullbrightKey", fullbrightKey);
+		preciseFrameLimiter = read(values, "preciseFrameLimiter", preciseFrameLimiter);
+		lowLatencyMode = read(values, "lowLatencyMode", lowLatencyMode);
 		pvpPearlCooldown = read(values, "pvpPearlCooldown", pvpPearlCooldown);
 		pvpPearlSeconds = clampFloat(readFloat(values, "pvpPearlSeconds", pvpPearlSeconds), 1.0F, 30.0F);
 		pearlX = readInt(values, "pearlX", pearlX);
@@ -3005,6 +3013,8 @@ public final class OpticConfig {
 		values.setProperty("fullbrightFull", Boolean.toString(fullbrightFull));
 		values.setProperty("fullbrightBoost", Float.toString(fullbrightBoost));
 		values.setProperty("fullbrightKey", Integer.toString(fullbrightKey));
+		values.setProperty("preciseFrameLimiter", Boolean.toString(preciseFrameLimiter));
+		values.setProperty("lowLatencyMode", Boolean.toString(lowLatencyMode));
 		values.setProperty("pvpPearlCooldown", Boolean.toString(pvpPearlCooldown));
 		values.setProperty("pvpPearlSeconds", Float.toString(pvpPearlSeconds));
 		values.setProperty("pearlX", Integer.toString(pearlX));
@@ -3041,6 +3051,8 @@ public final class OpticConfig {
 		o.addProperty("fullbrightFull", fullbrightFull);
 		o.addProperty("fullbrightBoost", fullbrightBoost);
 		o.addProperty("fullbrightKey", fullbrightKey);
+		o.addProperty("preciseFrameLimiter", preciseFrameLimiter);
+		o.addProperty("lowLatencyMode", lowLatencyMode);
 		o.addProperty("pvpPearlCooldown", pvpPearlCooldown);
 		o.addProperty("pvpPearlSeconds", pvpPearlSeconds);
 		o.addProperty("pearlX", pearlX);
@@ -3077,6 +3089,8 @@ public final class OpticConfig {
 		fullbrightFull = getBool(o, "fullbrightFull", fullbrightFull);
 		fullbrightBoost = clampFloat(getFloat(o, "fullbrightBoost", fullbrightBoost), 1.0F, 10.0F);
 		fullbrightKey = getInt(o, "fullbrightKey", fullbrightKey);
+		preciseFrameLimiter = getBool(o, "preciseFrameLimiter", preciseFrameLimiter);
+		lowLatencyMode = getBool(o, "lowLatencyMode", lowLatencyMode);
 		pvpPearlCooldown = getBool(o, "pvpPearlCooldown", pvpPearlCooldown);
 		pvpPearlSeconds = clampFloat(getFloat(o, "pvpPearlSeconds", pvpPearlSeconds), 1.0F, 30.0F);
 		pearlX = getInt(o, "pearlX", pearlX);
