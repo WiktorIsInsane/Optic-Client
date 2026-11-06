@@ -54,6 +54,7 @@
     "ResourcePackScreenMixin",
     "ScreenBackgroundMixin",
     "ScreenshotUtilsMixin",
+    "ServerAddressMixin",
     "SelectWorldScreenMixin",
     "SliderWidgetMixin",
     "TextRendererMixin",

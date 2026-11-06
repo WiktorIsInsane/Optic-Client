@@ -13,7 +13,7 @@ import type {
   LaunchState
 } from '../../shared/types'
 import { emit } from '../bus'
-import { instanceRoot } from '../paths'
+import { folders, instanceRoot, ZULU_RUNTIME_DIR } from '../paths'
 import { loadStore } from '../store'
 import { activeAccount, writeGameAccounts } from './auth'
 import { ensureLegacyVersion, ensureVanilla, launchwrapperJars, runtimeRoot } from './download'
@@ -332,6 +332,66 @@ function legacyHeapMb(): number {
   return 2048
 }
 
+/** The real Zulu 25 JVM (javaw_zulu.exe skips the pvp-latency.args wrapper), or ''. */
+function zulu25Java(): string {
+  const bin = path.join(folders.runtimes(), ZULU_RUNTIME_DIR, 'bin')
+  const names = process.platform === 'win32' ? ['javaw_zulu.exe', 'javaw.exe'] : ['java']
+  for (const name of names) {
+    const file = path.join(bin, name)
+    if (fs.existsSync(file)) return file
+  }
+  return ''
+}
+
+/** ZGC wants some headroom: 4 GB on 16 GB+ PCs, 3 GB from 8 GB, else 2 GB. */
+function java25HeapMb(): number {
+  const totalGb = os.totalmem() / 1024 / 1024 / 1024
+  if (totalGb >= 15) return 4096
+  if (totalGb >= 7) return 3072
+  return 2048
+}
+
+/**
+ * Java 25 flags for 1.7.10, sized to the PC that launches it.
+ * - Generational ZGC: pauses stay well under 1 ms, so no click or frame waits on a GC.
+ *   No proactive cycles and the whole heap kept committed (no uncommit/recommit stutter).
+ * - GC threads from the core count, fixed (no resizing mid-fight).
+ * - 1 ms Windows timer for the whole run; AWT kept off Direct3D next to OpenGL.
+ * - Module access 1.7's libraries (LWJGL, Netty, Mixin) need on modern Java.
+ */
+function java25Args(): string[] {
+  const cores = Math.max(2, os.cpus().length)
+  const parallel = Math.max(2, Math.min(8, cores - 2))
+  const concurrent = Math.max(1, Math.min(4, Math.floor(cores / 4)))
+  const args = [
+    '-XX:+UseZGC',
+    '-XX:-ZProactive',
+    '-XX:-ZUncommit',
+    '-XX:+AlwaysPreTouch',
+    '-XX:+DisableExplicitGC',
+    '-XX:+PerfDisableSharedMem',
+    '-XX:-UseDynamicNumberOfGCThreads',
+    `-XX:ParallelGCThreads=${parallel}`,
+    `-XX:ConcGCThreads=${concurrent}`,
+    '-XX:ReservedCodeCacheSize=256M',
+    '-Dsun.java2d.d3d=false',
+    '-Dsun.java2d.noddraw=true',
+    '-Djava.net.preferIPv4Stack=true',
+    '-Dio.netty.leakDetectionLevel=disabled',
+    '--add-opens=java.base/java.lang=ALL-UNNAMED',
+    '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+    '--add-opens=java.base/java.util=ALL-UNNAMED',
+    '--add-opens=java.base/java.io=ALL-UNNAMED',
+    '--add-opens=java.base/java.nio=ALL-UNNAMED',
+    '--add-opens=java.base/sun.nio.ch=ALL-UNNAMED',
+    '--add-opens=java.base/java.net=ALL-UNNAMED',
+    '--enable-native-access=ALL-UNNAMED',
+    '--sun-misc-unsafe-memory-access=allow'
+  ]
+  if (process.platform === 'win32') args.push('-XX:+ForceTimeHighResolution')
+  return args
+}
+
 function forgeJava(runtime: string): string {
   const home = path.join(runtime, '..', '..', 'runtimes', 'temurin-8', 'bin')
   const javaw = path.join(home, 'javaw.exe')
@@ -524,24 +584,31 @@ async function buildPlan(prepare: boolean): Promise<Plan> {
       .split(' ')
       .filter(Boolean)
       .map((arg) => arg.replace(/\$\{(\w+)\}/g, (_m, key: string) => values[key] ?? ''))
-    // 1.7.10 and its launchwrapper are Java 8 era; newer Java breaks the class loader.
-    // GraalVM EE 8 is preferred when installed, then the bundled Temurin 8.
-    const graal = graal8Java(runtime)
-    // Fresh installs have no Java 8 yet; fetch Temurin 8 the first time 1.7.10 is played.
-    if (prepare && !graal) await ensureTemurin8()
-    const javaBin = graal || forgeJava(runtime)
-    // 1.7 never needs more than 4 GB; a smaller heap also keeps collections short.
-    // Sized to the PC (see legacyHeapMb); the launcher's memory slider is for 1.8.9.
-    const heap17 = legacyHeapMb()
+    // Java 25 (Zulu) through launch-java25.jar, Optic's launchwrapper replacement that works on
+    // modern Java (vanilla launchwrapper breaks on Java 9+). Generational ZGC there keeps every
+    // GC pause well under a millisecond. Falls back to Java 8 (GraalVM EE, else Temurin) when
+    // Zulu 25 or launch-java25.jar is missing.
+    const java25 = zulu25Java()
+    const launch25 = path.join(runtime, 'libs', 'launch-java25.jar')
+    const annotations = path.join(runtime, 'libs', 'javax.annotation-api-1.3.2.jar')
+    const useJava25 = Boolean(java25) && opticLibs.length > 0 && fs.existsSync(launch25) && fs.existsSync(annotations)
+    const graal = useJava25 ? '' : graal8Java(runtime)
+    // Fresh installs without Java 25 or Java 8: fetch Temurin 8 the first time 1.7.10 is played.
+    if (prepare && !useJava25 && !graal) await ensureTemurin8()
+    const javaBin = useJava25 ? java25 : graal || forgeJava(runtime)
+    // Sized to the PC; the launcher's memory slider is for 1.8.9.
+    const heap17 = useJava25 ? java25HeapMb() : legacyHeapMb()
+    // launch-java25.jar first so its Launch replaces launchwrapper's; Mixin needs javax.annotation.
+    const classpath17 = useJava25 ? [launch25, annotations, ...cp] : cp
     const args = [
       `-Xms${heap17}M`,
       `-Xmx${heap17}M`,
-      ...legacyJavaArgs(Boolean(graal)),
+      ...(useJava25 ? java25Args() : legacyJavaArgs(Boolean(graal))),
       '-Dlog4j2.formatMsgNoLookups=true',
       `-Djava.library.path=${nativesDir}`,
       `-Dorg.lwjgl.librarypath=${nativesDir}`,
       '-cp',
-      cp.join(path.delimiter),
+      classpath17.join(path.delimiter),
       wrapped ? 'net.minecraft.launchwrapper.Launch' : version.mainClass,
       ...mcArgs,
       ...tweakers,
