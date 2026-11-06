@@ -20,9 +20,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /** 1.7 reads the camera rotation through LivingEntity (its camera entity type). 1.7.10 camera mods: FOV, Zoom, Hurt Cam, Free Look and Minimal Bobbing. Mouse timing stays vanilla. */
 @Mixin(GameRenderer.class)
 public abstract class GameRendererMixin {
-	/** Motion Blur: blend in the previous frame once the world is drawn, before the HUD. */
-	@Inject(method = "renderWorld(FJ)V", at = @At("TAIL"))
-	private void optic$motionBlur(float tickDelta, long limitTime, CallbackInfo ci) {
+	/**
+	 * Motion Blur: blend in the previous frame right after the frame's world render returns,
+	 * before the HUD. Hooked at the call site (both of the frame's renderWorld calls) rather
+	 * than inside renderWorld, whose own end isn't reached on every path.
+	 */
+	@Inject(
+		method = "renderGui(F)V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/GameRenderer;renderWorld(FJ)V", shift = At.Shift.AFTER)
+	)
+	private void optic$motionBlur(float tickDelta, CallbackInfo ci) {
 		gg.optic.client.render.OpticMotionBlur.afterWorld(MinecraftClient.getInstance());
 	}
 

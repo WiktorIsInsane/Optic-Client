@@ -330,6 +330,10 @@ public final class OpticConfig {
 	public float toggleSprintScale = 1.0F;
 	public int toggleSprintColor = DEFAULT_ACCENT;
 	public int toggleSprintTextColor = DEFAULT_TEXT;
+	/** Key that switches between toggle mode and holding sprint (Left Ctrl by default). */
+	public int toggleSprintKey = org.lwjgl.input.Keyboard.KEY_LCONTROL;
+	/** Toggle mode on (auto sprint) or off (vanilla hold). Remembered between sessions. */
+	public boolean toggleSprintToggled = true;
 	public int toggleSprintX = 6;
 	public int toggleSprintY = 66;
 
@@ -444,6 +448,8 @@ public final class OpticConfig {
 	// Weather Changer
 	/** 0 Clear, 1 Rain, 2 Snow, 3 Storm. */
 	public int weatherMode = OpticEnvironment.WEATHER_CLEAR;
+	/** Rain/snow opacity in percent (0-100). */
+	public float weatherOpacity = 100.0F;
 
 	// Hurt Cam (Lunar-style)
 	public boolean disableHurtCam = false;
@@ -1152,6 +1158,24 @@ public final class OpticConfig {
 
 	public static int withAlpha(int rgb, int alpha) {
 		return ((alpha & 0xFF) << 24) | (rgb & 0xFFFFFF);
+	}
+
+	/**
+	 * Colour settings keep opacity in their top byte as TRANSPARENCY (255 - alpha), so every
+	 * colour saved before opacity existed (top byte 0) still means fully opaque.
+	 */
+	public static int opacityOf(int stored) {
+		return 255 - ((stored >>> 24) & 0xFF);
+	}
+
+	/** Stored colour setting -> ARGB to draw with. */
+	public static int argb(int stored) {
+		return (opacityOf(stored) << 24) | (stored & 0xFFFFFF);
+	}
+
+	public static int withOpacity(int stored, int alpha) {
+		int a = Math.max(0, Math.min(255, alpha));
+		return ((255 - a) << 24) | (stored & 0xFFFFFF);
 	}
 
 	/** Export shareable profile JSON (mods, options, colors, HUD layout). */
@@ -2053,7 +2077,7 @@ public final class OpticConfig {
 		try {
 			String raw = o.get(key).getAsString();
 			if (raw.startsWith("#")) raw = raw.substring(1);
-			return (int) Long.parseLong(raw, 16) & 0xFFFFFF;
+			return (int) Long.parseLong(raw, 16);	// 8 digits keep the transparency byte (see argb)
 		} catch (Exception e) {
 			return fallback & 0xFFFFFF;
 		}
@@ -2091,14 +2115,15 @@ public final class OpticConfig {
 		try {
 			if (raw.startsWith("#")) raw = raw.substring(1);
 			if (raw.startsWith("0x") || raw.startsWith("0X")) raw = raw.substring(2);
-			return (int) Long.parseLong(raw, 16) & 0xFFFFFF;
+			return (int) Long.parseLong(raw, 16);	// 8 digits keep the transparency byte (see argb)
 		} catch (NumberFormatException e) {
 			return fallback & 0xFFFFFF;
 		}
 	}
 
 	private static String toHex(int rgb) {
-		return String.format("%06X", rgb & 0xFFFFFF);
+		// Opaque colours stay 6 digits; see-through ones add the transparency byte in front.
+		return ((rgb >>> 24) & 0xFF) == 0 ? String.format("%06X", rgb & 0xFFFFFF) : String.format("%08X", rgb);
 	}
 
 	private void loadRevamp(Properties values) {
@@ -2905,6 +2930,9 @@ public final class OpticConfig {
 		nickHideOwnSkin = read(values, "nickHideOwnSkin", nickHideOwnSkin);
 		nickHideOthersSkin = read(values, "nickHideOthersSkin", nickHideOthersSkin);
 		motionBlur = read(values, "motionBlur", motionBlur);
+		weatherOpacity = clampFloat(readFloat(values, "weatherOpacity", weatherOpacity), 0.0F, 100.0F);
+		toggleSprintKey = readInt(values, "toggleSprintKey", toggleSprintKey);
+		toggleSprintToggled = read(values, "toggleSprintToggled", toggleSprintToggled);
 		motionBlurType = Math.max(0, Math.min(2, readInt(values, "motionBlurType", motionBlurType)));
 		motionBlurAmount = clampFloat(readFloat(values, "motionBlurAmount", motionBlurAmount), 1.0F, 10.0F);
 	}
@@ -2921,6 +2949,9 @@ public final class OpticConfig {
 		values.setProperty("nickHideOwnSkin", Boolean.toString(nickHideOwnSkin));
 		values.setProperty("nickHideOthersSkin", Boolean.toString(nickHideOthersSkin));
 		values.setProperty("motionBlur", Boolean.toString(motionBlur));
+		values.setProperty("weatherOpacity", Float.toString(weatherOpacity));
+		values.setProperty("toggleSprintKey", Integer.toString(toggleSprintKey));
+		values.setProperty("toggleSprintToggled", Boolean.toString(toggleSprintToggled));
 		values.setProperty("motionBlurType", Integer.toString(motionBlurType));
 		values.setProperty("motionBlurAmount", Float.toString(motionBlurAmount));
 	}
@@ -2937,6 +2968,9 @@ public final class OpticConfig {
 		o.addProperty("nickHideOwnSkin", nickHideOwnSkin);
 		o.addProperty("nickHideOthersSkin", nickHideOthersSkin);
 		o.addProperty("motionBlur", motionBlur);
+		o.addProperty("weatherOpacity", weatherOpacity);
+		o.addProperty("toggleSprintKey", toggleSprintKey);
+		o.addProperty("toggleSprintToggled", toggleSprintToggled);
 		o.addProperty("motionBlurType", motionBlurType);
 		o.addProperty("motionBlurAmount", motionBlurAmount);
 	}
@@ -2953,6 +2987,9 @@ public final class OpticConfig {
 		nickHideOwnSkin = getBool(o, "nickHideOwnSkin", nickHideOwnSkin);
 		nickHideOthersSkin = getBool(o, "nickHideOthersSkin", nickHideOthersSkin);
 		motionBlur = getBool(o, "motionBlur", motionBlur);
+		weatherOpacity = clampFloat(getFloat(o, "weatherOpacity", weatherOpacity), 0.0F, 100.0F);
+		toggleSprintKey = getInt(o, "toggleSprintKey", toggleSprintKey);
+		toggleSprintToggled = getBool(o, "toggleSprintToggled", toggleSprintToggled);
 		motionBlurType = Math.max(0, Math.min(2, getInt(o, "motionBlurType", motionBlurType)));
 		motionBlurAmount = clampFloat(getFloat(o, "motionBlurAmount", motionBlurAmount), 1.0F, 10.0F);
 	}

@@ -121,7 +121,8 @@ public final class OpticFreeLook {
 
 	private static void applyDistance(MinecraftClient client, OpticConfig config) {
 		if (client.gameRenderer == null) return;
-		float distance = Math.max(1.5F, Math.min(12.0F, config.freeLookDistance));
+		// Normal third-person distance (vanilla 4 blocks), like Lunar; no separate setting.
+		float distance = 4.0F;
 		((gg.optic.client.mixin.OpticGameRendererAccess) client.gameRenderer).optic$setThirdPersonDistance(distance);
 		((gg.optic.client.mixin.OpticGameRendererAccess) client.gameRenderer).optic$setLastThirdPersonDistance(distance);
 	}

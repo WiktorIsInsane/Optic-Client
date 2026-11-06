@@ -157,7 +157,7 @@ public final class OpticModScreen extends Screen {
 	private int colorPopupW;
 	private int colorPopupH;
 	private static final int HEADER_LOGO = 28;
-	private static final int COLOR_POPUP_W = 228;
+	private static final int COLOR_POPUP_W = 246;
 	private static final int COLOR_POPUP_H = 150;
 	private static final int TOGGLE_ON = LIME;
 	private static final int TOGGLE_OFF = 0xFF2A2A32;
@@ -359,7 +359,15 @@ public final class OpticModScreen extends Screen {
 		profileFieldOpen = false;
 		profileSearchMode = false;
 		profileStatus = "";
+		// HUD stays visible behind the menu and can be dragged/resized there (outside the panel).
+		hudEdit = new OpticHudEditorScreen(this, true);
+		hudEdit.init(client, width, height);
+		hudEdit.setExclude(panelX, panelY, panelW, panelH);
 	}
+
+	/** The HUD editor, running underneath the menu. */
+	private OpticHudEditorScreen hudEdit;
+	private final OpticOpenAnim openAnim = new OpticOpenAnim();
 
 	@Override
 	public void removed() {
@@ -616,6 +624,9 @@ public final class OpticModScreen extends Screen {
 		// Same as Cosmetics: in a world the game shows through untouched (so changes to the
 		// block overlay, crosshair, HUD... are visible live); on the title screen, its wallpaper.
 		if (client.world == null) OpticMenuChrome.drawWallpaper(client, width, height);
+		// HUD item boxes (hover/drag) under the menu; the HUD itself is drawn by the game.
+		if (hudEdit != null && client.world != null) hudEdit.render(mouseX, mouseY, delta);
+		openAnim.begin(width / 2.0F, height / 2.0F);
 		OpticFrame.begin(client);
 		try {
 			drawPanel();
@@ -633,6 +644,7 @@ public final class OpticModScreen extends Screen {
 			// Open dropdown list sits above everything, including the panel edge.
 			drawDropdownList(mouseX, mouseY);
 			OpticFrame.end();
+			openAnim.end();
 		}
 	}
 
@@ -1829,6 +1841,8 @@ public final class OpticModScreen extends Screen {
 	private int pickOriginal;
 	private boolean hexEditing;
 	private String hexBuffer = "";
+	/** "Copied" shows next to the hex code until this time. */
+	private long hexCopiedUntil;
 
 	private void syncPicker(String key, int color) {
 		color &= 0xFFFFFF;
@@ -1888,8 +1902,25 @@ public final class OpticModScreen extends Screen {
 		fill(hueX - 2, hy - 2, hueX + PICK_HUE_W + 2, hy + 2, 0xFF000000);
 		fill(hueX - 1, hy - 1, hueX + PICK_HUE_W + 1, hy + 1, 0xFFFFFFFF);
 
-		// Right column: old | new preview, hex code (click to type), RGB values.
-		int colX = hueX + PICK_HUE_W + 10;
+		// Opacity strip: the colour fading from solid (top) to see-through (bottom), over a checkerboard.
+		int alphaX = hueX + PICK_HUE_W + 6;
+		int opacity = OpticConfig.opacityOf(selectedColor);
+		for (int cy = 0; cy < PICK_SV; cy += 4) {
+			for (int cx = 0; cx < PICK_HUE_W; cx += 4) {
+				boolean dark = ((cx / 4) + (cy / 4)) % 2 == 0;
+				fill(alphaX + cx, svY + cy, alphaX + Math.min(PICK_HUE_W, cx + 4), svY + Math.min(PICK_SV, cy + 4), dark ? 0xFF3A3D44 : 0xFF8A8F99);
+			}
+		}
+		int solid = 0xFF000000 | (selectedColor & 0xFFFFFF);
+		gradientRect(alphaX, svY, PICK_HUE_W, PICK_SV, solid, solid, solid & 0xFFFFFF, solid & 0xFFFFFF);
+		outline(alphaX - 1, svY - 1, PICK_HUE_W + 2, PICK_SV + 2, OpticTheme.BORDER);
+		int ay = svY + Math.round((1.0F - opacity / 255.0F) * (PICK_SV - 1));
+		fill(alphaX - 2, ay - 2, alphaX + PICK_HUE_W + 2, ay + 2, 0xFF000000);
+		fill(alphaX - 1, ay - 1, alphaX + PICK_HUE_W + 1, ay + 1, 0xFFFFFFFF);
+		optionHits.add(OptionHit.colorAlpha(key, alphaX - 2, svY, PICK_HUE_W + 4, PICK_SV));
+
+		// Right column: old | new preview, hex code (click to copy / type), RGB values.
+		int colX = alphaX + PICK_HUE_W + 10;
 		int colW = px + pw - PICK_PAD - colX;
 		int current = selectedColor & 0xFFFFFF;
 		fill(colX, svY, colX + colW / 2, svY + 24, 0xFF000000 | pickOriginal);
@@ -1906,14 +1937,19 @@ public final class OpticModScreen extends Screen {
 			? "#" + hexBuffer + ((System.currentTimeMillis() / 500L) % 2L == 0L ? "_" : "")
 			: String.format("#%06X", current);
 		shadowed(hex, colX + 5, hexY + 4, hexEditing ? OpticTheme.TEXT : MUTED, 8.0F);
+		if (System.currentTimeMillis() < hexCopiedUntil) {
+			String copied = "Copied";
+			int cw = OpticUiFont.widthSized(client, copied, ACCENT, 7.0F);
+			shadowed(copied, colX + colW - cw - 4, hexY + 5, ACCENT, 7.0F);
+		}
 
-		int rgbY = hexY + 24;
-		String[] names = { "R", "G", "B" };
-		int[] parts = { (current >> 16) & 0xFF, (current >> 8) & 0xFF, current & 0xFF };
-		for (int i = 0; i < 3; i++) {
-			int ry = rgbY + i * 11;
+		int rgbY = hexY + 22;
+		String[] names = { "R", "G", "B", "A" };
+		int[] parts = { (current >> 16) & 0xFF, (current >> 8) & 0xFF, current & 0xFF, Math.round(opacity * 100.0F / 255.0F) };
+		for (int i = 0; i < 4; i++) {
+			int ry = rgbY + i * 10;
 			shadowed(names[i], colX + 1, ry, 0xFFAEB4BF, 7.5F);
-			String v = Integer.toString(parts[i]);
+			String v = i == 3 ? parts[i] + "%" : Integer.toString(parts[i]);
 			int vw = OpticUiFont.widthSized(client, v, OpticTheme.TEXT, 7.5F);
 			shadowed(v, colX + colW - vw - 1, ry, OpticTheme.TEXT, 7.5F);
 		}
@@ -1969,6 +2005,23 @@ public final class OpticModScreen extends Screen {
 	/** Typed hex: 0-9 / A-F, Backspace, Enter to apply, Escape to cancel. @return handled */
 	private boolean hexKey(char character, int keyCode) {
 		if (!hexEditing) return false;
+		boolean ctrl = Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL);
+		if (ctrl && keyCode == Keyboard.KEY_C) {
+			Screen.setClipboard("#" + hexBuffer);
+			hexCopiedUntil = System.currentTimeMillis() + 1200L;
+			return true;
+		}
+		if (ctrl && keyCode == Keyboard.KEY_V) {
+			String pasted = Screen.getClipboard();
+			StringBuilder clean = new StringBuilder();
+			if (pasted != null) {
+				for (char ch : pasted.trim().toUpperCase().toCharArray()) {
+					if (((ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F')) && clean.length() < 6) clean.append(ch);
+				}
+			}
+			if (clean.length() > 0) hexBuffer = clean.toString();
+			return true;
+		}
 		if (keyCode == Keyboard.KEY_ESCAPE) {
 			hexEditing = false;
 			return true;
@@ -2093,6 +2146,7 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.color("toggleSprintColor", "Accent Color"));
 				options.add(ConfigOption.color("toggleSprintTextColor", "Text Color"));
 				options.add(ConfigOption.toggle("toggleSprintShowHud", "Show Sprint HUD"));
+				options.add(ConfigOption.key("toggleSprintKey", "Toggle / Hold Key"));
 				options.add(ConfigOption.toggle("toggleSprintBrackets", "Brackets"));
 				break;
 			case FULLBRIGHT:
@@ -2194,6 +2248,7 @@ public final class OpticModScreen extends Screen {
 			case WEATHER_CHANGER:
 				options.add(ConfigOption.header("General"));
 				options.add(ConfigOption.cycle("weatherMode", "Weather"));
+				options.add(ConfigOption.slider("weatherOpacity", "Rain/Snow Opacity", 0.0F, 100.0F));
 				break;
 			case NICK_HIDER: {
 				OpticConfig nc = OpticClient.get().config();
@@ -2269,7 +2324,6 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.key("freeLookKeyCode", "Keybind"));
 				options.add(ConfigOption.toggle("freeLookToggle", "Toggle Mode"));
 				options.add(ConfigOption.cycle("freeLookPerspective", "Perspective"));
-				options.add(ConfigOption.slider("freeLookDistance", "Camera Distance", 1.5F, 12.0F));
 				options.add(ConfigOption.toggle("freeLookInvertYaw", "Invert Yaw"));
 				options.add(ConfigOption.toggle("freeLookInvertPitch", "Invert Pitch"));
 				options.add(ConfigOption.toggle("freeLookSmooth", "Smooth Camera"));
@@ -2639,9 +2693,19 @@ public final class OpticModScreen extends Screen {
 		return OpticConfig.DEFAULT_ACCENT;
 	}
 
+	/** New RGB for a colour setting; its opacity (set with the opacity bar) is kept. */
 	private void setColor(String key, int color) {
+		storeColor(key, (getColor(key) & 0xFF000000) | (color & 0xFFFFFF));
+	}
+
+	/** Opacity 0-255 for a colour setting; its RGB is kept. */
+	private void setColorOpacity(String key, int alpha) {
+		storeColor(key, OpticConfig.withOpacity(getColor(key), alpha));
+	}
+
+	/** Writes the stored value (RGB plus transparency byte, see OpticConfig.argb). */
+	private void storeColor(String key, int color) {
 		OpticConfig c = OpticClient.get().config();
-		color = color & 0xFFFFFF;
 		if (OpticRevampOptions.setColor(c, key, color)) {
 			c.save();
 			return;
@@ -2775,6 +2839,7 @@ public final class OpticModScreen extends Screen {
 		Float extra = OpticRevampOptions.getFloat(c, key);
 		if (extra != null) return extra.floatValue();
 		if ("motionBlurAmount".equals(key)) return c.motionBlurAmount;
+		if ("weatherOpacity".equals(key)) return c.weatherOpacity;
 		if ("fullbrightGamma".equals(key)) return c.fullbrightGamma;
 		if ("skins3dDistance".equals(key)) return c.skins3dDistance;
 		if ("particleMultiplier".equals(key)) return c.particleMultiplier;
@@ -2803,7 +2868,10 @@ public final class OpticModScreen extends Screen {
 			c.save();
 			return;
 		}
-		if ("motionBlurAmount".equals(key)) {
+		if ("weatherOpacity".equals(key)) {
+			c.weatherOpacity = Math.max(0.0F, Math.min(100.0F, Math.round(value)));
+			c.save();
+		} else 		if ("motionBlurAmount".equals(key)) {
 			// Whole steps 1-10, like the original.
 			c.motionBlurAmount = Math.max(1.0F, Math.min(10.0F, Math.round(value)));
 			c.save();
@@ -2892,6 +2960,11 @@ public final class OpticModScreen extends Screen {
 			applyPicker();
 			return;
 		}
+		if (activeColor.mode == ColorDragMode.ALPHA) {
+			float t = Math.max(0.0F, Math.min(1.0F, (mouseY - activeColor.barY) / (float) Math.max(1, activeColor.barH - 1)));
+			setColorOpacity(activeColor.key, Math.round((1.0F - t) * 255.0F));
+			return;
+		}
 		if (activeColor.mode == ColorDragMode.HUE) {
 			pickHue = Math.max(0.0F, Math.min(0.999F, (mouseY - activeColor.barY) / (float) Math.max(1, activeColor.barH - 1)));
 			applyPicker();
@@ -2925,6 +2998,8 @@ public final class OpticModScreen extends Screen {
 		if (clickDropdown(mouseX, mouseY)) return;
 		// Clicking anywhere ends typing in a name box (the click still does its own thing).
 		finishText();
+		// Outside the menu: grab HUD items (drag, resize handle, gear) like in Edit HUD.
+		if (openColorKey == null && hudEdit != null && hudEdit.embeddedClick(mouseX, mouseY, button)) return;
 		if (button != 0) return;
 		if (inside(mouseX, mouseY, closeX - 3, closeY - 3, 22, 22)) {
 			client.setScreen(null);
@@ -3085,8 +3160,18 @@ public final class OpticModScreen extends Screen {
 						return;
 					}
 					if (hit.kind == HitKind.COLOR_HEX) {
+						// Click copies the code and lets you edit it (it stays filled in);
+						// type a new one, paste with Ctrl+V, Enter to apply.
+						String code = String.format("%06X", getColor(hit.key) & 0xFFFFFF);
+						Screen.setClipboard("#" + code);
+						hexCopiedUntil = System.currentTimeMillis() + 1200L;
 						hexEditing = !wasEditing;
-						hexBuffer = "";
+						hexBuffer = hexEditing ? code : "";
+						return;
+					}
+					if (hit.kind == HitKind.COLOR_ALPHA) {
+						activeColor = ColorDrag.alpha(hit.key, hit.y, hit.h);
+						updateColorDrag(mouseX, mouseY);
 						return;
 					}
 					if (hit.kind == HitKind.COLOR_WHEEL) {
@@ -3690,6 +3775,7 @@ public final class OpticModScreen extends Screen {
 		COLOR_HUE,
 		COLOR_PRESET,
 		COLOR_HEX,
+		COLOR_ALPHA,
 		TEXT
 	}
 
@@ -3697,7 +3783,8 @@ public final class OpticModScreen extends Screen {
 		WHEEL,
 		VALUE,
 		SV,
-		HUE
+		HUE,
+		ALPHA
 	}
 
 	private static final class ConfigOption {
@@ -3864,6 +3951,10 @@ public final class OpticModScreen extends Screen {
 			return new OptionHit(HitKind.COLOR_SV, -1, key, x, y, w, h, 0.0F, 0.0F, 0, 0, 0, 0.0F, 0.0F, 0.0F);
 		}
 
+		static OptionHit colorAlpha(String key, int x, int y, int w, int h) {
+			return new OptionHit(HitKind.COLOR_ALPHA, -1, key, x, y, w, h, 0.0F, 0.0F, 0, 0, 0, 0.0F, 0.0F, 0.0F);
+		}
+
 		static OptionHit colorHue(String key, int x, int y, int w, int h) {
 			return new OptionHit(HitKind.COLOR_HUE, -1, key, x, y, w, h, 0.0F, 0.0F, 0, 0, 0, 0.0F, 0.0F, 0.0F);
 		}
@@ -3945,6 +4036,10 @@ public final class OpticModScreen extends Screen {
 
 		static ColorDrag hue(String key, int y, int h) {
 			return new ColorDrag(ColorDragMode.HUE, key, 0, 0, 0, 0.0F, y, h, 0.0F, 0.0F);
+		}
+
+		static ColorDrag alpha(String key, int y, int h) {
+			return new ColorDrag(ColorDragMode.ALPHA, key, 0, 0, 0, 0.0F, y, h, 0.0F, 0.0F);
 		}
 	}
 }

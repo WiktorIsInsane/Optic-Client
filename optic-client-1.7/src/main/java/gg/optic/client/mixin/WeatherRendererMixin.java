@@ -37,6 +37,22 @@ public abstract class WeatherRendererMixin {
 		return optic$forcedPrecipitation() || biome.method_3830();
 	}
 
+	/**
+	 * Rain/Snow Opacity: rain and snow fade with the world's rain strength, so scaling it only
+	 * here (not for the sky or sound) makes the drops see-through. 0% hides them.
+	 */
+	@Redirect(
+		method = "renderWeather(F)V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;getRainGradient(F)F"),
+		require = 0
+	)
+	private float optic$weatherOpacity(net.minecraft.client.world.ClientWorld world, float tickDelta) {
+		float strength = world.getRainGradient(tickDelta);
+		OpticConfig c = OpticClient.get().config();
+		if (!c.weatherChanger) return strength;
+		return strength * Math.max(0.0F, Math.min(100.0F, c.weatherOpacity)) / 100.0F;
+	}
+
 	/** Below 0.15 vanilla draws snow, otherwise rain. */
 	@Redirect(
 		method = "renderWeather(F)V",

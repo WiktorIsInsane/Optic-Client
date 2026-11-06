@@ -30,6 +30,34 @@ public final class OpticHud {
 		}
 	}
 
+	/**
+	 * Toggle Sprint HUD: "Sprinting [Toggle]" while toggle mode is on, "Sprinting [Hold]" while you
+	 * sprint yourself with toggle mode switched off by its key. Empty otherwise (nothing drawn).
+	 * preview: always show the toggle text (HUD editor sizing).
+	 */
+	public static List<Piece> sprintPieces(MinecraftClient client, OpticConfig c, boolean preview) {
+		List<Piece> pieces = new ArrayList<Piece>();
+		String mode;
+		if (preview || c.toggleSprintToggled) {
+			mode = "Toggle";
+		} else if (client != null && client.field_3805 != null && client.field_3805.isSprinting()) {
+			mode = "Hold";
+		} else {
+			return pieces;
+		}
+		pieces.add(new Piece("Sprinting ", c.toggleSprintTextColor));
+		pieces.add(new Piece(c.toggleSprintBrackets ? "[" + mode + "]" : mode, c.toggleSprintColor));
+		return pieces;
+	}
+
+	public static String sprintText(OpticConfig c, boolean preview) {
+		return join(sprintPieces(MinecraftClient.getInstance(), c, preview));
+	}
+
+	public static void drawSprint(MinecraftClient client, OpticConfig c) {
+		drawPieces(client, sprintPieces(client, c, false), c.toggleSprintX, c.toggleSprintY, c.toggleSprintOpticFont, c.toggleSprintTextShadow, c.toggleSprintScale);
+	}
+
 	public static void drawFps(MinecraftClient client, OpticConfig c) {
 		drawPieces(client, fpsPieces(c), c.fpsX, c.fpsY, c.fpsOpticFont, c.fpsTextShadow, c.fpsScale);
 	}
@@ -329,21 +357,27 @@ public final class OpticHud {
 		float size = OpticHudLayout.fontSize(scale);
 		for (int i = 0; i < pieces.size(); i++) {
 			Piece piece = pieces.get(i);
-			int argb = 0xFF000000 | (piece.rgb & 0xFFFFFF);
+			// Colour settings carry opacity (Text Color opacity bar); shadows fade with the text.
+			int argb = OpticConfig.argb(piece.rgb);
+			int alpha = (argb >>> 24) & 0xFF;
+			if (alpha < 4) {
+				cursor += opticFont ? OpticUiFont.widthSized(client, piece.text, 0xFFFFFFFF, size) : Math.round(client.textRenderer.getStringWidth(piece.text) * scale);
+				continue;
+			}
 			if (opticFont) {
-				if (shadow) OpticUiFont.drawSized(client, piece.text, cursor + 1, y + 1, 0xAA000000, size);
+				if (shadow) OpticUiFont.drawSized(client, piece.text, cursor + 1, y + 1, (alpha * 0xAA / 255) << 24, size);
 				OpticUiFont.drawSized(client, piece.text, cursor, y, argb, size);
 				cursor += OpticUiFont.widthSized(client, piece.text, argb, size);
 			} else if (Math.abs(scale - 1.0F) > 0.01F) {
 				GlStateManager.pushMatrix();
 				GlStateManager.translate(cursor, y, 0.0F);
 				GlStateManager.scale(scale, scale, 1.0F);
-				if (shadow) client.textRenderer.draw(piece.text, 1, 1, 0x000000, true);
-				client.textRenderer.draw(piece.text, 0, 0, piece.rgb & 0xFFFFFF, shadow);
+				if (shadow) client.textRenderer.draw(piece.text, 1, 1, alpha << 24, true);
+				client.textRenderer.draw(piece.text, 0, 0, argb, shadow);
 				GlStateManager.popMatrix();
 				cursor += Math.round(client.textRenderer.getStringWidth(piece.text) * scale);
 			} else {
-				client.textRenderer.draw(piece.text, cursor, y, piece.rgb & 0xFFFFFF, shadow);
+				client.textRenderer.draw(piece.text, cursor, y, argb, shadow);
 				cursor += client.textRenderer.getStringWidth(piece.text);
 			}
 		}

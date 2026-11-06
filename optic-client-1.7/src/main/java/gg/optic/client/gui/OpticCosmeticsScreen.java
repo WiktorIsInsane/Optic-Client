@@ -63,6 +63,7 @@ public final class OpticCosmeticsScreen extends Screen {
 	private String hoverId;
 
 	private final Screen parent;
+	private final OpticOpenAnim openAnim = new OpticOpenAnim();
 	private final BiPedModel model = new BiPedModel(0.0F);
 	private int boxX, boxY, boxW, boxH;
 	private int listX, listY, listW, listH;
@@ -112,6 +113,7 @@ public final class OpticCosmeticsScreen extends Screen {
 		}
 		// Fully transparent in game. On the title screen there is no world, so keep its wallpaper.
 		if (client.world == null) OpticMenuChrome.drawWallpaper(client, width, height);
+		openAnim.begin(width / 2.0F, height / 2.0F);
 		OpticFrame.begin(client);
 		try {
 			// Thin frame around the whole menu; inside stays see-through.
@@ -124,6 +126,7 @@ public final class OpticCosmeticsScreen extends Screen {
 			OpticFrame.end();
 		}
 		if (previewW > 0) drawPreview(mouseX, mouseY, delta);
+		openAnim.end();
 	}
 
 	private void drawHeader(int mouseX, int mouseY) {

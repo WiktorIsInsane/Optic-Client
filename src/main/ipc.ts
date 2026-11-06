@@ -33,7 +33,7 @@ import { consoleLines, launchState, previewCommand, startGame, stopGame } from '
 import { listMods, setModEnabled } from './services/mods'
 import { addServer, chooseServerIcon, listServers, removeServer } from './services/servers'
 import { addSkinByIgn, addSkinByPng, chooseSkin, listSkins, removeSkin, selectSkin, skinInfo } from './services/skins'
-import { checkLauncherUpdate, installLauncherUpdate, openUpdateDownload, updaterState } from './services/updater'
+import { checkLauncherUpdate, installAfterPlay, installLauncherUpdate, openUpdateDownload, updaterState } from './services/updater'
 import { resolveGameDir } from './paths'
 import { loadStore, updateStore } from './store'
 import { applyLaunchBehavior, markQuitting, windowAction } from './window'
@@ -84,6 +84,8 @@ async function runLaunch(joinServer?: string): Promise<LaunchState> {
     emit(IpcChannel.console, { stream: 'launcher', text: note, at: Date.now() })
   }
   const state = await startGame(joinServer)
+  // The game is running on its own now: a waiting launcher update installs silently.
+  installAfterPlay()
   const settings = loadStore().settings
   if (settings.closeOnLaunch && !settings.keepOpen) {
     markQuitting()

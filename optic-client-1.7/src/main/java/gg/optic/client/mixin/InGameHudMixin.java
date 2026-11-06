@@ -55,8 +55,7 @@ public abstract class InGameHudMixin extends DrawableHelper {
 	private void optic$render(float tickDelta, boolean screenOpen, int mouseX, int mouseY, CallbackInfo ci) {
 		optic$endHotbarTransform(); // never leak the status-bar transform past the HUD
 		if (client.options.debugEnabled || client.options.hudHidden) return;
-		// Hide the live HUD while the mod menu is open; the HUD editor still needs it.
-		if (OpticGui.isModMenuOpen()) return;
+		// The live HUD stays visible under the mod menu, where it can be edited too.
 		OpticConfig config = OpticClient.get().config();
 		boolean freezeInput = OpticGui.isOpticScreenOpen();
 		Window window = new Window(client, client.width, client.height);
@@ -73,17 +72,7 @@ public abstract class InGameHudMixin extends DrawableHelper {
 		if (config.coordinates) OpticHud.drawCoordinates(client, config);
 		OpticPotions.render(client);
 		OpticCrosshair.render(client, window.getWidth() / 2, window.getHeight() / 2);
-		if (config.toggleSprint && config.toggleSprintShowHud) {
-			optic$text(
-				OpticConfig.withBrackets("SPRINT", config.toggleSprintBrackets),
-				config.toggleSprintX,
-				config.toggleSprintY,
-				config.toggleSprintTextColor,
-				config.toggleSprintOpticFont,
-				config.toggleSprintTextShadow,
-				config.toggleSprintScale
-			);
-		}
+		if (config.toggleSprint && config.toggleSprintShowHud) OpticHud.drawSprint(client, config);
 		if (config.keystrokes) OpticKeystrokes.render(client, config, freezeInput);
 		if (OpticTab.visible(client) && client.world != null) {
 			OpticTab.render(client, window.getWidth(), client.world.getScoreboard(), client.world.getScoreboard().getObjectiveForSlot(0));

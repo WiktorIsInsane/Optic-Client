@@ -91,6 +91,7 @@ public abstract class MinecraftClientMixin implements gg.optic.client.account.Se
 
 	@Unique private static boolean optic$started;
 	@Unique private boolean optic$rightShiftDown;
+	@Unique private boolean optic$sprintKeyDown;
 
 	/** Grab the finished Mojang loading screen just before it is shown, for the fade into the menu. */
 	@Inject(
@@ -119,6 +120,17 @@ public abstract class MinecraftClientMixin implements gg.optic.client.account.Se
 			options.gamma = OpticClient.get().config().fullbrightGamma;
 		}
 		if (OpticClient.get().config().rawMouseInput) OpticRawInput.setEnabled(true);
+		// Start on your skin and the cape texture now, so Cosmetics and the game have them ready.
+		try {
+			MinecraftClient self = (MinecraftClient) (Object) this;
+			gg.optic.client.account.AccountHeads.skin(self, null, self.getSession().getUsername());
+			gg.optic.client.account.SharedAccounts.Snapshot snap = gg.optic.client.account.SharedAccounts.load();
+			for (gg.optic.client.account.SharedAccount account : snap.accounts) {
+				if (account.id.equals(snap.activeAccountId)) gg.optic.client.account.AccountHeads.skin(self, null, account.username);
+			}
+			gg.optic.client.cosmetics.OpticCosmetics.capeTexture();
+		} catch (Throwable ignored) {
+		}
 		// Borderless is a fullscreen look; the game starts windowed, so it is not applied on launch.
 	}
 
@@ -228,7 +240,16 @@ public abstract class MinecraftClientMixin implements gg.optic.client.account.Se
 		if (!(currentScreen instanceof OpticModScreen)) optic$rawWheelFallback(client);
 		boolean itemInfo = OpticClient.get().config().itemInfo;
 		if (options.heldItemTooltips != itemInfo) options.heldItemTooltips = itemInfo;
-		if (OpticClient.get().config().toggleSprint && options.forwardKey.isPressed()) {
+		// Toggle Sprint key: switch between toggle mode and holding sprint yourself (vanilla).
+		gg.optic.client.OpticConfig sprintCfg = OpticClient.get().config();
+		boolean sprintKey = sprintCfg.toggleSprint && currentScreen == null && sprintCfg.toggleSprintKey > 0
+			&& Keyboard.isKeyDown(sprintCfg.toggleSprintKey);
+		if (sprintKey && !optic$sprintKeyDown) {
+			sprintCfg.toggleSprintToggled = !sprintCfg.toggleSprintToggled;
+			sprintCfg.save();
+		}
+		optic$sprintKeyDown = sprintKey;
+		if (sprintCfg.toggleSprint && sprintCfg.toggleSprintToggled && options.forwardKey.isPressed()) {
 			if (client.field_3805 != null && optic$canSprint(client.field_3805)) {
 				client.field_3805.setSprinting(true);
 			}

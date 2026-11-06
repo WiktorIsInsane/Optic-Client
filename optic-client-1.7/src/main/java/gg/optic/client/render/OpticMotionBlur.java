@@ -19,6 +19,7 @@ public final class OpticMotionBlur {
 	private static int texW;
 	private static int texH;
 	private static boolean hasFrame;
+	private static boolean logged;
 
 	private OpticMotionBlur() {
 	}
@@ -61,7 +62,16 @@ public final class OpticMotionBlur {
 		GL11.glPushMatrix();
 		GL11.glLoadIdentity();
 		try {
+			// The world render can leave the lightmap unit active/enabled: use unit 0 only.
+			org.lwjgl.opengl.GL13.glActiveTexture(org.lwjgl.opengl.GL13.GL_TEXTURE1);
+			GL11.glDisable(GL11.GL_TEXTURE_2D);
+			org.lwjgl.opengl.GL13.glActiveTexture(org.lwjgl.opengl.GL13.GL_TEXTURE0);
+			GL11.glEnable(GL11.GL_TEXTURE_2D);
 			GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
+			if (!logged) {
+				logged = true;
+				System.out.println("[Optic] Motion blur running at " + w + "x" + h);
+			}
 			if (hasFrame) {
 				GL11.glDisable(GL11.GL_DEPTH_TEST);
 				GL11.glDepthMask(false);

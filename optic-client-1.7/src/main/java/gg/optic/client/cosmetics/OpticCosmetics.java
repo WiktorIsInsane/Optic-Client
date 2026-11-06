@@ -30,6 +30,7 @@ public final class OpticCosmetics {
 	private static final WingsModel WINGS = new WingsModel();
 	private static Identifier capeId;
 	private static boolean capeTried;
+	private static long capeTriedAt;
 
 	private OpticCosmetics() {
 	}
@@ -122,8 +123,18 @@ public final class OpticCosmetics {
 
 	/** 64x32 cape layout at 8x resolution: black, with the Optic logo on both faces. */
 	public static Identifier capeTexture() {
-		if (capeId != null || capeTried) return capeId;
+		if (capeId != null) {
+			// If the GL texture behind it is gone (a resource reload, some drivers), whatever was
+			// bound last (the skin) would be drawn on the cape. Rebuild it instead.
+			net.minecraft.client.texture.Texture t = MinecraftClient.getInstance().getTextureManager().getTexture(capeId);
+			if (t != null && GL11.glIsTexture(t.getGlId())) return capeId;
+			capeId = null;
+			capeTried = false;
+		}
+		// A failed build is retried every few seconds rather than never.
+		if (capeTried && System.currentTimeMillis() - capeTriedAt < 5000L) return null;
 		capeTried = true;
+		capeTriedAt = System.currentTimeMillis();
 		try {
 			int k = 8;
 			BufferedImage cape = new BufferedImage(64 * k, 32 * k, BufferedImage.TYPE_INT_ARGB);

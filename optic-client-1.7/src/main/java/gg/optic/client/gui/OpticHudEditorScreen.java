@@ -52,8 +52,40 @@ public final class OpticHudEditorScreen extends Screen {
 	private boolean snapGuideY;
 	private static final int SNAP = 6;
 
+	/**
+	 * Embedded: runs underneath the mod menu. No dim backdrop or Done button; items only get a
+	 * box while hovered or dragged, and nothing inside {@link #exclude} (the menu panel) reacts.
+	 */
+	private final boolean embedded;
+	private int[] exclude;
+
 	public OpticHudEditorScreen(Screen parent) {
+		this(parent, false);
+	}
+
+	public OpticHudEditorScreen(Screen parent, boolean embedded) {
 		this.parent = parent;
+		this.embedded = embedded;
+	}
+
+	/** Area (x, y, w, h) the embedded editor ignores: the menu on top of it. */
+	void setExclude(int x, int y, int w, int h) {
+		exclude = new int[] { x, y, w, h };
+	}
+
+	private boolean excluded(int mx, int my) {
+		return exclude != null && inside(mx, my, exclude[0], exclude[1], exclude[2], exclude[3]);
+	}
+
+	/** Mod menu click outside its panel. @return true when it grabbed a HUD item (or its gear/handle). */
+	boolean embeddedClick(int mouseX, int mouseY, int button) {
+		if (button != 0 || excluded(mouseX, mouseY)) return false;
+		rebuildItems();
+		return handleClick(mouseX, mouseY);
+	}
+
+	boolean isInteracting() {
+		return dragging != null || resizing;
 	}
 
 	@Override
@@ -184,7 +216,7 @@ public final class OpticHudEditorScreen extends Screen {
 			return OpticConfig.withBrackets(t, c.coordinatesBrackets);
 		}
 		if ("SPRINT".equals(id)) {
-			return OpticConfig.withBrackets("SPRINT", c.toggleSprintBrackets);
+			return OpticHud.sprintText(c, true);
 		}
 		return id;
 	}
@@ -306,6 +338,8 @@ public final class OpticHudEditorScreen extends Screen {
 	@Override
 	public void render(int mouseX, int mouseY, float delta) {
 		OpticConfig c = OpticClient.get().config();
+		// Mods can be switched on/off from the menu above while this runs.
+		if (embedded && dragging == null && !resizing) rebuildItems();
 		if (c.keystrokes && c.keystrokesY < 0) {
 			c.keystrokesY = OpticHudLayout.keystrokesBaseY(c, client);
 		}
@@ -335,12 +369,17 @@ public final class OpticHudEditorScreen extends Screen {
 
 		OpticFrame.begin(client);
 		try {
-		fill(0, 0, width, height, 0x44000000);
+		if (!embedded) fill(0, 0, width, height, 0x44000000);
 		if (snapGuideX) fill(width / 2, 0, width / 2 + 1, height, 0xEEFFFFFF);
 		if (snapGuideY) fill(0, height / 2, width, height / 2 + 1, 0xEEFFFFFF);
 
 		for (HudItem item : items) {
 			boolean active = item == selected || item == dragging;
+			if (embedded) {
+				// Keep the game view clean: a box only on the item under the mouse (or being moved).
+				boolean hover = inside(mouseX, mouseY, item.x, item.y, item.w, item.h) && !excluded(mouseX, mouseY);
+				if (!hover && item != dragging && !(resizing && item == selected)) continue;
+			}
 			outline(item.x, item.y, item.w, item.h, active ? 0xFF2DB4E7 : 0xAA2DB4E7);
 			fill(item.x, item.y, item.x + item.w, item.y + 1, active ? BOX_ACTIVE : BOX);
 			if (item.resizable) {
@@ -349,10 +388,12 @@ public final class OpticHudEditorScreen extends Screen {
 			drawGear(item.gearX, item.gearY, inside(mouseX, mouseY, item.gearX, item.gearY, (int) OpticHudLayout.GEAR, (int) OpticHudLayout.GEAR));
 		}
 
-		boolean doneHover = inside(mouseX, mouseY, doneX, doneY, doneW, doneH);
-		fill(doneX, doneY, doneX + doneW, doneY + doneH, doneHover ? 0xFF2A4A28 : 0xFF1A221A);
-		outline(doneX, doneY, doneW, doneH, ACCENT);
-		OpticUiFont.drawCenteredSized(client, "DONE", doneX + doneW / 2, doneY + 4, 0xFFFFFFFF, 10.0F);
+		if (!embedded) {
+			boolean doneHover = inside(mouseX, mouseY, doneX, doneY, doneW, doneH);
+			fill(doneX, doneY, doneX + doneW, doneY + doneH, doneHover ? 0xFF2A4A28 : 0xFF1A221A);
+			outline(doneX, doneY, doneW, doneH, ACCENT);
+			OpticUiFont.drawCenteredSized(client, "DONE", doneX + doneW / 2, doneY + 4, 0xFFFFFFFF, 10.0F);
+		}
 		} finally {
 			OpticFrame.end();
 		}
@@ -509,13 +550,17 @@ public final class OpticHudEditorScreen extends Screen {
 			client.setScreen(parent);
 			return;
 		}
+		if (!handleClick(mouseX, mouseY)) selected = null;
+	}
 
+	/** Gear, resize handle or item body under the mouse. @return true when one was hit */
+	private boolean handleClick(int mouseX, int mouseY) {
 		for (int i = items.size() - 1; i >= 0; i--) {
 			HudItem item = items.get(i);
 			if (inside(mouseX, mouseY, item.gearX, item.gearY, (int) OpticHudLayout.GEAR, (int) OpticHudLayout.GEAR)) {
 				OpticClient.get().config().save();
 				client.setScreen(OpticModScreen.openModule(item.moduleId));
-				return;
+				return true;
 			}
 			if (item.resizable && inside(mouseX, mouseY, item.handleX, item.handleY, (int) OpticHudLayout.HANDLE, (int) OpticHudLayout.HANDLE)) {
 				selected = item;
@@ -528,7 +573,7 @@ public final class OpticHudEditorScreen extends Screen {
 				float dx = mouseX - resizeOriginX;
 				float dy = mouseY - resizeOriginY;
 				resizeStartDist = Math.max(8.0F, (float) Math.sqrt(dx * dx + dy * dy));
-				return;
+				return true;
 			}
 			if (inside(mouseX, mouseY, item.x, item.y, item.w, item.h)) {
 				selected = item;
@@ -555,10 +600,10 @@ public final class OpticHudEditorScreen extends Screen {
 					dragOffX = mouseX - posX(item.id, c);
 					dragOffY = mouseY - posY(item.id, c);
 				}
-				return;
+				return true;
 			}
 		}
-		selected = null;
+		return false;
 	}
 
 	private int hitKeyIndex(int mouseX, int mouseY, OpticConfig c) {

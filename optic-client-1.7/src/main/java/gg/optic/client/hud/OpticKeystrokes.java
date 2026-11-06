@@ -159,7 +159,7 @@ public final class OpticKeystrokes {
 			OpticHud.fill(bx + bw - thick, by, thick, bh, border);
 		}
 
-		int text = blend(0xFF000000 | (c.keystrokesTextColor & 0xFFFFFF), 0xFF000000 | (c.keystrokesTextPressedColor & 0xFFFFFF), textAmount);
+		int text = blend(OpticConfig.argb(c.keystrokesTextColor), OpticConfig.argb(c.keystrokesTextPressedColor), textAmount);
 		if (index == 6) {
 			int bar = Math.max(1, Math.round(c.keystrokesSpaceThickness * c.keystrokesScale));
 			int barW = Math.max(8, w - Math.round(box(c) * 0.7F));

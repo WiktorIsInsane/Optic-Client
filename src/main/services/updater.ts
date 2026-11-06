@@ -67,14 +67,48 @@ export function checkLauncherUpdate(manual = false): Promise<UpdaterState> {
   return inflight
 }
 
-/** Startup path: check GitHub, then download+install when a packaged update exists. */
+/**
+ * Startup path: check GitHub and, when a packaged update exists, download it quietly in the
+ * background. Nothing is installed yet: that happens silently right after the next Play
+ * (installAfterPlay), or when the launcher quits.
+ */
 export async function bootAutoUpdate(): Promise<UpdaterState> {
   const checked = await checkLauncherUpdate(false)
   if (!app.isPackaged) return checked
-  if (checked.phase === 'available' || checked.phase === 'downloaded') {
-    return installLauncherUpdate()
-  }
+  if (checked.phase === 'available') return downloadLauncherUpdate()
   return checked
+}
+
+/** Download only; installing waits for Play (or quit). */
+export async function downloadLauncherUpdate(): Promise<UpdaterState> {
+  if (!app.isPackaged || state.phase !== 'available') return updaterState()
+  configureAutoUpdater()
+  publish('downloading', { latestVersion: state.latestVersion, percent: 0 })
+  try {
+    await autoUpdater.downloadUpdate()
+  } catch (error) {
+    if ((state.phase as UpdaterPhase) !== 'downloaded') {
+      return publish('error', { latestVersion: state.latestVersion, percent: 0, error: errorMessage(error) })
+    }
+  }
+  return updaterState()
+}
+
+/**
+ * Called once Play has started the game. The game runs on its own, so the launcher can now
+ * install a downloaded update silently (no installer window) and reopen itself. Still
+ * downloading: it installs as soon as the download finishes.
+ */
+export function installAfterPlay(): void {
+  if (!app.isPackaged) return
+  if (state.phase === 'downloaded') {
+    queueInstall()
+  } else if (state.phase === 'downloading') {
+    installRequested = true
+  } else if (state.phase === 'available') {
+    installRequested = true
+    void downloadLauncherUpdate()
+  }
 }
 
 export async function openUpdateDownload(): Promise<void> {
@@ -208,7 +242,8 @@ function queueInstall(): void {
   publish('installing', { latestVersion: state.latestVersion, percent: 100 })
   setTimeout(() => {
     markQuitting()
-    autoUpdater.quitAndInstall(false, true)
+    // Silent install (no installer window), then the launcher reopens.
+    autoUpdater.quitAndInstall(true, true)
   }, 700)
 }
 

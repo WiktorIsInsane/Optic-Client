@@ -30,12 +30,9 @@ function Boot() {
 
   const updater = snap?.updater
   const updating = isUpdaterBusy(updater?.phase)
-  // Hold splash for real update work; "checking" alone shouldn't block forever if it stalls.
-  const holdSplash =
-    updater?.phase === 'downloading' ||
-    updater?.phase === 'downloaded' ||
-    updater?.phase === 'installing' ||
-    (updater?.phase === 'available' && Boolean(updater.packaged))
+  // Updates download in the background and install silently after Play, so the splash only
+  // covers the few seconds of an actual install.
+  const holdSplash = updater?.phase === 'installing'
 
   const splashStatus = holdSplash
     ? updater?.phase === 'installing'
@@ -94,7 +91,8 @@ function Boot() {
     const current = useApp.getState().snap
     if (!current) return
     if (!current.settings.autoLaunchGame) return
-    if (isUpdaterBusy(current.updater.phase) && current.updater.phase !== 'checking') return
+    // Only an install in progress blocks auto-launch; downloads continue in the background.
+    if (current.updater.phase === 'installing') return
     const account = current.accounts.find((item) => item.id === current.activeAccountId)
     if (!account || current.launch.running) return
     autoLaunchTried.current = true

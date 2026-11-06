@@ -336,6 +336,7 @@ public final class OpticRevampOptions {
 		if ("freeLookKeyCode".equals(key)) return c.freeLookKeyCode;
 		if ("nametagsToggleAllKey".equals(key)) return c.nametagsToggleAllKey;
 		if ("nametagsTogglePlayersKey".equals(key)) return c.nametagsTogglePlayersKey;
+		if ("toggleSprintKey".equals(key)) return c.toggleSprintKey;
 		return null;
 	}
 
@@ -345,6 +346,7 @@ public final class OpticRevampOptions {
 		else if ("freeLookKeyCode".equals(key)) c.freeLookKeyCode = code;
 		else if ("nametagsToggleAllKey".equals(key)) c.nametagsToggleAllKey = code;
 		else if ("nametagsTogglePlayersKey".equals(key)) c.nametagsTogglePlayersKey = code;
+		else if ("toggleSprintKey".equals(key)) c.toggleSprintKey = code;
 		else return false;
 		return true;
 	}
