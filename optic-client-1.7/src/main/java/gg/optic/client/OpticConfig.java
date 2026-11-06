@@ -339,6 +339,11 @@ public final class OpticConfig {
 
 	// Fullbright
 	public float fullbrightGamma = 16.0F;
+	/** Lighting: Full Bright (every light level bright) or, when off, Brightness Boost 1-10. */
+	public boolean fullbrightFull = true;
+	public float fullbrightBoost = 1.0F;
+	/** Key that flips Full Bright (0 = none). */
+	public int fullbrightKey = 0;
 
 	// Animations (Badlion-style 1.7 options; ON = 1.7 behavior)
 	public boolean animations = true;
@@ -450,6 +455,8 @@ public final class OpticConfig {
 	public int weatherMode = OpticEnvironment.WEATHER_CLEAR;
 	/** Rain/snow opacity in percent (0-100). */
 	public float weatherOpacity = 100.0F;
+	/** Snowflake tint (white = normal snow). */
+	public int weatherSnowColor = 0xFFFFFF;
 
 	// Hurt Cam (Lunar-style)
 	public boolean disableHurtCam = false;
@@ -1157,7 +1164,8 @@ public final class OpticConfig {
 	}
 
 	public static int withAlpha(int rgb, int alpha) {
-		return ((alpha & 0xFF) << 24) | (rgb & 0xFFFFFF);
+		// Scaled by the colour setting's own opacity (opacity bar); old colours are fully opaque.
+		return (((alpha & 0xFF) * opacityOf(rgb) / 255) << 24) | (rgb & 0xFFFFFF);
 	}
 
 	/**
@@ -2931,6 +2939,10 @@ public final class OpticConfig {
 		nickHideOthersSkin = read(values, "nickHideOthersSkin", nickHideOthersSkin);
 		motionBlur = read(values, "motionBlur", motionBlur);
 		weatherOpacity = clampFloat(readFloat(values, "weatherOpacity", weatherOpacity), 0.0F, 100.0F);
+		weatherSnowColor = readColor(values, "weatherSnowColor", weatherSnowColor);
+		fullbrightFull = read(values, "fullbrightFull", fullbrightFull);
+		fullbrightBoost = clampFloat(readFloat(values, "fullbrightBoost", fullbrightBoost), 1.0F, 10.0F);
+		fullbrightKey = readInt(values, "fullbrightKey", fullbrightKey);
 		toggleSprintKey = readInt(values, "toggleSprintKey", toggleSprintKey);
 		toggleSprintToggled = read(values, "toggleSprintToggled", toggleSprintToggled);
 		motionBlurType = Math.max(0, Math.min(2, readInt(values, "motionBlurType", motionBlurType)));
@@ -2950,6 +2962,10 @@ public final class OpticConfig {
 		values.setProperty("nickHideOthersSkin", Boolean.toString(nickHideOthersSkin));
 		values.setProperty("motionBlur", Boolean.toString(motionBlur));
 		values.setProperty("weatherOpacity", Float.toString(weatherOpacity));
+		values.setProperty("weatherSnowColor", toHex(weatherSnowColor));
+		values.setProperty("fullbrightFull", Boolean.toString(fullbrightFull));
+		values.setProperty("fullbrightBoost", Float.toString(fullbrightBoost));
+		values.setProperty("fullbrightKey", Integer.toString(fullbrightKey));
 		values.setProperty("toggleSprintKey", Integer.toString(toggleSprintKey));
 		values.setProperty("toggleSprintToggled", Boolean.toString(toggleSprintToggled));
 		values.setProperty("motionBlurType", Integer.toString(motionBlurType));
@@ -2969,6 +2985,10 @@ public final class OpticConfig {
 		o.addProperty("nickHideOthersSkin", nickHideOthersSkin);
 		o.addProperty("motionBlur", motionBlur);
 		o.addProperty("weatherOpacity", weatherOpacity);
+		o.addProperty("weatherSnowColor", toHex(weatherSnowColor));
+		o.addProperty("fullbrightFull", fullbrightFull);
+		o.addProperty("fullbrightBoost", fullbrightBoost);
+		o.addProperty("fullbrightKey", fullbrightKey);
 		o.addProperty("toggleSprintKey", toggleSprintKey);
 		o.addProperty("toggleSprintToggled", toggleSprintToggled);
 		o.addProperty("motionBlurType", motionBlurType);
@@ -2988,6 +3008,10 @@ public final class OpticConfig {
 		nickHideOthersSkin = getBool(o, "nickHideOthersSkin", nickHideOthersSkin);
 		motionBlur = getBool(o, "motionBlur", motionBlur);
 		weatherOpacity = clampFloat(getFloat(o, "weatherOpacity", weatherOpacity), 0.0F, 100.0F);
+		weatherSnowColor = getColor(o, "weatherSnowColor", weatherSnowColor);
+		fullbrightFull = getBool(o, "fullbrightFull", fullbrightFull);
+		fullbrightBoost = clampFloat(getFloat(o, "fullbrightBoost", fullbrightBoost), 1.0F, 10.0F);
+		fullbrightKey = getInt(o, "fullbrightKey", fullbrightKey);
 		toggleSprintKey = getInt(o, "toggleSprintKey", toggleSprintKey);
 		toggleSprintToggled = getBool(o, "toggleSprintToggled", toggleSprintToggled);
 		motionBlurType = Math.max(0, Math.min(2, getInt(o, "motionBlurType", motionBlurType)));

@@ -92,6 +92,7 @@ public abstract class MinecraftClientMixin implements gg.optic.client.account.Se
 	@Unique private static boolean optic$started;
 	@Unique private boolean optic$rightShiftDown;
 	@Unique private boolean optic$sprintKeyDown;
+	@Unique private boolean optic$brightKeyDown;
 
 	/** Grab the finished Mojang loading screen just before it is shown, for the fade into the menu. */
 	@Inject(
@@ -116,9 +117,8 @@ public abstract class MinecraftClientMixin implements gg.optic.client.account.Se
 			OpticClient.get().onInitializeClient();
 		}
 		Display.setTitle("Optic 1.7.10");
-		if (OpticClient.get().config().fullbright) {
-			options.gamma = OpticClient.get().config().fullbrightGamma;
-		}
+		// Fullbright works on the lightmap (OpticFullbright); clear the old gamma trick if it stuck.
+		if (options.gamma > 1.0F) options.gamma = 1.0F;
 		if (OpticClient.get().config().rawMouseInput) OpticRawInput.setEnabled(true);
 		// Start on your skin and the cape texture now, so Cosmetics and the game have them ready.
 		try {
@@ -249,6 +249,14 @@ public abstract class MinecraftClientMixin implements gg.optic.client.account.Se
 			sprintCfg.save();
 		}
 		optic$sprintKeyDown = sprintKey;
+		// Full Bright key: flips Full Bright while the Fullbright mod is on.
+		boolean brightKey = sprintCfg.fullbright && currentScreen == null && sprintCfg.fullbrightKey > 0
+			&& Keyboard.isKeyDown(sprintCfg.fullbrightKey);
+		if (brightKey && !optic$brightKeyDown) {
+			sprintCfg.fullbrightFull = !sprintCfg.fullbrightFull;
+			sprintCfg.save();
+		}
+		optic$brightKeyDown = brightKey;
 		if (sprintCfg.toggleSprint && sprintCfg.toggleSprintToggled && options.forwardKey.isPressed()) {
 			if (client.field_3805 != null && optic$canSprint(client.field_3805)) {
 				client.field_3805.setSprinting(true);

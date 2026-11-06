@@ -39,14 +39,16 @@ public final class OpticHitboxes {
 			box.maxZ - entity.z + z
 		);
 
-		int rgb = colorFor(entity, c) & 0xFFFFFF;
+		// Full stored value: its top byte is the opacity bar's transparency.
+		int rgb = colorFor(entity, c);
 		GlStateManager.depthMask(false);
 		GlStateManager.disableTexture();
 		GlStateManager.disableLighting();
 		GlStateManager.disableCull();
-		GlStateManager.disableBlend();
+		GlStateManager.enableBlend();
+		GlStateManager.blendFunc(770, 771);
 		GL11.glLineWidth(2.0F);
-		GlStateManager.color(((rgb >> 16) & 0xFF) / 255.0F, ((rgb >> 8) & 0xFF) / 255.0F, (rgb & 0xFF) / 255.0F, 1.0F);
+		GlStateManager.color(((rgb >> 16) & 0xFF) / 255.0F, ((rgb >> 8) & 0xFF) / 255.0F, (rgb & 0xFF) / 255.0F, gg.optic.client.OpticConfig.opacityOf(rgb) / 255.0F);
 		OpticBlockOverlay.drawOutline(render);
 
 		if (!c.hitboxHideLook) {
@@ -74,6 +76,7 @@ public final class OpticHitboxes {
 		GlStateManager.enableLighting();
 		GlStateManager.enableCull();
 		GlStateManager.depthMask(true);
+		GlStateManager.disableBlend();
 		GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
 	}
 }

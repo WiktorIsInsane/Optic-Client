@@ -69,7 +69,7 @@ public final class OpticBlockOverlay {
 			((rgb >> 16) & 0xFF) / 255.0F,
 			((rgb >> 8) & 0xFF) / 255.0F,
 			(rgb & 0xFF) / 255.0F,
-			Math.max(0.0F, Math.min(1.0F, alpha))
+			Math.max(0.0F, Math.min(1.0F, alpha)) * gg.optic.client.OpticConfig.opacityOf(rgb) / 255.0F
 		};
 	}
 

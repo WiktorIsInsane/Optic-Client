@@ -532,7 +532,6 @@ public final class OpticModScreen extends Screen {
 			case TOGGLE_SPRINT: c.toggleSprint = !c.toggleSprint; break;
 			case FULLBRIGHT:
 				c.fullbright = !c.fullbright;
-				client.options.gamma = c.fullbright ? c.fullbrightGamma : 1.0F;
 				break;
 			case ANIMATIONS: c.animations = !c.animations; break;
 			case PARTICLES:
@@ -983,8 +982,8 @@ public final class OpticModScreen extends Screen {
 
 	private void applyLoadedProfile() {
 		OpticConfig c = OpticClient.get().config();
-		if (c.fullbright) client.options.gamma = c.fullbrightGamma;
-		else client.options.gamma = Math.min(client.options.gamma, 1.0F);
+		// Fullbright works on the lightmap now; undo the old gamma trick if it is still set.
+		if (client.options.gamma > 1.0F) client.options.gamma = 1.0F;
 		OpticRawInput.setEnabled(c.rawMouseInput);
 		OpticBorderless.apply(c.borderlessFullscreen);
 		if (client != null && client.options != null) {
@@ -2150,7 +2149,12 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.toggle("toggleSprintBrackets", "Brackets"));
 				break;
 			case FULLBRIGHT:
-				options.add(ConfigOption.slider("fullbrightGamma", "Brightness", 1.0F, 16.0F));
+				options.add(ConfigOption.header("Lighting"));
+				options.add(ConfigOption.toggle("fullbrightFull", "Full Bright"));
+				if (!OpticClient.get().config().fullbrightFull) {
+					options.add(ConfigOption.slider("fullbrightBoost", "Brightness Boost", 1.0F, 10.0F));
+				}
+				options.add(ConfigOption.key("fullbrightKey", "Full Bright Key"));
 				break;
 			case ANIMATIONS:
 				options.add(ConfigOption.header("General"));
@@ -2249,6 +2253,7 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.header("General"));
 				options.add(ConfigOption.cycle("weatherMode", "Weather"));
 				options.add(ConfigOption.slider("weatherOpacity", "Rain/Snow Opacity", 0.0F, 100.0F));
+				options.add(ConfigOption.color("weatherSnowColor", "Snow Color"));
 				break;
 			case NICK_HIDER: {
 				OpticConfig nc = OpticClient.get().config();
@@ -2455,6 +2460,7 @@ public final class OpticModScreen extends Screen {
 
 	private boolean getBool(String key) {
 		OpticConfig c = OpticClient.get().config();
+		if ("fullbrightFull".equals(key)) return c.fullbrightFull;
 		if ("nickHideOwnName".equals(key)) return c.nickHideOwnName;
 		if ("nickHideOthers".equals(key)) return c.nickHideOthers;
 		if ("nickCustomSuffix".equals(key)) return c.nickCustomSuffix;
@@ -2555,6 +2561,11 @@ public final class OpticModScreen extends Screen {
 
 	private void setBool(String key, boolean value) {
 		OpticConfig c = OpticClient.get().config();
+		if ("fullbrightFull".equals(key)) {
+			c.fullbrightFull = value;
+			c.save();
+			return;
+		}
 		if (key.startsWith("nick")) {
 			if ("nickHideOwnName".equals(key)) c.nickHideOwnName = value;
 			else if ("nickHideOthers".equals(key)) c.nickHideOthers = value;
@@ -2840,6 +2851,7 @@ public final class OpticModScreen extends Screen {
 		if (extra != null) return extra.floatValue();
 		if ("motionBlurAmount".equals(key)) return c.motionBlurAmount;
 		if ("weatherOpacity".equals(key)) return c.weatherOpacity;
+		if ("fullbrightBoost".equals(key)) return c.fullbrightBoost;
 		if ("fullbrightGamma".equals(key)) return c.fullbrightGamma;
 		if ("skins3dDistance".equals(key)) return c.skins3dDistance;
 		if ("particleMultiplier".equals(key)) return c.particleMultiplier;
@@ -2868,7 +2880,10 @@ public final class OpticModScreen extends Screen {
 			c.save();
 			return;
 		}
-		if ("weatherOpacity".equals(key)) {
+		if ("fullbrightBoost".equals(key)) {
+			c.fullbrightBoost = Math.max(1.0F, Math.min(10.0F, Math.round(value * 10.0F) / 10.0F));
+			c.save();
+		} else 		if ("weatherOpacity".equals(key)) {
 			c.weatherOpacity = Math.max(0.0F, Math.min(100.0F, Math.round(value)));
 			c.save();
 		} else 		if ("motionBlurAmount".equals(key)) {
@@ -2880,7 +2895,7 @@ public final class OpticModScreen extends Screen {
 			c.save();
 		} else if ("fullbrightGamma".equals(key)) {
 			c.fullbrightGamma = Math.max(1.0F, Math.min(16.0F, value));
-			if (c.fullbright) client.options.gamma = c.fullbrightGamma;
+			// Old Brightness slider (gamma); Fullbright now uses Brightness Boost on the lightmap.
 			c.save();
 		} else if ("fov".equals(key)) {
 			c.fov = Math.max(30.0F, Math.min(150.0F, value));

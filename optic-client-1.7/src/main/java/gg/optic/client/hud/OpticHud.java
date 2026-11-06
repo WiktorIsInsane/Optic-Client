@@ -432,7 +432,7 @@ public final class OpticHud {
 	}
 
 	public static int withAlpha(int rgb, int alpha) {
-		return (alpha << 24) | (rgb & 0xFFFFFF);
+		return OpticConfig.withAlpha(rgb, alpha);
 	}
 
 	private static String join(List<Piece> pieces) {

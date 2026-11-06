@@ -68,14 +68,14 @@ export function checkLauncherUpdate(manual = false): Promise<UpdaterState> {
 }
 
 /**
- * Startup path: check GitHub and, when a packaged update exists, download it quietly in the
- * background. Nothing is installed yet: that happens silently right after the next Play
- * (installAfterPlay), or when the launcher quits.
+ * Startup path: when a packaged update exists, download it and install it right away,
+ * silently (no installer window, no Install button) while the launcher shows "Updating…",
+ * then reopen. A launcher left open finds later updates hourly and installs them after Play.
  */
 export async function bootAutoUpdate(): Promise<UpdaterState> {
   const checked = await checkLauncherUpdate(false)
   if (!app.isPackaged) return checked
-  if (checked.phase === 'available') return downloadLauncherUpdate()
+  if (checked.phase === 'available' || checked.phase === 'downloaded') return installLauncherUpdate()
   return checked
 }
 

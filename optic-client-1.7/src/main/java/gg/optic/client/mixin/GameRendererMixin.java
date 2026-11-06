@@ -20,6 +20,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /** 1.7 reads the camera rotation through LivingEntity (its camera entity type). 1.7.10 camera mods: FOV, Zoom, Hurt Cam, Free Look and Minimal Bobbing. Mouse timing stays vanilla. */
 @Mixin(GameRenderer.class)
 public abstract class GameRendererMixin {
+	@org.spongepowered.asm.mixin.Shadow @org.spongepowered.asm.mixin.Final private net.minecraft.client.texture.NativeImageBackedTexture lightmapTexture;
+	@org.spongepowered.asm.mixin.Shadow @org.spongepowered.asm.mixin.Final private int[] lightmapTexturePixels;
+
+	/** Fullbright: brighten the lightmap the game just built (every exit of the method). */
+	@Inject(method = "updateLightmap(F)V", at = @At("RETURN"))
+	private void optic$fullbright(float tickDelta, CallbackInfo ci) {
+		gg.optic.client.render.OpticFullbright.apply(lightmapTexturePixels, lightmapTexture);
+	}
+
 	/**
 	 * Motion Blur: blend in the previous frame right after the frame's world render returns,
 	 * before the HUD. Hooked at the call site (both of the frame's renderWorld calls) rather

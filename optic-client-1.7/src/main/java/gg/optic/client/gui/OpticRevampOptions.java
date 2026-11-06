@@ -164,6 +164,7 @@ public final class OpticRevampOptions {
 	}
 
 	public static Integer getColor(OpticConfig c, String key) {
+		if ("weatherSnowColor".equals(key)) return c.weatherSnowColor;
 		if ("pingLowColor".equals(key)) return c.pingLowColor;
 		if ("pingMediumColor".equals(key)) return c.pingMediumColor;
 		if ("pingHighColor".equals(key)) return c.pingHighColor;
@@ -202,7 +203,8 @@ public final class OpticRevampOptions {
 	}
 
 	public static boolean setColor(OpticConfig c, String key, int color) {
-		if ("pingLowColor".equals(key)) c.pingLowColor = color;
+		if ("weatherSnowColor".equals(key)) c.weatherSnowColor = color;
+		else 		if ("pingLowColor".equals(key)) c.pingLowColor = color;
 		else if ("pingMediumColor".equals(key)) c.pingMediumColor = color;
 		else if ("pingHighColor".equals(key)) c.pingHighColor = color;
 		else if ("pingExtremeColor".equals(key)) c.pingExtremeColor = color;
@@ -337,6 +339,7 @@ public final class OpticRevampOptions {
 		if ("nametagsToggleAllKey".equals(key)) return c.nametagsToggleAllKey;
 		if ("nametagsTogglePlayersKey".equals(key)) return c.nametagsTogglePlayersKey;
 		if ("toggleSprintKey".equals(key)) return c.toggleSprintKey;
+		if ("fullbrightKey".equals(key)) return c.fullbrightKey;
 		return null;
 	}
 
@@ -347,6 +350,7 @@ public final class OpticRevampOptions {
 		else if ("nametagsToggleAllKey".equals(key)) c.nametagsToggleAllKey = code;
 		else if ("nametagsTogglePlayersKey".equals(key)) c.nametagsTogglePlayersKey = code;
 		else if ("toggleSprintKey".equals(key)) c.toggleSprintKey = code;
+		else if ("fullbrightKey".equals(key)) c.fullbrightKey = code;
 		else return false;
 		return true;
 	}

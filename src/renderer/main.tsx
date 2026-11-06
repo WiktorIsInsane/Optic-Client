@@ -30,9 +30,13 @@ function Boot() {
 
   const updater = snap?.updater
   const updating = isUpdaterBusy(updater?.phase)
-  // Updates download in the background and install silently after Play, so the splash only
-  // covers the few seconds of an actual install.
-  const holdSplash = updater?.phase === 'installing'
+  // On startup an update downloads and installs silently behind the "Updating…" splash
+  // (the launcher then reopens). "checking" alone shouldn't block forever if it stalls.
+  const holdSplash =
+    updater?.phase === 'downloading' ||
+    updater?.phase === 'downloaded' ||
+    updater?.phase === 'installing' ||
+    (updater?.phase === 'available' && Boolean(updater.packaged))
 
   const splashStatus = holdSplash
     ? updater?.phase === 'installing'
@@ -91,8 +95,8 @@ function Boot() {
     const current = useApp.getState().snap
     if (!current) return
     if (!current.settings.autoLaunchGame) return
-    // Only an install in progress blocks auto-launch; downloads continue in the background.
-    if (current.updater.phase === 'installing') return
+    // Don't auto-launch while the launcher is updating itself (it restarts when done).
+    if (isUpdaterBusy(current.updater.phase) && current.updater.phase !== 'checking') return
     const account = current.accounts.find((item) => item.id === current.activeAccountId)
     if (!account || current.launch.running) return
     autoLaunchTried.current = true

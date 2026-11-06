@@ -223,6 +223,6 @@ public final class OpticCrosshair {
 		float r = ((rgb >> 16) & 255) / 255.0F;
 		float g = ((rgb >> 8) & 255) / 255.0F;
 		float b = (rgb & 255) / 255.0F;
-		GlStateManager.color(r, g, b, alpha);
+		GlStateManager.color(r, g, b, alpha * OpticConfig.opacityOf(rgb) / 255.0F);
 	}
 }

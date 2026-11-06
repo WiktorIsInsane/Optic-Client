@@ -35,6 +35,28 @@ public abstract class PlayerEntityRendererMixin {
 		OpticSlimArms.apply(this.field_2133, slim);
 	}
 
+	/** Player whose extras (ears, cape, held items) are being drawn right now. */
+	@org.spongepowered.asm.mixin.Unique private static AbstractClientPlayerEntity optic$extrasFor;
+
+	@Inject(method = "method_1582(Lnet/minecraft/client/network/AbstractClientPlayerEntity;F)V", at = @At("HEAD"))
+	private void optic$extrasStart(AbstractClientPlayerEntity player, float tickDelta, CallbackInfo ci) {
+		optic$extrasFor = player;
+	}
+
+	/**
+	 * Nick Hider: a player shown as Steve doesn't get their cape (vanilla or OptiFine) either.
+	 * Their cape texture could otherwise end up as Steve's skin, and a cape gives away who it is.
+	 */
+	@org.spongepowered.asm.mixin.injection.Redirect(
+		method = "method_1582(Lnet/minecraft/client/network/AbstractClientPlayerEntity;F)V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/entity/model/BiPedModel;method_1171(F)V"),
+		require = 0
+	)
+	private void optic$hiddenPlayerCape(BiPedModel model, float scale) {
+		if (gg.optic.client.render.OpticNickHider.hideSkin(optic$extrasFor)) return;
+		model.method_1171(scale);
+	}
+
 	@Inject(method = "method_1582(Lnet/minecraft/client/network/AbstractClientPlayerEntity;F)V", at = @At("TAIL"))
 	private void optic$cosmetics(AbstractClientPlayerEntity player, float tickDelta, CallbackInfo ci) {
 		if (!OpticCosmetics.isLocal(player) || player.isInvisible()) return;
