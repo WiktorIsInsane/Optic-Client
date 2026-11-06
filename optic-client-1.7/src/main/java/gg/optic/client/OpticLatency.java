@@ -1,7 +1,11 @@
 package gg.optic.client;
 
+import org.lwjgl.opengl.ARBSync;
+import org.lwjgl.opengl.ContextCapabilities;
 import org.lwjgl.opengl.Display;
-import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL32;
+import org.lwjgl.opengl.GLContext;
+import org.lwjgl.opengl.GLSync;
 
 /**
  * Frame pacing and input latency.
@@ -57,9 +61,50 @@ public final class OpticLatency {
 		}
 	}
 
-	/** After the frame is swapped to the screen. */
+	/** Fence placed after the last frame; waited on after the next swap. */
+	private static GLSync previousFrame;
+	private static boolean fencesBroken;
+
+	/**
+	 * After the frame is swapped to the screen. Waits only until the PREVIOUS frame has
+	 * finished on the GPU, so at most one frame is ever queued (like "max pre-rendered frames 1")
+	 * while CPU and GPU still overlap. A full glFinish every frame stalled both and made frame
+	 * times jump.
+	 */
 	public static void afterSwap() {
 		OpticConfig c = config();
-		if (c != null && c.lowLatencyMode) GL11.glFinish();
+		if (c == null || !c.lowLatencyMode || fencesBroken) {
+			dropFence();
+			return;
+		}
+		try {
+			ContextCapabilities caps = GLContext.getCapabilities();
+			boolean core = caps.OpenGL32;
+			if (!core && !caps.GL_ARB_sync) return;
+			if (previousFrame != null) {
+				// Normally returns at once (the GPU is a frame behind at most); capped at 20 ms.
+				if (core) GL32.glClientWaitSync(previousFrame, GL32.GL_SYNC_FLUSH_COMMANDS_BIT, 20000000L);
+				else ARBSync.glClientWaitSync(previousFrame, ARBSync.GL_SYNC_FLUSH_COMMANDS_BIT, 20000000L);
+				dropFence();
+			}
+			previousFrame = core
+				? GL32.glFenceSync(GL32.GL_SYNC_GPU_COMMANDS_COMPLETE, 0)
+				: ARBSync.glFenceSync(ARBSync.GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+		} catch (Throwable t) {
+			// Driver without working fences: stay off rather than risk anything.
+			fencesBroken = true;
+			previousFrame = null;
+		}
+	}
+
+	/** Forget the fence (setting off, or the window/context was recreated). */
+	public static void dropFence() {
+		if (previousFrame == null) return;
+		try {
+			if (GLContext.getCapabilities().OpenGL32) GL32.glDeleteSync(previousFrame);
+			else ARBSync.glDeleteSync(previousFrame);
+		} catch (Throwable ignored) {
+		}
+		previousFrame = null;
 	}
 }
