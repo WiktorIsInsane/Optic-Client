@@ -489,6 +489,11 @@ public final class OpticModScreen extends Screen {
 			c.save();
 			return;
 		}
+		if ("hitDelayFix".equals(key)) {
+			c.hitDelayFix = !c.hitDelayFix;
+			c.save();
+			return;
+		}
 		if ("minimalBobbing".equals(key)) {
 			c.minimalBobbing = !c.minimalBobbing;
 			c.save();
@@ -1140,6 +1145,9 @@ public final class OpticModScreen extends Screen {
 		rowY += 12;
 		rowY = drawSettingToggle("Precise Frame Limiter", pc.preciseFrameLimiter, "preciseFrameLimiter", contentX, rowY, listW, mouseX, mouseY);
 		shadowed("Every frame the same length at your Max Framerate, for smoother frame pacing.", contentX, rowY - 4, 0xFFAEB4BF, 7.5F);
+		rowY += 12;
+		rowY = drawSettingToggle("Hit Delay Fix", pc.hitDelayFix, "hitDelayFix", contentX, rowY, listW, mouseX, mouseY);
+		shadowed("No 0.5s click lock after a missed swing. Check the server's rules; some don't allow it.", contentX, rowY - 4, 0xFFAEB4BF, 7.5F);
 	}
 
 	private int drawSettingsHeader(int x, int y, String label) {

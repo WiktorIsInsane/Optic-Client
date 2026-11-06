@@ -169,6 +169,20 @@ public abstract class MinecraftClientMixin implements gg.optic.client.account.Se
 	private void optic$keepFullscreenOnTabOut(MinecraftClient client) {
 	}
 
+	/**
+	 * Hit Delay Fix: vanilla 1.7 locks left click for 10 ticks (0.5 s) after a swing that hits
+	 * nothing, so clicks right after a miss do nothing. With the setting on, a miss leaves no
+	 * lockout. Every click is still a normal click, sent at the normal time.
+	 */
+	@Redirect(
+		method = "doAttack()V",
+		at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;attackCooldown:I", opcode = org.objectweb.asm.Opcodes.PUTFIELD),
+		require = 0
+	)
+	private void optic$hitDelayFix(MinecraftClient client, int value) {
+		((OpticAttackCooldownAccess) client).optic$setAttackCooldown(OpticClient.get().config().hitDelayFix ? 0 : value);
+	}
+
 	/** Precise Frame Limiter: even frame times at the FPS cap (see OpticLatency). */
 	@Redirect(
 		method = "runGameLoop()V",

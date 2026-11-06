@@ -2919,6 +2919,8 @@ public final class OpticConfig {
 	public boolean preciseFrameLimiter = true;
 	/** glFinish after each frame: one frame in flight, lowest input-to-screen delay. */
 	public boolean lowLatencyMode = true;
+	/** No 0.5 s left-click lockout after a missed swing (opt-in: some servers' rules list it). */
+	public boolean hitDelayFix = false;
 
 	// ---- PotPvP pearl cooldown ----
 	public boolean pvpPearlCooldown = true;
@@ -2978,6 +2980,7 @@ public final class OpticConfig {
 		fullbrightKey = readInt(values, "fullbrightKey", fullbrightKey);
 		preciseFrameLimiter = read(values, "preciseFrameLimiter", preciseFrameLimiter);
 		lowLatencyMode = read(values, "lowLatencyMode", lowLatencyMode);
+		hitDelayFix = read(values, "hitDelayFix", hitDelayFix);
 		pvpPearlCooldown = read(values, "pvpPearlCooldown", pvpPearlCooldown);
 		pvpPearlSeconds = clampFloat(readFloat(values, "pvpPearlSeconds", pvpPearlSeconds), 1.0F, 30.0F);
 		pearlX = readInt(values, "pearlX", pearlX);
@@ -3016,6 +3019,7 @@ public final class OpticConfig {
 		values.setProperty("fullbrightKey", Integer.toString(fullbrightKey));
 		values.setProperty("preciseFrameLimiter", Boolean.toString(preciseFrameLimiter));
 		values.setProperty("lowLatencyMode", Boolean.toString(lowLatencyMode));
+		values.setProperty("hitDelayFix", Boolean.toString(hitDelayFix));
 		values.setProperty("pvpPearlCooldown", Boolean.toString(pvpPearlCooldown));
 		values.setProperty("pvpPearlSeconds", Float.toString(pvpPearlSeconds));
 		values.setProperty("pearlX", Integer.toString(pearlX));
@@ -3054,6 +3058,7 @@ public final class OpticConfig {
 		o.addProperty("fullbrightKey", fullbrightKey);
 		o.addProperty("preciseFrameLimiter", preciseFrameLimiter);
 		o.addProperty("lowLatencyMode", lowLatencyMode);
+		o.addProperty("hitDelayFix", hitDelayFix);
 		o.addProperty("pvpPearlCooldown", pvpPearlCooldown);
 		o.addProperty("pvpPearlSeconds", pvpPearlSeconds);
 		o.addProperty("pearlX", pearlX);
@@ -3092,6 +3097,7 @@ public final class OpticConfig {
 		fullbrightKey = getInt(o, "fullbrightKey", fullbrightKey);
 		preciseFrameLimiter = getBool(o, "preciseFrameLimiter", preciseFrameLimiter);
 		lowLatencyMode = getBool(o, "lowLatencyMode", lowLatencyMode);
+		hitDelayFix = getBool(o, "hitDelayFix", hitDelayFix);
 		pvpPearlCooldown = getBool(o, "pvpPearlCooldown", pvpPearlCooldown);
 		pvpPearlSeconds = clampFloat(getFloat(o, "pvpPearlSeconds", pvpPearlSeconds), 1.0F, 30.0F);
 		pearlX = getInt(o, "pearlX", pearlX);

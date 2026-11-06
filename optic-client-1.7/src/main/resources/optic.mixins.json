@@ -39,6 +39,7 @@
     "MinecraftClientMixin",
     "MouseInputMixin",
     "MultiplayerScreenMixin",
+    "OpticAttackCooldownAccess",
     "OpticConnectionAccess",
     "OpticGameRendererAccess",
     "OpticListAccess",
