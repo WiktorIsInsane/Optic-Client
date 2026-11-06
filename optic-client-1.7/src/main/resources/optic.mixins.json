@@ -45,6 +45,7 @@
     "OpticListAccess",
     "OpticPanoramaAccess",
     "OpticScreenAccess",
+    "OtherPlayerSmoothingMixin",
     "ParticleManagerMixin",
     "PlayerEntityRendererMixin",
     "PlayerSkinTextureMixin",

@@ -2921,6 +2921,8 @@ public final class OpticConfig {
 	public boolean lowLatencyMode = true;
 	/** No 0.5 s left-click lockout after a missed swing (opt-in: some servers' rules list it). */
 	public boolean hitDelayFix = false;
+	/** Other players reach each new server position in 1 tick instead of 3 (visual only). */
+	public boolean realTimeOpponents = false;
 
 	// ---- PotPvP pearl cooldown ----
 	public boolean pvpPearlCooldown = true;
@@ -2981,6 +2983,7 @@ public final class OpticConfig {
 		preciseFrameLimiter = read(values, "preciseFrameLimiter", preciseFrameLimiter);
 		lowLatencyMode = read(values, "lowLatencyMode", lowLatencyMode);
 		hitDelayFix = read(values, "hitDelayFix", hitDelayFix);
+		realTimeOpponents = read(values, "realTimeOpponents", realTimeOpponents);
 		pvpPearlCooldown = read(values, "pvpPearlCooldown", pvpPearlCooldown);
 		pvpPearlSeconds = clampFloat(readFloat(values, "pvpPearlSeconds", pvpPearlSeconds), 1.0F, 30.0F);
 		pearlX = readInt(values, "pearlX", pearlX);
@@ -3020,6 +3023,7 @@ public final class OpticConfig {
 		values.setProperty("preciseFrameLimiter", Boolean.toString(preciseFrameLimiter));
 		values.setProperty("lowLatencyMode", Boolean.toString(lowLatencyMode));
 		values.setProperty("hitDelayFix", Boolean.toString(hitDelayFix));
+		values.setProperty("realTimeOpponents", Boolean.toString(realTimeOpponents));
 		values.setProperty("pvpPearlCooldown", Boolean.toString(pvpPearlCooldown));
 		values.setProperty("pvpPearlSeconds", Float.toString(pvpPearlSeconds));
 		values.setProperty("pearlX", Integer.toString(pearlX));
@@ -3059,6 +3063,7 @@ public final class OpticConfig {
 		o.addProperty("preciseFrameLimiter", preciseFrameLimiter);
 		o.addProperty("lowLatencyMode", lowLatencyMode);
 		o.addProperty("hitDelayFix", hitDelayFix);
+		o.addProperty("realTimeOpponents", realTimeOpponents);
 		o.addProperty("pvpPearlCooldown", pvpPearlCooldown);
 		o.addProperty("pvpPearlSeconds", pvpPearlSeconds);
 		o.addProperty("pearlX", pearlX);
@@ -3098,6 +3103,7 @@ public final class OpticConfig {
 		preciseFrameLimiter = getBool(o, "preciseFrameLimiter", preciseFrameLimiter);
 		lowLatencyMode = getBool(o, "lowLatencyMode", lowLatencyMode);
 		hitDelayFix = getBool(o, "hitDelayFix", hitDelayFix);
+		realTimeOpponents = getBool(o, "realTimeOpponents", realTimeOpponents);
 		pvpPearlCooldown = getBool(o, "pvpPearlCooldown", pvpPearlCooldown);
 		pvpPearlSeconds = clampFloat(getFloat(o, "pvpPearlSeconds", pvpPearlSeconds), 1.0F, 30.0F);
 		pearlX = getInt(o, "pearlX", pearlX);

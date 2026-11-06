@@ -494,6 +494,11 @@ public final class OpticModScreen extends Screen {
 			c.save();
 			return;
 		}
+		if ("realTimeOpponents".equals(key)) {
+			c.realTimeOpponents = !c.realTimeOpponents;
+			c.save();
+			return;
+		}
 		if ("minimalBobbing".equals(key)) {
 			c.minimalBobbing = !c.minimalBobbing;
 			c.save();
@@ -1148,6 +1153,9 @@ public final class OpticModScreen extends Screen {
 		rowY += 12;
 		rowY = drawSettingToggle("Hit Delay Fix", pc.hitDelayFix, "hitDelayFix", contentX, rowY, listW, mouseX, mouseY);
 		shadowed("No 0.5s click lock after a missed swing. Check the server's rules; some don't allow it.", contentX, rowY - 4, 0xFFAEB4BF, 7.5F);
+		rowY += 12;
+		rowY = drawSettingToggle("Real-Time Opponents", pc.realTimeOpponents, "realTimeOpponents", contentX, rowY, listW, mouseX, mouseY);
+		shadowed("Players snap to their latest position (1 tick, not 3). Visual only; less smooth at high ping.", contentX, rowY - 4, 0xFFAEB4BF, 7.5F);
 	}
 
 	private int drawSettingsHeader(int x, int y, String label) {
