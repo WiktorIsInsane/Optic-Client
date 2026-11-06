@@ -40,10 +40,10 @@ function Boot() {
 
   const splashStatus = holdSplash
     ? updater?.phase === 'installing'
-      ? 'Updating…'
+      ? 'Updating launcher…'
       : updater?.phase === 'downloading' && updater.percent > 0
-        ? `Updating… ${updater.percent}%`
-        : 'Updating…'
+        ? `Updating launcher… ${updater.percent}%`
+        : 'Updating launcher…'
     : updating && updater?.phase === 'checking'
       ? 'Checking for updates…'
       : undefined

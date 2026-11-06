@@ -165,6 +165,7 @@ public final class OpticRevampOptions {
 
 	public static Integer getColor(OpticConfig c, String key) {
 		if ("weatherSnowColor".equals(key)) return c.weatherSnowColor;
+		if ("weatherRainColor".equals(key)) return c.weatherRainColor;
 		if ("pingLowColor".equals(key)) return c.pingLowColor;
 		if ("pingMediumColor".equals(key)) return c.pingMediumColor;
 		if ("pingHighColor".equals(key)) return c.pingHighColor;
@@ -204,6 +205,7 @@ public final class OpticRevampOptions {
 
 	public static boolean setColor(OpticConfig c, String key, int color) {
 		if ("weatherSnowColor".equals(key)) c.weatherSnowColor = color;
+		else if ("weatherRainColor".equals(key)) c.weatherRainColor = color;
 		else 		if ("pingLowColor".equals(key)) c.pingLowColor = color;
 		else if ("pingMediumColor".equals(key)) c.pingMediumColor = color;
 		else if ("pingHighColor".equals(key)) c.pingHighColor = color;

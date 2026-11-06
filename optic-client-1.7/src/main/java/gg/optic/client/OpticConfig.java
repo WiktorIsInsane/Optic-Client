@@ -406,7 +406,8 @@ public final class OpticConfig {
 	public boolean nametagsBadlionFont = false;
 	public boolean nametagsRoundedCorners = false;
 	public boolean nametagsBackground = true;
-	public int nametagsBackgroundColor = 0x000000;
+	/** Black at 25% (opacity lives in the colour's top byte, see argb). */
+	public int nametagsBackgroundColor = 0xBF000000;
 	public int nametagsPersonalColor = 0xFFFFFF;
 	/** Per-player name text colors (username -> RGB). */
 	public final LinkedHashMap<String, Integer> nametagNameColors = new LinkedHashMap<String, Integer>();
@@ -457,6 +458,8 @@ public final class OpticConfig {
 	public float weatherOpacity = 100.0F;
 	/** Snowflake tint (white = normal snow). */
 	public int weatherSnowColor = 0xFFFFFF;
+	/** Raindrop tint (white = normal rain). */
+	public int weatherRainColor = 0xFFFFFF;
 
 	// Hurt Cam (Lunar-style)
 	public boolean disableHurtCam = false;
@@ -751,6 +754,11 @@ public final class OpticConfig {
 		nametagsRoundedCorners = read(values, "nametagsRoundedCorners", nametagsRoundedCorners);
 		nametagsBackground = read(values, "nametagsBackground", nametagsBackground);
 		nametagsBackgroundColor = readColor(values, "nametagsBackgroundColor", nametagsBackgroundColor);
+		// The old Background Opacity slider moved into the colour (opacity bar): carry it over once.
+		if ((values.getProperty("nametagsBackgroundAlpha") != null || values.getProperty("nametagsBackgroundOpacity") != null)
+			&& opacityOf(nametagsBackgroundColor) == 255) {
+			nametagsBackgroundColor = withOpacity(nametagsBackgroundColor, Math.round(nametagsBackgroundOpacity * 255.0F));
+		}
 		nametagsPersonalColor = readColor(values, "nametagsPersonalColor", nametagsPersonalColor);
 		readNameColorMap(values.getProperty("nametagNameColors", ""), nametagNameColors);
 
@@ -1082,7 +1090,6 @@ public final class OpticConfig {
 		values.setProperty("nametagsReplaceOwnColor", Boolean.toString(nametagsReplaceOwnColor));
 		values.setProperty("nametagsToggleAllKey", Integer.toString(nametagsToggleAllKey));
 		values.setProperty("nametagsTogglePlayersKey", Integer.toString(nametagsTogglePlayersKey));
-		values.setProperty("nametagsBackgroundAlpha", Float.toString(nametagsBackgroundOpacity));
 		values.setProperty("nametagsBadlionFont", Boolean.toString(nametagsBadlionFont));
 		values.setProperty("nametagsRoundedCorners", Boolean.toString(nametagsRoundedCorners));
 		values.setProperty("nametagsBackground", Boolean.toString(nametagsBackground));
@@ -1373,7 +1380,6 @@ public final class OpticConfig {
 		o.addProperty("nametagsReplaceOwnColor", nametagsReplaceOwnColor);
 		o.addProperty("nametagsToggleAllKey", nametagsToggleAllKey);
 		o.addProperty("nametagsTogglePlayersKey", nametagsTogglePlayersKey);
-		o.addProperty("nametagsBackgroundAlpha", nametagsBackgroundOpacity);
 		o.addProperty("nametagsBadlionFont", nametagsBadlionFont);
 		o.addProperty("nametagsRoundedCorners", nametagsRoundedCorners);
 		o.addProperty("nametagsBackground", nametagsBackground);
@@ -1638,6 +1644,9 @@ public final class OpticConfig {
 		nametagsRoundedCorners = getBool(o, "nametagsRoundedCorners", nametagsRoundedCorners);
 		nametagsBackground = getBool(o, "nametagsBackground", nametagsBackground);
 		nametagsBackgroundColor = getColor(o, "nametagsBackgroundColor", nametagsBackgroundColor);
+		if ((o.has("nametagsBackgroundAlpha") || o.has("nametagsBackgroundOpacity")) && opacityOf(nametagsBackgroundColor) == 255) {
+			nametagsBackgroundColor = withOpacity(nametagsBackgroundColor, Math.round(nametagsBackgroundOpacity * 255.0F));
+		}
 		nametagsPersonalColor = getColor(o, "nametagsPersonalColor", nametagsPersonalColor);
 		if (o.has("nametagNameColors")) {
 			nametagNameColors.clear();
@@ -1954,7 +1963,7 @@ public final class OpticConfig {
 				nametagsBadlionFont = false;
 				nametagsRoundedCorners = false;
 				nametagsBackground = true;
-				nametagsBackgroundColor = 0x000000;
+				nametagsBackgroundColor = 0xBF000000;
 				nametagsPersonalColor = 0xFFFFFF;
 				nametagNameColors.clear();
 				break;
@@ -2904,6 +2913,22 @@ public final class OpticConfig {
 	public boolean nickHideOwnSkin = true;
 	public boolean nickHideOthersSkin = false;
 
+	// ---- PotPvP pearl cooldown ----
+	public boolean pvpPearlCooldown = true;
+	/** Server pearl cooldown in seconds (1.7 has none; most PotPvP servers use 15). */
+	public float pvpPearlSeconds = 15.0F;
+	public int pearlX = 6;
+	public int pearlY = 110;
+	public float pearlScale = 1.0F;
+
+	// ---- Graphs ----
+	public boolean graphs = false;
+	/** FPS, Ping, TPS, Java, Failed Sprints, Missed Hits. */
+	public boolean[] graphOn = { true, true, false, false, false, false };
+	public int[] graphX = { 6, 6, 6, 6, 6, 6 };
+	public int[] graphY = { 140, 186, 232, 278, 324, 370 };
+	public float[] graphScale = { 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F };
+
 	// ---- Motion Blur ----
 	public boolean motionBlur = false;
 	/** 0 = V1, 1 = V2, 2 = V3. */
@@ -2940,9 +2965,22 @@ public final class OpticConfig {
 		motionBlur = read(values, "motionBlur", motionBlur);
 		weatherOpacity = clampFloat(readFloat(values, "weatherOpacity", weatherOpacity), 0.0F, 100.0F);
 		weatherSnowColor = readColor(values, "weatherSnowColor", weatherSnowColor);
+		weatherRainColor = readColor(values, "weatherRainColor", weatherRainColor);
 		fullbrightFull = read(values, "fullbrightFull", fullbrightFull);
 		fullbrightBoost = clampFloat(readFloat(values, "fullbrightBoost", fullbrightBoost), 1.0F, 10.0F);
 		fullbrightKey = readInt(values, "fullbrightKey", fullbrightKey);
+		pvpPearlCooldown = read(values, "pvpPearlCooldown", pvpPearlCooldown);
+		pvpPearlSeconds = clampFloat(readFloat(values, "pvpPearlSeconds", pvpPearlSeconds), 1.0F, 30.0F);
+		pearlX = readInt(values, "pearlX", pearlX);
+		pearlY = readInt(values, "pearlY", pearlY);
+		pearlScale = clampFloat(readFloat(values, "pearlScale", pearlScale), 0.5F, 3.0F);
+		graphs = read(values, "graphs", graphs);
+		for (int i = 0; i < graphOn.length; i++) {
+			graphOn[i] = read(values, "graphOn" + i, graphOn[i]);
+			graphX[i] = readInt(values, "graphX" + i, graphX[i]);
+			graphY[i] = readInt(values, "graphY" + i, graphY[i]);
+			graphScale[i] = clampFloat(readFloat(values, "graphScale" + i, graphScale[i]), 0.5F, 3.0F);
+		}
 		toggleSprintKey = readInt(values, "toggleSprintKey", toggleSprintKey);
 		toggleSprintToggled = read(values, "toggleSprintToggled", toggleSprintToggled);
 		motionBlurType = Math.max(0, Math.min(2, readInt(values, "motionBlurType", motionBlurType)));
@@ -2963,9 +3001,22 @@ public final class OpticConfig {
 		values.setProperty("motionBlur", Boolean.toString(motionBlur));
 		values.setProperty("weatherOpacity", Float.toString(weatherOpacity));
 		values.setProperty("weatherSnowColor", toHex(weatherSnowColor));
+		values.setProperty("weatherRainColor", toHex(weatherRainColor));
 		values.setProperty("fullbrightFull", Boolean.toString(fullbrightFull));
 		values.setProperty("fullbrightBoost", Float.toString(fullbrightBoost));
 		values.setProperty("fullbrightKey", Integer.toString(fullbrightKey));
+		values.setProperty("pvpPearlCooldown", Boolean.toString(pvpPearlCooldown));
+		values.setProperty("pvpPearlSeconds", Float.toString(pvpPearlSeconds));
+		values.setProperty("pearlX", Integer.toString(pearlX));
+		values.setProperty("pearlY", Integer.toString(pearlY));
+		values.setProperty("pearlScale", Float.toString(pearlScale));
+		values.setProperty("graphs", Boolean.toString(graphs));
+		for (int i = 0; i < graphOn.length; i++) {
+			values.setProperty("graphOn" + i, Boolean.toString(graphOn[i]));
+			values.setProperty("graphX" + i, Integer.toString(graphX[i]));
+			values.setProperty("graphY" + i, Integer.toString(graphY[i]));
+			values.setProperty("graphScale" + i, Float.toString(graphScale[i]));
+		}
 		values.setProperty("toggleSprintKey", Integer.toString(toggleSprintKey));
 		values.setProperty("toggleSprintToggled", Boolean.toString(toggleSprintToggled));
 		values.setProperty("motionBlurType", Integer.toString(motionBlurType));
@@ -2986,9 +3037,22 @@ public final class OpticConfig {
 		o.addProperty("motionBlur", motionBlur);
 		o.addProperty("weatherOpacity", weatherOpacity);
 		o.addProperty("weatherSnowColor", toHex(weatherSnowColor));
+		o.addProperty("weatherRainColor", toHex(weatherRainColor));
 		o.addProperty("fullbrightFull", fullbrightFull);
 		o.addProperty("fullbrightBoost", fullbrightBoost);
 		o.addProperty("fullbrightKey", fullbrightKey);
+		o.addProperty("pvpPearlCooldown", pvpPearlCooldown);
+		o.addProperty("pvpPearlSeconds", pvpPearlSeconds);
+		o.addProperty("pearlX", pearlX);
+		o.addProperty("pearlY", pearlY);
+		o.addProperty("pearlScale", pearlScale);
+		o.addProperty("graphs", graphs);
+		for (int i = 0; i < graphOn.length; i++) {
+			o.addProperty("graphOn" + i, graphOn[i]);
+			o.addProperty("graphX" + i, graphX[i]);
+			o.addProperty("graphY" + i, graphY[i]);
+			o.addProperty("graphScale" + i, graphScale[i]);
+		}
 		o.addProperty("toggleSprintKey", toggleSprintKey);
 		o.addProperty("toggleSprintToggled", toggleSprintToggled);
 		o.addProperty("motionBlurType", motionBlurType);
@@ -3009,9 +3073,22 @@ public final class OpticConfig {
 		motionBlur = getBool(o, "motionBlur", motionBlur);
 		weatherOpacity = clampFloat(getFloat(o, "weatherOpacity", weatherOpacity), 0.0F, 100.0F);
 		weatherSnowColor = getColor(o, "weatherSnowColor", weatherSnowColor);
+		weatherRainColor = getColor(o, "weatherRainColor", weatherRainColor);
 		fullbrightFull = getBool(o, "fullbrightFull", fullbrightFull);
 		fullbrightBoost = clampFloat(getFloat(o, "fullbrightBoost", fullbrightBoost), 1.0F, 10.0F);
 		fullbrightKey = getInt(o, "fullbrightKey", fullbrightKey);
+		pvpPearlCooldown = getBool(o, "pvpPearlCooldown", pvpPearlCooldown);
+		pvpPearlSeconds = clampFloat(getFloat(o, "pvpPearlSeconds", pvpPearlSeconds), 1.0F, 30.0F);
+		pearlX = getInt(o, "pearlX", pearlX);
+		pearlY = getInt(o, "pearlY", pearlY);
+		pearlScale = clampFloat(getFloat(o, "pearlScale", pearlScale), 0.5F, 3.0F);
+		graphs = getBool(o, "graphs", graphs);
+		for (int i = 0; i < graphOn.length; i++) {
+			graphOn[i] = getBool(o, "graphOn" + i, graphOn[i]);
+			graphX[i] = getInt(o, "graphX" + i, graphX[i]);
+			graphY[i] = getInt(o, "graphY" + i, graphY[i]);
+			graphScale[i] = clampFloat(getFloat(o, "graphScale" + i, graphScale[i]), 0.5F, 3.0F);
+		}
 		toggleSprintKey = getInt(o, "toggleSprintKey", toggleSprintKey);
 		toggleSprintToggled = getBool(o, "toggleSprintToggled", toggleSprintToggled);
 		motionBlurType = Math.max(0, Math.min(2, getInt(o, "motionBlurType", motionBlurType)));

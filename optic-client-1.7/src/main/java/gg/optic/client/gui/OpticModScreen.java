@@ -66,6 +66,7 @@ public final class OpticModScreen extends Screen {
 	public static final int MODULE_BOSS_BAR = 40;
 	public static final int MODULE_NICK_HIDER = 41;
 	public static final int MODULE_MOTION_BLUR = 42;
+	public static final int MODULE_GRAPHS = 43;
 
 	private static final int FPS = MODULE_FPS;
 	private static final int CPS = MODULE_CPS;
@@ -100,6 +101,7 @@ public final class OpticModScreen extends Screen {
 	private static final int BOSS_BAR = MODULE_BOSS_BAR;
 	private static final int NICK_HIDER = MODULE_NICK_HIDER;
 	private static final int MOTION_BLUR = MODULE_MOTION_BLUR;
+	private static final int GRAPHS = MODULE_GRAPHS;
 
 	// Colors and sizes live in OpticTheme so the look can be tuned in one place.
 	private static final int ACCENT = OpticTheme.ACCENT;
@@ -287,6 +289,7 @@ public final class OpticModScreen extends Screen {
 		modules.add(new ModuleCard(PVP_TWEAKS, "PotPvP", "Low fire, clear water, overlays", "\uD83D\uDD25"));
 		modules.add(new ModuleCard(NICK_HIDER, "Nick Hider", "Hide names and skins on screen", "🎭"));
 		modules.add(new ModuleCard(MOTION_BLUR, "Motion Blur", "Smooth trails when you move", "🌀"));
+		modules.add(new ModuleCard(GRAPHS, "Graphs", "FPS, ping, TPS and more as graphs", "📈"));
 		modules.add(new ModuleCard(PARTICLES, "Particles", "Client-side hit particles", "\u2728"));
 		modules.add(new ModuleCard(SCOREBOARD, "Scoreboard", "Sidebar scoreboard style", "\uD83D\uDCCB"));
 		modules.add(new ModuleCard(TIME_CHANGER, "Time Changer", "Freeze time and sky type", "\uD83C\uDF19"));
@@ -418,6 +421,7 @@ public final class OpticModScreen extends Screen {
 			case BOSS_BAR: return c.bossBar;
 			case NICK_HIDER: return c.nickHider;
 			case MOTION_BLUR: return c.motionBlur;
+			case GRAPHS: return c.graphs;
 			case HIT_PREDICT: return c.hitPredict;
 			case FOV: return c.fovMod;
 			case FREE_LOOK: return c.freeLook;
@@ -559,6 +563,7 @@ public final class OpticModScreen extends Screen {
 			case BOSS_BAR: c.bossBar = !c.bossBar; break;
 			case NICK_HIDER: c.nickHider = !c.nickHider; break;
 			case MOTION_BLUR: c.motionBlur = !c.motionBlur; break;
+			case GRAPHS: c.graphs = !c.graphs; break;
 			case HIT_PREDICT: c.hitPredict = !c.hitPredict; break;
 			case FOV: c.fovMod = !c.fovMod; break;
 			case FREE_LOOK: c.freeLook = !c.freeLook; break;
@@ -1902,8 +1907,11 @@ public final class OpticModScreen extends Screen {
 		fill(hueX - 1, hy - 1, hueX + PICK_HUE_W + 1, hy + 1, 0xFFFFFFFF);
 
 		// Opacity strip: the colour fading from solid (top) to see-through (bottom), over a checkerboard.
+		// Not offered for FPS and CPS colours.
+		boolean showAlpha = !(key.startsWith("fps") || key.startsWith("cps"));
 		int alphaX = hueX + PICK_HUE_W + 6;
 		int opacity = OpticConfig.opacityOf(selectedColor);
+		if (showAlpha) {
 		for (int cy = 0; cy < PICK_SV; cy += 4) {
 			for (int cx = 0; cx < PICK_HUE_W; cx += 4) {
 				boolean dark = ((cx / 4) + (cy / 4)) % 2 == 0;
@@ -1917,9 +1925,10 @@ public final class OpticModScreen extends Screen {
 		fill(alphaX - 2, ay - 2, alphaX + PICK_HUE_W + 2, ay + 2, 0xFF000000);
 		fill(alphaX - 1, ay - 1, alphaX + PICK_HUE_W + 1, ay + 1, 0xFFFFFFFF);
 		optionHits.add(OptionHit.colorAlpha(key, alphaX - 2, svY, PICK_HUE_W + 4, PICK_SV));
+		}
 
 		// Right column: old | new preview, hex code (click to copy / type), RGB values.
-		int colX = alphaX + PICK_HUE_W + 10;
+		int colX = (showAlpha ? alphaX : hueX) + PICK_HUE_W + 10;
 		int colW = px + pw - PICK_PAD - colX;
 		int current = selectedColor & 0xFFFFFF;
 		fill(colX, svY, colX + colW / 2, svY + 24, 0xFF000000 | pickOriginal);
@@ -1945,7 +1954,7 @@ public final class OpticModScreen extends Screen {
 		int rgbY = hexY + 22;
 		String[] names = { "R", "G", "B", "A" };
 		int[] parts = { (current >> 16) & 0xFF, (current >> 8) & 0xFF, current & 0xFF, Math.round(opacity * 100.0F / 255.0F) };
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < (showAlpha ? 4 : 3); i++) {
 			int ry = rgbY + i * 10;
 			shadowed(names[i], colX + 1, ry, 0xFFAEB4BF, 7.5F);
 			String v = i == 3 ? parts[i] + "%" : Integer.toString(parts[i]);
@@ -2210,7 +2219,6 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.key("nametagsToggleAllKey", "Toggle All Nametags"));
 				options.add(ConfigOption.key("nametagsTogglePlayersKey", "Toggle Player Nametags"));
 				options.add(ConfigOption.toggle("nametagsHideInF1", "Hide Nametags in F1"));
-				options.add(ConfigOption.slider("nametagsBackgroundOpacity", "Background Opacity", 0.0F, 1.0F));
 				options.add(ConfigOption.toggle("nametagsBackground", "Background"));
 				options.add(ConfigOption.color("nametagsBackgroundColor", "Background Color"));
 				options.add(ConfigOption.toggle("nametagsReplaceOwnColor", "Replace Own Nametag Color"));
@@ -2253,6 +2261,7 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.header("General"));
 				options.add(ConfigOption.cycle("weatherMode", "Weather"));
 				options.add(ConfigOption.slider("weatherOpacity", "Rain/Snow Opacity", 0.0F, 100.0F));
+				options.add(ConfigOption.color("weatherRainColor", "Rain Color"));
 				options.add(ConfigOption.color("weatherSnowColor", "Snow Color"));
 				break;
 			case NICK_HIDER: {
@@ -2272,6 +2281,12 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.toggle("nickHideOthersSkin", "Hide Others' Skins"));
 				break;
 			}
+			case GRAPHS:
+				options.add(ConfigOption.header("Graphs (move them in Edit HUD)"));
+				for (int gi = 0; gi < gg.optic.client.hud.OpticGraphs.COUNT; gi++) {
+					options.add(ConfigOption.toggle("graphOn" + gi, gg.optic.client.hud.OpticGraphs.NAMES[gi] + " Graph"));
+				}
+				break;
 			case MOTION_BLUR:
 				options.add(ConfigOption.header("General"));
 				options.add(ConfigOption.cycle("motionBlurType", "Type"));
@@ -2305,6 +2320,9 @@ public final class OpticModScreen extends Screen {
 				options.add(ConfigOption.toggle("pvpClearWater", "Clear Water"));
 				options.add(ConfigOption.toggle("pvpNoVignette", "No Vignette"));
 				options.add(ConfigOption.toggle("pvpNoPortal", "No Portal Overlay"));
+				options.add(ConfigOption.header("Pearl Cooldown"));
+				options.add(ConfigOption.toggle("pvpPearlCooldown", "Show Pearl Cooldown"));
+				options.add(ConfigOption.slider("pvpPearlSeconds", "Cooldown (seconds)", 1.0F, 30.0F));
 				break;
 			case SKINS_3D:
 				options.add(ConfigOption.header("Layers"));
@@ -2461,6 +2479,8 @@ public final class OpticModScreen extends Screen {
 	private boolean getBool(String key) {
 		OpticConfig c = OpticClient.get().config();
 		if ("fullbrightFull".equals(key)) return c.fullbrightFull;
+		if ("pvpPearlCooldown".equals(key)) return c.pvpPearlCooldown;
+		if (key.startsWith("graphOn")) return c.graphOn[Integer.parseInt(key.substring(7))];
 		if ("nickHideOwnName".equals(key)) return c.nickHideOwnName;
 		if ("nickHideOthers".equals(key)) return c.nickHideOthers;
 		if ("nickCustomSuffix".equals(key)) return c.nickCustomSuffix;
@@ -2561,6 +2581,16 @@ public final class OpticModScreen extends Screen {
 
 	private void setBool(String key, boolean value) {
 		OpticConfig c = OpticClient.get().config();
+		if ("pvpPearlCooldown".equals(key)) {
+			c.pvpPearlCooldown = value;
+			c.save();
+			return;
+		}
+		if (key.startsWith("graphOn")) {
+			c.graphOn[Integer.parseInt(key.substring(7))] = value;
+			c.save();
+			return;
+		}
 		if ("fullbrightFull".equals(key)) {
 			c.fullbrightFull = value;
 			c.save();
@@ -2852,6 +2882,7 @@ public final class OpticModScreen extends Screen {
 		if ("motionBlurAmount".equals(key)) return c.motionBlurAmount;
 		if ("weatherOpacity".equals(key)) return c.weatherOpacity;
 		if ("fullbrightBoost".equals(key)) return c.fullbrightBoost;
+		if ("pvpPearlSeconds".equals(key)) return c.pvpPearlSeconds;
 		if ("fullbrightGamma".equals(key)) return c.fullbrightGamma;
 		if ("skins3dDistance".equals(key)) return c.skins3dDistance;
 		if ("particleMultiplier".equals(key)) return c.particleMultiplier;
@@ -2880,7 +2911,10 @@ public final class OpticModScreen extends Screen {
 			c.save();
 			return;
 		}
-		if ("fullbrightBoost".equals(key)) {
+		if ("pvpPearlSeconds".equals(key)) {
+			c.pvpPearlSeconds = Math.max(1.0F, Math.min(30.0F, Math.round(value * 2.0F) / 2.0F));
+			c.save();
+		} else 		if ("fullbrightBoost".equals(key)) {
 			c.fullbrightBoost = Math.max(1.0F, Math.min(10.0F, Math.round(value * 10.0F) / 10.0F));
 			c.save();
 		} else 		if ("weatherOpacity".equals(key)) {

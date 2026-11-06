@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process'
 import { app, shell } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import { IpcChannel } from '../../shared/ipc'
@@ -242,9 +243,65 @@ function queueInstall(): void {
   publish('installing', { latestVersion: state.latestVersion, percent: 100 })
   setTimeout(() => {
     markQuitting()
+    showUpdatingWindow()
     // Silent install (no installer window), then the launcher reopens.
     autoUpdater.quitAndInstall(true, true)
   }, 700)
+}
+
+/**
+ * The launcher has to close while the silent installer replaces its files, which looks like
+ * it simply quit. Show a small "Updating launcher…" window meanwhile; it closes itself once
+ * the new launcher has started (or after 3 minutes). Separate process, so it outlives us.
+ */
+function showUpdatingWindow(): void {
+  if (process.platform !== 'win32') return
+  const script = `
+Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+$start = Get-Date
+$f = New-Object Windows.Forms.Form
+$f.FormBorderStyle = 'None'
+$f.StartPosition = 'CenterScreen'
+$f.Size = New-Object Drawing.Size(380, 120)
+$f.BackColor = [Drawing.Color]::FromArgb(18, 19, 24)
+$f.TopMost = $true
+$f.Text = 'Optic'
+$title = New-Object Windows.Forms.Label
+$title.Text = 'Updating launcher...'
+$title.ForeColor = [Drawing.Color]::White
+$title.Font = New-Object Drawing.Font('Segoe UI', 15)
+$title.Dock = 'Fill'
+$title.TextAlign = 'MiddleCenter'
+$note = New-Object Windows.Forms.Label
+$note.Text = 'Optic will reopen by itself in a moment'
+$note.ForeColor = [Drawing.Color]::FromArgb(160, 166, 178)
+$note.Font = New-Object Drawing.Font('Segoe UI', 9)
+$note.Dock = 'Bottom'
+$note.Height = 34
+$note.TextAlign = 'MiddleCenter'
+$f.Controls.Add($title)
+$f.Controls.Add($note)
+$t = New-Object Windows.Forms.Timer
+$t.Interval = 1000
+$t.Add_Tick({
+  $age = ((Get-Date) - $start).TotalSeconds
+  $fresh = Get-Process -Name 'Optic' -ErrorAction SilentlyContinue | Where-Object { $_.StartTime -gt $start }
+  if (($age -gt 4 -and $fresh) -or $age -gt 180) { $t.Stop(); $f.Close() }
+})
+$t.Start()
+[Windows.Forms.Application]::Run($f)
+`
+  try {
+    const encoded = Buffer.from(script, 'utf16le').toString('base64')
+    const child = spawn(
+      'powershell.exe',
+      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-EncodedCommand', encoded],
+      { detached: true, stdio: 'ignore', windowsHide: true }
+    )
+    child.unref()
+  } catch {
+    /* the update still installs, just without the window */
+  }
 }
 
 interface PublishExtra {

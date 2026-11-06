@@ -15,6 +15,16 @@ import org.spongepowered.asm.mixin.injection.Redirect;
  */
 @Mixin(ClientPlayNetworkHandler.class)
 public class ClientPlayNetworkHandlerMixin {
+	/** Graphs: the server sends its world time every second; how far it moved gives TPS. */
+	@org.spongepowered.asm.mixin.injection.Inject(
+		method = "onWorldTimeUpdate(Lnet/minecraft/network/packet/s2c/play/WorldTimeUpdateS2CPacket;)V",
+		at = @At("HEAD"),
+		require = 0
+	)
+	private void optic$tps(net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket packet, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+		gg.optic.client.hud.OpticGraphs.onWorldTime(packet.getTime());
+	}
+
 	@Redirect(
 		method = "onEntityAnimation(Lnet/minecraft/network/packet/s2c/play/EntityAnimationS2CPacket;)V",
 		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/ParticleManager;addParticle(Lnet/minecraft/client/particle/Particle;)V")

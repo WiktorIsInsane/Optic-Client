@@ -124,6 +124,10 @@ public final class OpticHudEditorScreen extends Screen {
 		if (c.hotbar) {
 			items.add(HudItem.box("HOTBAR", OpticModScreen.MODULE_HOTBAR, true));
 		}
+		// Pearl cooldown and graphs: each its own item.
+		for (String wid : gg.optic.client.hud.OpticWidgets.enabled(c)) {
+			items.add(HudItem.box(wid, gg.optic.client.hud.OpticWidgets.moduleOf(wid), true));
+		}
 		if (c.bossBar && c.bossBarShow) {
 			items.add(HudItem.box("BOSSBAR", OpticModScreen.MODULE_BOSS_BAR, true));
 		}
@@ -156,6 +160,12 @@ public final class OpticHudEditorScreen extends Screen {
 				item.y = gg.optic.client.hud.OpticBossBar.y(c) - 2;
 				item.w = gg.optic.client.hud.OpticBossBar.drawW(c) + 4;
 				item.h = gg.optic.client.hud.OpticBossBar.drawH(c) + 4;
+			} else if (gg.optic.client.hud.OpticWidgets.isWidget(item.id)) {
+				int[] size = gg.optic.client.hud.OpticWidgets.size(item.id, c);
+				item.x = gg.optic.client.hud.OpticWidgets.x(item.id, c) - 2;
+				item.y = gg.optic.client.hud.OpticWidgets.y(item.id, c) - 2;
+				item.w = size[0] + 4;
+				item.h = size[1] + 4;
 			} else if ("FPS".equals(item.id) || "CPS".equals(item.id) || "PING".equals(item.id) || "XYZ".equals(item.id) || "POTIONS".equals(item.id) || "TITLES".equals(item.id)) {
 				int[] size = elementSize(item.id, c);
 				item.x = posX(item.id, c) - 2;
@@ -238,6 +248,7 @@ public final class OpticHudEditorScreen extends Screen {
 	}
 
 	private float scaleOf(String id, OpticConfig c) {
+		if (gg.optic.client.hud.OpticWidgets.isWidget(id)) return gg.optic.client.hud.OpticWidgets.scale(id, c);
 		if ("FPS".equals(id)) return c.fpsScale;
 		if ("CPS".equals(id)) return c.cpsScale;
 		if ("PING".equals(id)) return c.pingScale;
@@ -254,6 +265,10 @@ public final class OpticHudEditorScreen extends Screen {
 	private void setScale(String id, float scale) {
 		OpticConfig c = OpticClient.get().config();
 		scale = Math.max(0.5F, Math.min(3.0F, scale));
+		if (gg.optic.client.hud.OpticWidgets.isWidget(id)) {
+			gg.optic.client.hud.OpticWidgets.setScale(id, c, scale);
+			return;
+		}
 		if ("FPS".equals(id)) c.fpsScale = scale;
 		else if ("CPS".equals(id)) c.cpsScale = scale;
 		else if ("PING".equals(id)) c.pingScale = scale;
@@ -267,6 +282,7 @@ public final class OpticHudEditorScreen extends Screen {
 	}
 
 	private int posX(String id, OpticConfig c) {
+		if (gg.optic.client.hud.OpticWidgets.isWidget(id)) return gg.optic.client.hud.OpticWidgets.x(id, c);
 		if ("FPS".equals(id)) return c.fpsX;
 		if ("CPS".equals(id)) return c.cpsX;
 		if ("PING".equals(id)) return c.pingX;
@@ -290,6 +306,7 @@ public final class OpticHudEditorScreen extends Screen {
 	}
 
 	private int posY(String id, OpticConfig c) {
+		if (gg.optic.client.hud.OpticWidgets.isWidget(id)) return gg.optic.client.hud.OpticWidgets.y(id, c);
 		if ("FPS".equals(id)) return c.fpsY;
 		if ("CPS".equals(id)) return c.cpsY;
 		if ("PING".equals(id)) return c.pingY;
@@ -309,6 +326,10 @@ public final class OpticHudEditorScreen extends Screen {
 
 	private void setPos(String id, int x, int y) {
 		OpticConfig c = OpticClient.get().config();
+		if (gg.optic.client.hud.OpticWidgets.isWidget(id)) {
+			gg.optic.client.hud.OpticWidgets.setPos(id, c, x, y);
+			return;
+		}
 		if ("FPS".equals(id)) { c.fpsX = x; c.fpsY = y; }
 		else if ("CPS".equals(id)) { c.cpsX = x; c.cpsY = y; }
 		else if ("PING".equals(id)) { c.pingX = x; c.pingY = y; }

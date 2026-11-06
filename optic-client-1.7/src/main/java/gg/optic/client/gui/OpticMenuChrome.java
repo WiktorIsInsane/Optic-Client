@@ -306,12 +306,10 @@ public final class OpticMenuChrome {
 
 	public static void drawFooter(MinecraftClient client, int screenW, int screenH, Layout layout, int mouseX, int mouseY) {
 		float footer = 8.0F;
-		String brand = "OPTIC";
-		String version = "  " + OpticClient.VERSION + " \u00b7 1.7.10";
-		int y = screenH - OpticUiFont.heightSharp(client, brand, ACCENT, footer) - 5;
-		OpticUiFont.drawSharp(client, brand, 6, y, ACCENT, footer);
-		int bw = OpticUiFont.widthSharp(client, brand, ACCENT, footer);
-		OpticUiFont.drawSharp(client, version, 6 + bw, y, OpticTheme.MUTED, footer);
+		// Bottom left: the game version, in the same colour as the Mojang line on the right.
+		String version = "Minecraft 1.7.10";
+		int y = screenH - OpticUiFont.heightSharp(client, version, OpticTheme.FAINT, footer) - 5;
+		OpticUiFont.drawSharp(client, version, 6, y, OpticTheme.FAINT, footer);
 
 		String copyright = "Copyright Mojang AB. Do not distribute!";
 		int cw = OpticUiFont.widthSharp(client, copyright, OpticTheme.FAINT, footer);

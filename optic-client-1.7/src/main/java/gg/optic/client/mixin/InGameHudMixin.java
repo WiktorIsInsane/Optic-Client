@@ -74,6 +74,10 @@ public abstract class InGameHudMixin extends DrawableHelper {
 		OpticCrosshair.render(client, window.getWidth() / 2, window.getHeight() / 2);
 		if (config.toggleSprint && config.toggleSprintShowHud) OpticHud.drawSprint(client, config);
 		if (config.keystrokes) OpticKeystrokes.render(client, config, freezeInput);
+		// Pearl cooldown and graphs; shown even when idle while the HUD can be edited.
+		boolean editingHud = client.currentScreen instanceof gg.optic.client.gui.OpticHudEditorScreen
+			|| client.currentScreen instanceof gg.optic.client.gui.OpticModScreen;
+		gg.optic.client.hud.OpticWidgets.renderAll(client, config, editingHud);
 		if (OpticTab.visible(client) && client.world != null) {
 			OpticTab.render(client, window.getWidth(), client.world.getScoreboard(), client.world.getScoreboard().getObjectiveForSlot(0));
 		}

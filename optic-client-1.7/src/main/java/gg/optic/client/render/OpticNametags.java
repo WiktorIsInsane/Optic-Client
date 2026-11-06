@@ -152,7 +152,7 @@ public final class OpticNametags {
 		if (sneaking) GlStateManager.enableDepthTest();
 		else GlStateManager.disableDepthTest();
 
-		float plate = c.nametagsBackgroundOpacity;
+		float plate = gg.optic.client.OpticConfig.opacityOf(c.nametagsBackgroundColor) / 255.0F; // opacity comes from the background colour (picker)
 		if (plate < 0.0F) plate = 0.0F;
 		else if (plate > 1.0F) plate = 1.0F;
 		if (c.nametagsBackground && plate > 0.0F) {

@@ -53,6 +53,24 @@ public abstract class WeatherRendererMixin {
 		return strength * Math.max(0.0F, Math.min(100.0F, c.weatherOpacity)) / 100.0F;
 	}
 
+	/** Rain Color: tints raindrops (the first weather colour call). */
+	@Redirect(
+		method = "renderWeather(F)V",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Tessellator;color(FFFF)V", ordinal = 0),
+		require = 0
+	)
+	private void optic$rainColor(net.minecraft.client.render.Tessellator tessellator, float r, float g, float b, float a) {
+		OpticConfig c = OpticClient.get().config();
+		if (c.weatherChanger) {
+			int rain = c.weatherRainColor;
+			r *= ((rain >> 16) & 0xFF) / 255.0F;
+			g *= ((rain >> 8) & 0xFF) / 255.0F;
+			b *= (rain & 0xFF) / 255.0F;
+			a *= OpticConfig.opacityOf(rain) / 255.0F;
+		}
+		tessellator.color(r, g, b, a);
+	}
+
 	/** Snow Color: tints snowflakes (the second weather colour call; the first is rain). */
 	@Redirect(
 		method = "renderWeather(F)V",

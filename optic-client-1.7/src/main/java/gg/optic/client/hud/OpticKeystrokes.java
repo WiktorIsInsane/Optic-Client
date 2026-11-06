@@ -42,6 +42,9 @@ public final class OpticKeystrokes {
 	}
 
 	public static void render(MinecraftClient client, OpticConfig c, boolean freeze) {
+		// Blending on: colours can be see-through (opacity bar).
+		com.mojang.blaze3d.platform.GlStateManager.enableBlend();
+		com.mojang.blaze3d.platform.GlStateManager.blendFuncSeparate(770, 771, 1, 0);
 		int box = box(c);
 		int gap = gap(c);
 		int x = c.keystrokesX;

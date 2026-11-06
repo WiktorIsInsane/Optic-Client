@@ -353,6 +353,9 @@ public final class OpticHud {
 	}
 
 	public static void drawPieces(MinecraftClient client, List<Piece> pieces, int x, int y, boolean opticFont, boolean shadow, float scale) {
+		// The hotbar (drawn just before) leaves blending off, which would draw see-through colours solid.
+		GlStateManager.enableBlend();
+		GlStateManager.blendFuncSeparate(770, 771, 1, 0);
 		int cursor = x;
 		float size = OpticHudLayout.fontSize(scale);
 		for (int i = 0; i < pieces.size(); i++) {

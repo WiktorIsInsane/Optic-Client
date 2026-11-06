@@ -263,6 +263,7 @@ public abstract class MinecraftClientMixin implements gg.optic.client.account.Se
 			}
 		}
 		OpticZoom.tick();
+		gg.optic.client.hud.OpticGraphs.tick(client, OpticClient.get().config());
 		OpticHud.tickCopy(client);
 		OpticTab.tick(client);
 		// The tick's look, position and actions are written by now. Push them out immediately.
@@ -298,6 +299,7 @@ public abstract class MinecraftClientMixin implements gg.optic.client.account.Se
 	/** CPS counter only. The click itself runs untouched. */
 	@Inject(method = "doAttack()V", at = @At("HEAD"))
 	private void optic$leftClick(CallbackInfo ci) {
+		gg.optic.client.hud.OpticGraphs.onAttack((MinecraftClient) (Object) this);
 		if (currentScreen == null && !OpticGui.isOpticScreenOpen()) OpticClient.get().clicks().click(0);
 	}
 
@@ -309,6 +311,7 @@ public abstract class MinecraftClientMixin implements gg.optic.client.account.Se
 
 	@Inject(method = "doUse()V", at = @At("HEAD"))
 	private void optic$rightClick(CallbackInfo ci) {
+		gg.optic.client.hud.OpticPearl.onUse((MinecraftClient) (Object) this, OpticClient.get().config());
 		if (!OpticGui.isOpticScreenOpen()) OpticClient.get().clicks().click(1);
 	}
 }
