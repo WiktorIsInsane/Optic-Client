@@ -290,6 +290,7 @@ public final class OpticModScreen extends Screen {
 		modules.add(new ModuleCard(NICK_HIDER, "Nick Hider", "Hide names and skins on screen", "🎭"));
 		modules.add(new ModuleCard(MOTION_BLUR, "Motion Blur", "Smooth trails when you move", "🌀"));
 		modules.add(new ModuleCard(GRAPHS, "Graphs", "FPS, ping, TPS and more as graphs", "📈"));
+		modules.add(new ModuleCard(HIT_PREDICT, "Hit Predict", "Instant hit flash, hides ping (visual only)", "⚡"));
 		modules.add(new ModuleCard(PARTICLES, "Particles", "Client-side hit particles", "\u2728"));
 		modules.add(new ModuleCard(SCOREBOARD, "Scoreboard", "Sidebar scoreboard style", "\uD83D\uDCCB"));
 		modules.add(new ModuleCard(TIME_CHANGER, "Time Changer", "Freeze time and sky type", "\uD83C\uDF19"));
@@ -2323,7 +2324,8 @@ public final class OpticModScreen extends Screen {
 				}
 				break;
 			case HIT_PREDICT:
-				options.add(ConfigOption.header("Visual only. Clicks stay vanilla."));
+				options.add(ConfigOption.header("Visual only: your target flashes red the moment you hit"));
+				options.add(ConfigOption.header("(in 3 blocks, not already hurt). Nothing extra is sent."));
 				break;
 			case BOSS_BAR:
 				options.add(ConfigOption.header("General"));

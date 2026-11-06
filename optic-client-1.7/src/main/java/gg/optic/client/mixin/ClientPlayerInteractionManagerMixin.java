@@ -26,6 +26,8 @@ public class ClientPlayerInteractionManagerMixin {
 
 	@Inject(method = "attackEntity(Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/entity/Entity;)V", at = @At("TAIL"))
 	private void optic$alwaysSharpness(PlayerEntity player, Entity target, CallbackInfo ci) {
+		// Hit Predict: instant hurt flash (visual only).
+		gg.optic.client.render.OpticHitPredict.onAttack(player, target);
 		OpticConfig c = OpticClient.get().config();
 		float modifier = target instanceof LivingEntity ? EnchantmentHelper.method_6387(player, (LivingEntity) target) : 0.0F;
 		if (!c.particles || !c.alwaysSharpnessParticles) return;

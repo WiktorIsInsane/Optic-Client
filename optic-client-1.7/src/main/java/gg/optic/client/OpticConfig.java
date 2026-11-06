@@ -373,7 +373,8 @@ public final class OpticConfig {
 	// Particles
 	public boolean particles = false;
 	public boolean showCriticalHitParticles = true;
-	public boolean alwaysSharpnessParticles = true;
+	// Off by default: it adds sharpness sparkles to every hit, which servers like Minemen never show.
+	public boolean alwaysSharpnessParticles = false;
 	public float particleMultiplier = 1.0F;
 	public boolean removeVanillaColorFilter = false;
 	public boolean renderOwnParticles = true;

@@ -33,6 +33,7 @@
     "InventoryScreenMixin",
     "LanguageButtonMixin",
     "ListWidgetMixin",
+    "LivingEntityHurtMixin",
     "LivingEntityRendererMixin",
     "LoadingScreenMixin",
     "MinecraftClientMixin",
